@@ -1,0 +1,30 @@
+const express = require('express');
+const router = express.Router();
+const AdminController = require('../controllers/AdminController');
+const { authenticate } = require('../middleware/auth');
+
+// Middleware để kiểm tra quyền admin
+const adminAuth = (req, res, next) => {
+  if (req.user.loai_tai_khoan !== 'admin') {
+    return res.status(403).json({ message: 'Không có quyền truy cập' });
+  }
+  next();
+};
+
+// Dashboard
+router.get('/dashboard', authenticate, adminAuth, AdminController.getDashboard);
+
+// Quản lý đăng ký tài xế
+router.get('/driver-registrations', authenticate, adminAuth, AdminController.getDriverRegistrations);
+router.get('/driver-registrations/:id', authenticate, adminAuth, AdminController.getDriverRegistrationById);
+router.post('/driver-registrations/:id/approve', authenticate, adminAuth, AdminController.approveDriverRegistration);
+router.post('/driver-registrations/:id/reject', authenticate, adminAuth, AdminController.rejectDriverRegistration);
+
+// Quản lý voucher
+router.get('/vouchers', authenticate, adminAuth, AdminController.getVouchers);
+router.post('/vouchers', authenticate, adminAuth, AdminController.createVoucher);
+router.get('/vouchers/:id', authenticate, adminAuth, AdminController.getVoucherById);
+router.put('/vouchers/:id', authenticate, adminAuth, AdminController.updateVoucher);
+router.delete('/vouchers/:id', authenticate, adminAuth, AdminController.deleteVoucher);
+
+module.exports = router;
