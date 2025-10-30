@@ -15,8 +15,8 @@ router.post('/register/customer', validateUserRegistration, AuthController.regis
 // Đăng ký tài xế  
 router.post('/register/driver', validateDriverRegistration, AuthController.registerDriver);
 
-// Đăng ký đơn xin làm tài xế (chờ duyệt)
-router.post('/register-driver', AuthController.submitDriverRegistration);
+// Đăng ký đơn xin làm tài xế (chờ duyệt) - yêu cầu xác thực để lấy thông tin user tự động
+router.post('/register-driver', authenticate, AuthController.submitDriverRegistration);
 
 // Đăng nhập
 router.post('/login', validateLogin, AuthController.login);

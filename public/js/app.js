@@ -326,6 +326,12 @@ class DCCarBooking {
         const userNav = document.getElementById('user-nav');
         const userInfo = document.getElementById('user-info'); // Alternative user nav
         const userName = document.getElementById('user-name');
+        // Nav items that should be hidden for guests (keep only 'Trang chủ' + 'Đăng nhập')
+        const bookingNav = document.getElementById('booking-nav');
+        const tripsNav = document.getElementById('trips-nav');
+        const driversNav = document.getElementById('drivers-nav');
+        const promosNav = document.getElementById('promos-nav');
+        const driverRegNav = document.getElementById('driverreg-nav');
 
         if (this.user) {
             console.log('User is logged in, updating UI'); // Debug log
@@ -337,6 +343,13 @@ class DCCarBooking {
             if (userNav) userNav.classList.remove('d-none');
             if (userInfo) userInfo.classList.remove('d-none');
             if (userName) userName.textContent = this.user.ten || this.user.ho_ten;
+
+            // Show main nav items for logged-in users
+            if (bookingNav) bookingNav.classList.remove('d-none');
+            if (tripsNav) tripsNav.classList.remove('d-none');
+            if (driversNav) driversNav.classList.remove('d-none');
+            if (promosNav) promosNav.classList.remove('d-none');
+            if (driverRegNav) driverRegNav.classList.remove('d-none');
             
             // Thêm link admin nếu user có role admin
             if (this.user.loai_tai_khoan === 'admin') {
@@ -366,6 +379,12 @@ class DCCarBooking {
             // Hide user navigation
             if (userNav) userNav.classList.add('d-none');
             if (userInfo) userInfo.classList.add('d-none');
+            // Hide main nav items for guests so only 'Trang chủ' and 'Đăng nhập' remain
+            if (bookingNav) bookingNav.classList.add('d-none');
+            if (tripsNav) tripsNav.classList.add('d-none');
+            if (driversNav) driversNav.classList.add('d-none');
+            if (promosNav) promosNav.classList.add('d-none');
+            if (driverRegNav) driverRegNav.classList.add('d-none');
             
             // Remove admin link if exists
             const adminLink = document.querySelector('.admin-link');
@@ -434,6 +453,8 @@ async function login() {
 
 async function register() {
     const name = document.getElementById('register-name').value;
+    const roleEl = document.getElementById('register-role');
+    const role = roleEl ? roleEl.value : 'khach_hang';
     const email = document.getElementById('register-email').value;
     const phone = document.getElementById('register-phone').value;
     const password = document.getElementById('register-password').value;
@@ -450,24 +471,37 @@ async function register() {
     }
 
     try {
+        const payload = {
+            ten: name,
+            email: email,
+            so_dien_thoai: phone,
+            mat_khau: password,
+            loai_tai_khoan: role
+        };
+
         const response = await fetch(`${API_BASE_URL}/auth/register/customer`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                ten: name,
-                email: email,
-                so_dien_thoai: phone,
-                mat_khau: password
-            })
+            body: JSON.stringify(payload)
         });
 
         const result = await response.json();
 
         if (result.success) {
-            showAlert('success', 'Đăng ký thành công! Vui lòng đăng nhập.');
-            toggleAuthForm(); // Switch to login form
+            if (role === 'tai_xe') {
+                // Save token and go to driver info page to complete driver profile
+                localStorage.setItem('token', result.data.token);
+                dcApp.token = result.data.token;
+                dcApp.user = result.data.user;
+                dcApp.updateUI();
+                showAlert('success', 'Tài khoản tạo thành công! Vui lòng hoàn thiện hồ sơ tài xế.');
+                setTimeout(() => window.location.href = '/driver-info.html', 800);
+            } else {
+                showAlert('success', 'Đăng ký thành công! Vui lòng đăng nhập.');
+                toggleAuthForm(); // Switch to login form
+            }
         } else {
             showAlert('error', result.message || 'Đăng ký thất bại');
         }

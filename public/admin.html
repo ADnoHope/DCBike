@@ -9,7 +9,7 @@
     <style>
         .sidebar {
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #000066 0%, #000044 100%);
             color: white;
         }
         
@@ -36,13 +36,13 @@
         }
         
         .card-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #000066 0%, #000044 100%);
             color: white;
             border-radius: 15px 15px 0 0 !important;
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #000066 0%, #000044 100%);
             border: none;
         }
         
@@ -62,7 +62,7 @@
         }
         
         .stats-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #000066 0%, #000044 100%);
             color: white;
             border-radius: 15px;
         }
@@ -89,9 +89,10 @@
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 sidebar p-3">
                 <div class="text-center mb-4">
-                    <h4><i class="bi bi-car-front"></i> DC Admin</h4>
+                    <a href="http://localhost:3000/index.html#" class="text-white text-decoration-none" title="Trang chủ">
+                        <h4><i class="bi bi-house-door-fill me-2"></i>DC Admin</h4>
+                    </a>
                 </div>
-                
                 <ul class="nav nav-pills flex-column">
                     <li class="nav-item mb-2">
                         <a class="nav-link active" href="#dashboard" data-section="dashboard">
@@ -121,7 +122,6 @@
                 <!-- Dashboard Section -->
                 <div id="dashboard-section" class="content-section">
                     <h2 class="mb-4">Dashboard</h2>
-                    
                     <!-- Stats Cards -->
                     <div class="row mb-4">
                         <div class="col-md-3 mb-3">
@@ -355,7 +355,7 @@
         const userData = localStorage.getItem('user');
         
         if (!token) {
-            window.location.href = 'login.html';
+            window.location.href = 'index.html';
         }
         
         // Check if user is admin
@@ -635,7 +635,23 @@
                 });
                 
                 if (response.ok) {
-                    const vouchers = await response.json();
+                    const json = await response.json();
+                    // API may return either:
+                    // { success: true, data: [ ... ] }
+                    // or { success: true, data: { promotions: [...], pagination: {...} } }
+                    let vouchers = [];
+                    if (json && json.data) {
+                        if (Array.isArray(json.data)) {
+                            vouchers = json.data;
+                        } else if (json.data.promotions && Array.isArray(json.data.promotions)) {
+                            vouchers = json.data.promotions;
+                        } else if (Array.isArray(json.data.promotions)) {
+                            vouchers = json.data.promotions;
+                        } else {
+                            // Fallback: try to treat data as array-like
+                            vouchers = Array.isArray(json.data) ? json.data : [];
+                        }
+                    }
                     displayVouchers(vouchers);
                 }
             } catch (error) {
@@ -743,7 +759,7 @@
 
         function logout() {
             localStorage.removeItem('token');
-            window.location.href = 'login.html';
+            window.location.href = 'index.html';
         }
 
         // Filter driver registrations

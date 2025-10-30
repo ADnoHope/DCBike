@@ -113,6 +113,32 @@ class Driver {
     }
   }
 
+  // Tạo hồ sơ tài xế cho user đã tồn tại
+  static async createForUser(userId, driverData) {
+    try {
+      const [result] = await pool.execute(`
+        INSERT INTO tai_xe (
+          nguoi_dung_id, so_bang_lai, loai_bang_lai, kinh_nghiem_lien_tuc,
+          bien_so_xe, loai_xe, mau_xe, hang_xe, so_cho_ngoi
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        userId,
+        driverData.so_bang_lai,
+        driverData.loai_bang_lai,
+        driverData.kinh_nghiem_lien_tuc || 0,
+        driverData.bien_so_xe,
+        driverData.loai_xe,
+        driverData.mau_xe || null,
+        driverData.hang_xe || null,
+        driverData.so_cho_ngoi || 4
+      ]);
+
+      return { driverId: result.insertId };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Cập nhật trạng thái tài xế
   static async updateStatus(driverId, trang_thai) {
     try {

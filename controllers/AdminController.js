@@ -1,5 +1,6 @@
 const DriverRegistration = require('../models/DriverRegistration');
 const Promotion = require('../models/Promotion');
+const Trip = require('../models/Trip');
 const { pool } = require('../config/database');
 
 class AdminController {
@@ -8,7 +9,7 @@ class AdminController {
     try {
       // Thống kê đơn đăng ký tài xế
       const driverStats = await DriverRegistration.getStats();
-      
+
       // Thống kê khuyến mãi
       const [promoStats] = await pool.execute(`
         SELECT 
@@ -30,11 +31,34 @@ class AdminController {
         promoSummary.tong += row.so_luong;
       });
 
+      // Tính doanh thu tháng hiện tại (từ ngày 1 đến hiện tại)
+      const start = new Date();
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+
+      const toMySQLDateTime = (d) => {
+        // YYYY-MM-DD HH:MM:SS
+        const iso = d.toISOString();
+        return iso.slice(0, 19).replace('T', ' ');
+      };
+
+      const tripStats = await Trip.getStatistics(toMySQLDateTime(start), toMySQLDateTime(end));
+      const monthlyRevenue = tripStats.tong_doanh_thu || 0;
+
+      // Return shape expected by front-end (top-level fields) while keeping
+      // detailed data under `data` for backward compatibility.
       res.json({
         success: true,
+        pendingRegistrations: driverStats.cho_duyet || 0,
+        approvedDrivers: driverStats.da_duyet || 0,
+        totalVouchers: promoSummary.tong || 0,
+        monthlyRevenue,
         data: {
           driverRegistrations: driverStats,
-          promotions: promoSummary
+          promotions: promoSummary,
+          tripStats
         }
       });
     } catch (error) {

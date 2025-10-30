@@ -5,6 +5,44 @@ const { validateLocationUpdate } = require('../middleware/validation');
 
 const router = express.Router();
 
+// Tạo hồ sơ tài xế cho user đã đăng ký (hoàn thiện hồ sơ) - yêu cầu xác thực
+router.post('/create', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { so_bang_lai, loai_bang_lai, kinh_nghiem_lien_tuc, bien_so_xe, loai_xe, mau_xe, hang_xe, so_cho_ngoi } = req.body;
+
+    // Basic validation
+    if (!so_bang_lai || !loai_bang_lai || !bien_so_xe || !loai_xe) {
+      return res.status(400).json({ success: false, message: 'Thiếu thông tin bắt buộc' });
+    }
+
+    // Check user exists and is permitted
+    const User = require('../models/User');
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+    }
+
+    // Create driver profile
+    const Driver = require('../models/Driver');
+    const result = await Driver.createForUser(userId, {
+      so_bang_lai,
+      loai_bang_lai,
+      kinh_nghiem_lien_tuc,
+      bien_so_xe,
+      loai_xe,
+      mau_xe,
+      hang_xe,
+      so_cho_ngoi
+    });
+
+    res.json({ success: true, message: 'Hoàn tất hồ sơ tài xế', data: result });
+  } catch (error) {
+    console.error('Create driver profile error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi hệ thống khi lưu hồ sơ tài xế' });
+  }
+});
+
 // Cập nhật vị trí tài xế
 router.post('/location', authenticate, requireDriver, validateLocationUpdate, async (req, res) => {
   try {

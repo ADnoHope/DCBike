@@ -23,19 +23,19 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#home">Trang chủ</a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" id="booking-nav">
                         <a class="nav-link" href="views/booking.html">Đặt xe</a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" id="trips-nav">
                         <a class="nav-link" href="views/trips.html">Chuyến đi</a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" id="drivers-nav">
                         <a class="nav-link" href="views/drivers.html">Tài xế</a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" id="promos-nav">
                         <a class="nav-link" href="views/promotions.html">Khuyến mãi</a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" id="driverreg-nav">
                         <a class="nav-link" href="driver-registration.html">Đăng ký tài xế</a>
                     </li>
                     <li class="nav-item" id="auth-nav">
@@ -326,6 +326,13 @@
                         <div class="mb-3">
                             <label class="form-label">Họ và tên</label>
                             <input type="text" class="form-control" id="register-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Vai trò</label>
+                            <select class="form-select" id="register-role" required>
+                                <option value="khach_hang">Người dùng</option>
+                                <option value="tai_xe">Tài xế</option>
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Email</label>

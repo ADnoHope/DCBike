@@ -8,7 +8,7 @@ class AuthController {
   // Đăng ký khách hàng
   static async registerCustomer(req, res) {
     try {
-      const { ten, email, so_dien_thoai, mat_khau, dia_chi } = req.body;
+      const { ten, email, so_dien_thoai, mat_khau, dia_chi, loai_tai_khoan } = req.body;
 
       // Kiểm tra email đã tồn tại
       const existingUser = await User.findByEmail(email);
@@ -32,17 +32,19 @@ class AuthController {
       const hashedPassword = await bcrypt.hash(mat_khau, 12);
 
       // Tạo người dùng mới
+      const userType = loai_tai_khoan === 'tai_xe' ? 'tai_xe' : 'khach_hang';
+
       const userId = await User.create({
         ten,
         email,
         so_dien_thoai,
         mat_khau: hashedPassword,
         dia_chi,
-        loai_tai_khoan: 'khach_hang'
+        loai_tai_khoan: userType
       });
 
       // Tạo token
-      const token = generateToken({ userId, email, loai_tai_khoan: 'khach_hang' });
+  const token = generateToken({ userId, email, loai_tai_khoan: userType });
 
       res.status(201).json({
         success: true,
@@ -55,7 +57,7 @@ class AuthController {
             ten,
             email,
             so_dien_thoai,
-            loai_tai_khoan: 'khach_hang'
+            loai_tai_khoan: userType
           }
         }
       });
@@ -338,60 +340,99 @@ class AuthController {
   // Gửi đăng ký tài xế (chờ duyệt)
   static async submitDriverRegistration(req, res) {
     try {
+      // Simple server-side validation helper
+      const validationError = (message, field = null) => {
+        return { message, field };
+      };
+      // Allow minimal driver registration: page may submit only CCCD, license and vehicle info
       const {
         ho_ten, email, so_dien_thoai, ngay_sinh, cccd, dia_chi,
-        bang_lai, kinh_nghiem_lai_xe, mat_khau, ghi_chu
+        bang_lai, so_bang_lai, kinh_nghiem_lai_xe, mat_khau, ghi_chu,
+        bien_so_xe, loai_xe, mau_xe, hang_xe, so_cho_ngoi
       } = req.body;
 
-      // Kiểm tra email đã tồn tại
-      const existingUser = await User.findByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({
-          success: false,
-          message: 'Email đã được sử dụng'
-        });
+      // Validate required minimal fields and return specific messages
+      // Required: cccd, so_bang_lai, bang_lai, bien_so_xe, loai_xe
+      if (!cccd || String(cccd).trim() === '') {
+        return res.status(400).json({ success: false, ...validationError('Căn cước công dân (CCCD) là bắt buộc', 'cccd') });
       }
 
-      // Kiểm tra số điện thoại đã tồn tại
-      const existingPhone = await User.findByPhone(so_dien_thoai);
-      if (existingPhone) {
-        return res.status(400).json({
-          success: false,
-          message: 'Số điện thoại đã được sử dụng'
-        });
+      if (!so_bang_lai || String(so_bang_lai).trim() === '') {
+        return res.status(400).json({ success: false, ...validationError('Số bằng lái là bắt buộc', 'so_bang_lai') });
       }
 
-      // Kiểm tra đăng ký đã tồn tại
-      const existingRegistration = await DriverRegistration.findByEmail(email);
-      if (existingRegistration) {
-        return res.status(400).json({
-          success: false,
-          message: 'Email này đã có đơn đăng ký tài xế'
-        });
+      if (!bang_lai || String(bang_lai).trim() === '') {
+        return res.status(400).json({ success: false, ...validationError('Loại bằng lái là bắt buộc', 'bang_lai') });
       }
 
-      // Hash mật khẩu
-      const hashedPassword = await bcrypt.hash(mat_khau, 12);
+      if (!bien_so_xe || String(bien_so_xe).trim() === '') {
+        return res.status(400).json({ success: false, ...validationError('Biển số xe là bắt buộc', 'bien_so_xe') });
+      }
 
-      // Tạo đăng ký mới với field mapping
+      if (!loai_xe || String(loai_xe).trim() === '') {
+        return res.status(400).json({ success: false, ...validationError('Loại xe là bắt buộc', 'loai_xe') });
+      }
+
+      // Basic format checks
+      const cccdStr = String(cccd).trim();
+      if (!/^[0-9]{9,12}$/.test(cccdStr)) {
+        return res.status(400).json({ success: false, ...validationError('CCCD không hợp lệ (9-12 chữ số)', 'cccd') });
+      }
+
+      const plate = String(bien_so_xe).trim();
+      if (!/^[\w\-\s]{3,15}$/.test(plate)) {
+        return res.status(400).json({ success: false, ...validationError('Biển số xe không hợp lệ', 'bien_so_xe') });
+      }
+
+      // If email provided, check uniqueness but allow if it's the same as the authenticated user
+      if (email) {
+        const existingUser = await User.findByEmail(email);
+        if (existingUser) {
+          // If request is authenticated and belongs to the same user, allow
+          if (!(req.user && existingUser.id === req.user.id)) {
+            return res.status(400).json({ success: false, ...validationError('Email đã được sử dụng', 'email') });
+          }
+        }
+
+        const existingPhone = await User.findByPhone(so_dien_thoai);
+        if (existingPhone) {
+          if (!(req.user && existingPhone.id === req.user.id)) {
+            return res.status(400).json({ success: false, ...validationError('Số điện thoại đã được sử dụng', 'so_dien_thoai') });
+          }
+        }
+
+        const existingRegistration = await DriverRegistration.findByEmail(email);
+        if (existingRegistration) {
+          return res.status(400).json({ success: false, ...validationError('Email này đã có đơn đăng ký tài xế', 'email') });
+        }
+      }
+
+      // Hash mật khẩu only if provided (optional for minimal flow)
+      let hashedPassword = null;
+      if (mat_khau) {
+        hashedPassword = await bcrypt.hash(mat_khau, 12);
+      }
+
+      // Build registration data. If license number not provided, fall back to CCCD value.
       const registrationData = {
-        ten: ho_ten,
-        email,
-        so_dien_thoai,
+        // DB schema requires these fields NOT NULL, provide empty string when not available
+        ten: ho_ten || '',
+        email: email || '',
+        so_dien_thoai: so_dien_thoai || '',
         dia_chi: dia_chi || '',
-        so_bang_lai: cccd,
-        loai_bang_lai: bang_lai,
+        so_bang_lai: so_bang_lai || cccd || null,
+        loai_bang_lai: bang_lai || null,
         kinh_nghiem_lien_tuc: kinh_nghiem_lai_xe || 0,
-        bien_so_xe: 'CHƯA CẬP NHẬT', // Temporary placeholder
-        loai_xe: 'CHƯA CẬP NHẬT', // Temporary placeholder
-        mau_xe: null,
-        hang_xe: null,
-        so_cho_ngoi: null,
+        bien_so_xe: bien_so_xe || 'CHƯA CẬP NHẬT',
+        loai_xe: loai_xe || 'CHƯA CẬP NHẬT',
+        mau_xe: mau_xe || null,
+        hang_xe: hang_xe || null,
+        so_cho_ngoi: so_cho_ngoi || null,
         giay_phep_kinh_doanh: null,
         anh_bang_lai: null,
         anh_cmnd: null,
         anh_xe: null,
-        ghi_chu: ghi_chu || null
+        ghi_chu: (cccd ? `CCCD: ${cccd}${ghi_chu ? ' | ' + ghi_chu : ''}` : (ghi_chu || null))
       };
 
       const registration = await DriverRegistration.create(registrationData);

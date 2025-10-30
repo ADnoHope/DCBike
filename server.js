@@ -62,11 +62,21 @@ app.use((error, req, res, next) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
+// Start server (store server instance so we can handle errors)
+const server = app.listen(PORT, () => {
   console.log(`🚗 DC Car Booking Server đang chạy tại http://localhost:${PORT}`);
   console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
   console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
+});
+
+// Graceful error handling for common server errors
+server.on('error', (err) => {
+  if (err && err.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} đã được sử dụng. Hãy dừng tiến trình khác hoặc đổi PORT.`);
+    process.exit(1);
+  }
+  console.error('Unhandled server error:', err);
+  process.exit(1);
 });
 
 module.exports = app;
