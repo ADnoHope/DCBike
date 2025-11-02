@@ -95,6 +95,24 @@ class PromotionController {
     }
   }
 
+  // Lấy tất cả khuyến mãi công khai (không yêu cầu auth)
+  static async getPublicPromotions(req, res) {
+    try {
+      const promotions = await Promotion.getAllPublic();
+
+      res.json({
+        success: true,
+        data: promotions
+      });
+    } catch (error) {
+      console.error('Get public promotions error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi hệ thống khi lấy danh sách khuyến mãi'
+      });
+    }
+  }
+
   // Lấy danh sách tất cả khuyến mãi (Admin)
   static async getAllPromotions(req, res) {
     try {

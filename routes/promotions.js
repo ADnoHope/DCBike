@@ -63,6 +63,9 @@ router.post('/validate', validatePromotionCheck, PromotionController.validatePro
 // Lấy danh sách khuyến mãi đang hoạt động (public)
 router.get('/active', PromotionController.getActivePromotions);
 
+// Lấy tất cả khuyến mãi (public)
+router.get('/all', PromotionController.getPublicPromotions);
+
 // === Routes yêu cầu xác thực ===
 
 // Tạo khuyến mãi mới (admin)

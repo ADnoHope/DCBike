@@ -189,43 +189,71 @@
             });
         });
 
-        async function loadPromotions(page = 1) {
+        // Load promotions from public API endpoint. The server exposes
+        // GET /api/promotions/active for public consumers.
+        async function loadPromotions() {
             try {
-                const queryParams = new URLSearchParams({
-                    page: page,
-                    limit: 10,
-                    ...currentFilters
-                });
-
-                const response = await fetch(`${API_BASE_URL}/promotions?${queryParams}`);
+                const response = await fetch(`${API_BASE_URL}/promotions/all`);
                 const result = await response.json();
 
                 if (result.success) {
-                    displayPromotions(result.data.promotions);
-                    setupPagination(result.data.pagination);
+                    // result.data is expected to be an array of promotions
+                    let promotions = result.data || [];
+
+                    // Apply client-side filters (type, status, search)
+                    if (currentFilters && Object.keys(currentFilters).length > 0) {
+                        promotions = promotions.filter(promotion => {
+                            // Type filter
+                            if (currentFilters.type && promotion.loai_khuyen_mai !== currentFilters.type) return false;
+
+                            // Search filter (name or code)
+                            if (currentFilters.search) {
+                                const q = currentFilters.search.toLowerCase();
+                                const name = (promotion.ten_khuyen_mai || '').toLowerCase();
+                                const code = (promotion.ma_khuyen_mai || '').toLowerCase();
+                                if (!name.includes(q) && !code.includes(q)) return false;
+                            }
+
+                            // Status filter: use getPromotionStatus helper to compute current status
+                            if (currentFilters.status) {
+                                const s = getPromotionStatus(promotion).status;
+                                if (s !== currentFilters.status) return false;
+                            }
+
+                            return true;
+                        });
+                    }
+
+                    displayPromotions(promotions);
+                    // No server-side pagination for public endpoint; clear pagination
+                    document.getElementById('pagination').innerHTML = '';
                 } else {
-                    throw new Error(result.message);
+                    throw new Error(result.message || 'Không thể tải khuyến mãi');
                 }
             } catch (error) {
                 console.error('Load promotions error:', error);
-                // Generate mock data for demo
+                // Fallback to demo data
                 displayMockPromotions();
             }
         }
 
+        // Featured promotions: reuse active promotions and pick top 2 by value
         async function loadFeaturedPromotions() {
             try {
-                const response = await fetch(`${API_BASE_URL}/promotions/featured`);
+                const response = await fetch(`${API_BASE_URL}/promotions/all`);
                 const result = await response.json();
 
                 if (result.success) {
-                    displayFeaturedPromotions(result.data);
+                    const promotions = result.data || [];
+                    // Pick up to 2 promotions with highest gia_tri (fallback)
+                    const featured = promotions.slice().sort((a, b) => (b.gia_tri || 0) - (a.gia_tri || 0)).slice(0, 2);
+                    displayFeaturedPromotions(featured);
                 } else {
-                    throw new Error(result.message);
+                    throw new Error(result.message || 'Không thể tải khuyến mãi nổi bật');
                 }
             } catch (error) {
                 console.error('Load featured promotions error:', error);
-                // Generate mock featured promotions
+                // Fallback to demo featured promotions
                 displayMockFeaturedPromotions();
             }
         }
@@ -541,7 +569,7 @@
                 }
             });
 
-            loadPromotions(1);
+            loadPromotions();
         }
 
         function viewPromotionDetail(promotionId) {

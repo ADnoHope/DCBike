@@ -204,6 +204,19 @@ class Promotion {
     }
   }
 
+  // Lấy tất cả khuyến mãi (public) - trả về mọi bản ghi để hiển thị trên giao diện
+  static async getAllPublic() {
+    try {
+      const [rows] = await pool.execute(`
+        SELECT * FROM khuyen_mai
+        ORDER BY created_at DESC
+      `);
+      return rows.map(row => new Promotion(row));
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Cập nhật khuyến mãi
   static async update(id, updateData) {
     try {
