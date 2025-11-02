@@ -20,6 +20,9 @@ router.get('/:id', authenticate, TripController.getTripDetail);
 // Tài xế nhận chuyến đi
 router.post('/:id/accept', authenticate, requireDriver, TripController.acceptTrip);
 
+// Tài xế từ chối chuyến đi
+router.post('/:id/decline', authenticate, requireDriver, TripController.declineTrip);
+
 // Bắt đầu chuyến đi (tài xế)
 router.post('/:id/start', authenticate, requireDriver, TripController.startTrip);
 

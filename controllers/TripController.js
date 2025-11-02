@@ -1,5 +1,6 @@
 const Trip = require('../models/Trip');
 const Driver = require('../models/Driver');
+const Notification = require('../models/Notification');
 
 class TripController {
   // Tạo chuyến đi mới
@@ -35,6 +36,32 @@ class TripController {
       };
 
       const tripId = await Trip.create(tripData);
+
+      // Notify available drivers about new booking (basic broadcast)
+      try {
+        const availableDrivers = await Driver.findAvailableDrivers();
+        if (Array.isArray(availableDrivers) && availableDrivers.length > 0) {
+          for (const drv of availableDrivers) {
+            try {
+              // drv.nguoi_dung_id should exist after our model change
+              if (drv.nguoi_dung_id) {
+                await Notification.create({
+                  user_id: drv.nguoi_dung_id,
+                  sender_id: khach_hang_id,
+                  trip_id: tripId,
+                  type: 'new_booking',
+                  message: `Bạn có đơn đặt xe mới (ID: ${tripId}). Vui lòng kiểm tra.`
+                });
+              }
+            } catch (e) {
+              // ignore individual notification errors
+              console.warn('Notification create failed for driver', drv.id, e.message);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to notify drivers:', e.message);
+      }
 
       res.status(201).json({
         success: true,
@@ -161,6 +188,21 @@ class TripController {
       await Trip.updateStatus(tripId, 'da_nhan', { tai_xe_id: driver.id });
       await Driver.updateStatus(driver.id, 'dang_di');
 
+      // Notify customer that driver accepted
+      try {
+        const updatedTrip = await Trip.findById(tripId);
+        if (updatedTrip && updatedTrip.khach_hang_id) {
+          await Notification.create({
+            user_id: updatedTrip.khach_hang_id,
+            sender_id: driver.nguoi_dung_id || null,
+            trip_id: tripId,
+            type: 'accepted',
+            message: `Tài xế đã nhận chuyến (ID: ${tripId}). Vui lòng chờ tài xế đến.`
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to notify customer about accept:', e.message);
+      }
       res.json({
         success: true,
         message: 'Đã nhận chuyến đi thành công'
@@ -207,6 +249,21 @@ class TripController {
 
       await Trip.updateStatus(tripId, 'dang_di');
 
+      // Notify customer that driver started the trip
+      try {
+        const updatedTrip = await Trip.findById(tripId);
+        if (updatedTrip && updatedTrip.khach_hang_id) {
+          await Notification.create({
+            user_id: updatedTrip.khach_hang_id,
+            sender_id: driver.nguoi_dung_id || null,
+            trip_id: tripId,
+            type: 'started',
+            message: `Tài xế đã bắt đầu chuyến (ID: ${tripId}).`
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to notify customer about start:', e.message);
+      }
       res.json({
         success: true,
         message: 'Đã bắt đầu chuyến đi'
@@ -254,6 +311,21 @@ class TripController {
       await Trip.updateStatus(tripId, 'hoan_thanh');
       await Driver.updateStatus(driver.id, 'san_sang');
 
+      // Notify customer that trip is completed
+      try {
+        const updatedTrip = await Trip.findById(tripId);
+        if (updatedTrip && updatedTrip.khach_hang_id) {
+          await Notification.create({
+            user_id: updatedTrip.khach_hang_id,
+            sender_id: driver.nguoi_dung_id || null,
+            trip_id: tripId,
+            type: 'completed',
+            message: `Chuyến (ID: ${tripId}) đã hoàn thành. Cảm ơn bạn đã sử dụng dịch vụ.`
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to notify customer about complete:', e.message);
+      }
       res.json({
         success: true,
         message: 'Đã hoàn thành chuyến đi'
@@ -310,6 +382,38 @@ class TripController {
         await Driver.updateStatus(trip.tai_xe_id, 'san_sang');
       }
 
+      // Notify opposite party about cancellation
+      try {
+        // If the requester is the driver, notify the customer
+        if (isDriver && trip.khach_hang_id) {
+          const drv = await Driver.findByUserId(userId);
+          await Notification.create({
+            user_id: trip.khach_hang_id,
+            sender_id: drv ? drv.nguoi_dung_id : null,
+            trip_id: tripId,
+            type: 'canceled_by_driver',
+            message: `Tài xế đã hủy chuyến (ID: ${tripId}). Lý do: ${ly_do_huy || 'Không ghi'}`
+          });
+        }
+
+        // If the requester is the customer, notify the driver (if assigned)
+        if (isCustomer && trip.tai_xe_id) {
+          // We can lookup driver by id
+          const drv = await Driver.findById(trip.tai_xe_id);
+          if (drv && drv.nguoi_dung_id) {
+            await Notification.create({
+              user_id: drv.nguoi_dung_id,
+              sender_id: trip.khach_hang_id,
+              trip_id: tripId,
+              type: 'canceled_by_customer',
+              message: `Hành khách đã hủy chuyến (ID: ${tripId}). Lý do: ${ly_do_huy || 'Không ghi'}`
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to notify about cancellation:', e.message);
+      }
+
       res.json({
         success: true,
         message: 'Đã hủy chuyến đi'
@@ -320,6 +424,49 @@ class TripController {
         success: false,
         message: 'Lỗi hệ thống khi hủy chuyến đi'
       });
+    }
+  }
+
+  // Tài xế từ chối chuyến đi
+  static async declineTrip(req, res) {
+    try {
+      const tripId = req.params.id;
+      const userId = req.user.id;
+
+      // Lấy thông tin tài xế
+      const driver = await Driver.findByUserId(userId);
+      if (!driver) {
+        return res.status(403).json({ success: false, message: 'Bạn không phải là tài xế' });
+      }
+
+      // Lấy thông tin chuyến đi
+      const trip = await Trip.findById(tripId);
+      if (!trip) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy chuyến đi' });
+      }
+
+      // Nếu chuyến đã được nhận hoặc hủy thì không thể từ chối
+      if (trip.trang_thai !== 'cho_tai_xe') {
+        return res.status(400).json({ success: false, message: 'Chuyến không ở trạng thái chờ tài xế' });
+      }
+
+      // Do not change trip status here; drivers simply refuse and we notify customer
+      try {
+        await Notification.create({
+          user_id: trip.khach_hang_id,
+          sender_id: driver.nguoi_dung_id || null,
+          trip_id: tripId,
+          type: 'declined',
+          message: `Tài xế đã từ chối chuyến (ID: ${tripId}). Hệ thống sẽ tìm tài xế khác.`
+        });
+      } catch (e) {
+        console.warn('Failed to notify customer about decline:', e.message);
+      }
+
+      res.json({ success: true, message: 'Đã từ chối chuyến đi' });
+    } catch (error) {
+      console.error('Decline trip error:', error);
+      res.status(500).json({ success: false, message: 'Lỗi hệ thống khi từ chối chuyến' });
     }
   }
 

@@ -1,6 +1,7 @@
 const DriverRegistration = require('../models/DriverRegistration');
 const Promotion = require('../models/Promotion');
 const Trip = require('../models/Trip');
+const Notification = require('../models/Notification');
 const { pool } = require('../config/database');
 
 class AdminController {
@@ -339,6 +340,26 @@ class AdminController {
         loai_khuyen_mai, gia_tri, gia_tri_toi_da, gia_tri_toi_thieu,
         ngay_bat_dau, ngay_ket_thuc, gioi_han_su_dung, created_by
       });
+
+      // Broadcast a promotion notification to all active customers
+      (async () => {
+        try {
+          const [customers] = await pool.execute(
+            'SELECT id FROM nguoi_dung WHERE loai_tai_khoan = ? AND trang_thai = ?',
+            ['khach_hang', 'hoat_dong']
+          );
+
+          const senderId = req.user && req.user.id ? req.user.id : null;
+          const message = `${ten_khuyen_mai}${mo_ta ? ' - ' + mo_ta : ''}`;
+
+          await Promise.all(customers.map(c =>
+            Notification.create({ user_id: c.id, sender_id: senderId, trip_id: null, type: 'promotion', message })
+          ));
+          console.log(`Promotion notifications created for ${customers.length} customers`);
+        } catch (notifErr) {
+          console.error('Error broadcasting promotion notifications:', notifErr);
+        }
+      })();
 
       res.status(201).json({
         success: true,

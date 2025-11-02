@@ -88,6 +88,7 @@ app.use('/api/trips', require('./routes/trips'));
 app.use('/api/drivers', require('./routes/drivers'));
 app.use('/api/promotions', require('./routes/promotions'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Serve static HTML pages
 app.use(express.static(path.join(__dirname, 'public')));

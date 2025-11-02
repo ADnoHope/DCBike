@@ -5,6 +5,8 @@ const API_BASE_URL = 'http://localhost:3000/api';
 class DCCarBooking {
     constructor() {
         this.token = localStorage.getItem('token');
+        this.notifications = [];
+        this._notifPoll = null;
         this.user = null;
         this.init();
     }
@@ -81,6 +83,10 @@ class DCCarBooking {
         this.user = response.data;
         console.log('User set to:', this.user); // Debug log
         localStorage.setItem('user', JSON.stringify(this.user));
+        // Start polling notifications for any logged-in user
+        if (this.user) {
+            this.startNotificationPoll();
+        }
     }
 
     logout() {
@@ -351,7 +357,14 @@ class DCCarBooking {
             if (tripsNav) tripsNav.classList.remove('d-none');
             if (driversNav) driversNav.classList.remove('d-none');
             if (promosNav) promosNav.classList.remove('d-none');
-            if (driverRegNav) driverRegNav.classList.remove('d-none');
+            // Hide "Đăng ký tài xế" for users who are already drivers
+            if (driverRegNav) {
+                if (this.user.loai_tai_khoan === 'tai_xe') {
+                    driverRegNav.classList.add('d-none');
+                } else {
+                    driverRegNav.classList.remove('d-none');
+                }
+            }
             
             // Thêm link admin nếu user có role admin
             if (this.user.loai_tai_khoan === 'admin') {
@@ -372,6 +385,10 @@ class DCCarBooking {
             
             // Load user's trips
             this.loadUserTrips();
+            // Ensure notification UI is present for logged-in users
+            if (this.user) {
+                this.ensureNotificationIcon();
+            }
         } else {
             console.log('User not logged in, showing auth buttons'); // Debug log
             // User is not logged in - show auth buttons
@@ -394,6 +411,178 @@ class DCCarBooking {
             if (adminLink && adminLink.parentElement) {
                 adminLink.parentElement.remove();
             }
+            // Stop notification polling when logged out
+            if (this._notifPoll) {
+                clearInterval(this._notifPoll);
+                this._notifPoll = null;
+            }
+        }
+    }
+
+    // Notifications: polling and UI
+    ensureNotificationIcon() {
+        // If already created, do nothing
+        if (document.getElementById('notif-dropdown')) return;
+
+        // Try to place in user menu or nav bar
+        const userMenu = document.getElementById('user-menu');
+        let parentList = null;
+        if (userMenu && userMenu.parentElement) {
+            parentList = userMenu.parentElement; // likely ul.navbar-nav
+        } else {
+            parentList = document.querySelector('.navbar-nav');
+        }
+
+        if (!parentList) return;
+
+        const li = document.createElement('li');
+        li.className = 'nav-item dropdown';
+        li.id = 'notif-dropdown';
+        li.innerHTML = `
+            <a class="nav-link position-relative" href="#" id="notifToggle" role="button" data-bs-toggle="dropdown">
+                <i class="fas fa-bell"></i>
+                <span id="notif-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display:none;">0</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end p-2" aria-labelledby="notifToggle" style="min-width:320px; max-height:400px; overflow:auto;">
+                <li class="dropdown-header">Thông báo</li>
+                <li><hr class="dropdown-divider"></li>
+                <div id="notif-list" style="max-height:300px; overflow:auto;"></div>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-center text-muted" href="#" id="mark-all-read">Đánh dấu tất cả đã đọc</a></li>
+            </ul>
+        `;
+
+        parentList.appendChild(li);
+
+        // Event: mark all read
+        li.querySelector('#mark-all-read').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const notifs = this.notifications.slice();
+            for (const n of notifs) {
+                try { await fetch(`${API_BASE_URL}/notifications/${n.id}/read`, { method: 'POST', headers: { 'Authorization': `Bearer ${this.token}` } }); } catch(e){}
+            }
+            this.fetchNotifications();
+        });
+    }
+
+    startNotificationPoll() {
+        if (this._notifPoll) return; // already polling
+        // initial fetch
+        this.fetchNotifications();
+        this._notifPoll = setInterval(() => this.fetchNotifications(), 8000);
+    }
+
+    async fetchNotifications() {
+        try {
+            const res = await fetch(`${API_BASE_URL}/notifications`, { headers: { 'Authorization': `Bearer ${this.token}` } });
+            if (!res.ok) return;
+            const json = await res.json();
+            if (json && json.success) {
+                this.notifications = json.data || [];
+                this.renderNotifications();
+            }
+        } catch (error) {
+            console.error('Fetch notifications error:', error);
+        }
+    }
+
+    renderNotifications() {
+        const badge = document.getElementById('notif-badge');
+        const list = document.getElementById('notif-list');
+        if (!badge || !list) return;
+
+        const unreadCount = this.notifications.filter(n => n.is_read === 0).length;
+        if (unreadCount > 0) {
+            badge.style.display = 'inline-block';
+            badge.textContent = unreadCount;
+        } else {
+            badge.style.display = 'none';
+        }
+
+        if (this.notifications.length === 0) {
+            list.innerHTML = '<div class="p-2 text-center text-muted">Chưa có thông báo</div>';
+            return;
+        }
+
+        const html = this.notifications.map(n => {
+            const time = new Date(n.created_at).toLocaleString('vi-VN');
+            let actions = '';
+            if (n.type === 'new_booking') {
+                actions = `
+                    <div class="d-flex gap-2 mt-2">
+                        <button class="btn btn-sm btn-success w-50" data-action="accept" data-trip="${n.trip_id}" data-id="${n.id}">Nhận</button>
+                        <button class="btn btn-sm btn-outline-danger w-50" data-action="decline" data-trip="${n.trip_id}" data-id="${n.id}">Từ chối</button>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="notif-item p-2 border-bottom" data-id="${n.id}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="small text-muted">${time}</div>
+                            <div>${n.message}</div>
+                        </div>
+                        <div>
+                            ${n.is_read ? '' : '<span class="badge bg-primary">Mới</span>'}
+                        </div>
+                    </div>
+                    ${actions}
+                </div>
+            `;
+        }).join('');
+
+        list.innerHTML = html;
+
+        // Attach event listeners for action buttons
+        list.querySelectorAll('button[data-action]').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const action = btn.getAttribute('data-action');
+                const tripId = btn.getAttribute('data-trip');
+                const notifId = btn.getAttribute('data-id');
+                if (action === 'accept') {
+                    await this.acceptTripFromNotification(tripId, notifId);
+                } else if (action === 'decline') {
+                    await this.declineTripFromNotification(tripId, notifId);
+                }
+            });
+        });
+    }
+
+    async acceptTripFromNotification(tripId, notifId) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/trips/${tripId}/accept`, { method: 'POST', headers: { 'Authorization': `Bearer ${this.token}` } });
+            const json = await res.json();
+            if (json.success) {
+                showAlert('success', 'Đã nhận chuyến');
+                // mark notification read
+                await fetch(`${API_BASE_URL}/notifications/${notifId}/read`, { method: 'POST', headers: { 'Authorization': `Bearer ${this.token}` } });
+                this.fetchNotifications();
+                this.loadUserTrips();
+            } else {
+                showAlert('error', json.message || 'Nhận chuyến thất bại');
+            }
+        } catch (error) {
+            console.error('Accept from notif error:', error);
+            showAlert('error', 'Lỗi khi nhận chuyến');
+        }
+    }
+
+    async declineTripFromNotification(tripId, notifId) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/trips/${tripId}/decline`, { method: 'POST', headers: { 'Authorization': `Bearer ${this.token}` } });
+            const json = await res.json();
+            if (json.success) {
+                showAlert('info', 'Đã từ chối chuyến');
+                // mark notification read
+                await fetch(`${API_BASE_URL}/notifications/${notifId}/read`, { method: 'POST', headers: { 'Authorization': `Bearer ${this.token}` } });
+                this.fetchNotifications();
+            } else {
+                showAlert('error', json.message || 'Từ chối thất bại');
+            }
+        } catch (error) {
+            console.error('Decline from notif error:', error);
+            showAlert('error', 'Lỗi khi từ chối chuyến');
         }
     }
 

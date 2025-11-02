@@ -297,6 +297,7 @@ class Driver {
       const [rows] = await pool.execute(`
         SELECT 
           tx.id,
+          tx.nguoi_dung_id as nguoi_dung_id,
           nd.ten,
           tx.bien_so_xe,
           tx.loai_xe,

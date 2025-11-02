@@ -1,4 +1,6 @@
 const Promotion = require('../models/Promotion');
+const Notification = require('../models/Notification');
+const { pool } = require('../config/database');
 
 class PromotionController {
   // Tạo khuyến mãi mới (Admin)
@@ -31,6 +33,25 @@ class PromotionController {
         ngay_ket_thuc,
         gioi_han_su_dung
       });
+
+      // Tạo thông báo tới tất cả khách hàng (loai_tai_khoan = 'khach_hang')
+      try {
+        const [customers] = await pool.execute(
+          `SELECT id FROM nguoi_dung WHERE loai_tai_khoan = ? AND trang_thai = ?`,
+          ['khach_hang', 'hoat_dong']
+        );
+
+        const senderId = req.user && req.user.id ? req.user.id : null;
+        const message = `${ten_khuyen_mai}${mo_ta ? ' - ' + mo_ta : ''}`;
+
+        // Create notifications in parallel
+        await Promise.all(customers.map(c =>
+          Notification.create({ user_id: c.id, sender_id: senderId, trip_id: null, type: 'promotion', message })
+        ));
+      } catch (notifErr) {
+        console.error('Error sending promotion notifications:', notifErr);
+        // Don't fail the whole request if notifications fail
+      }
 
       res.status(201).json({
         success: true,
