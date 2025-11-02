@@ -70,6 +70,123 @@ class AdminController {
     }
   }
 
+  // Lock or unlock a user account
+  static async lockUser(req, res) {
+    try {
+      const { id } = req.params;
+  const { lock } = req.body; // true => tam_khoa, false => hoat_dong
+
+      console.log(`AdminController.lockUser called for id=${id}, lock=${lock}`);
+
+      const connection = await pool.getConnection();
+      try {
+        await connection.beginTransaction();
+
+        if (lock) {
+          // When locking: atomically set role back to 'khach_hang' and trang_thai to 'tam_khoa' (DB enum)
+          const [updateRes] = await connection.execute(
+            'UPDATE nguoi_dung SET loai_tai_khoan = ?, trang_thai = ? WHERE id = ?',
+            ['khach_hang', 'tam_khoa', id]
+          );
+
+          console.log('AdminController.lockUser lock updateRes:', updateRes);
+
+          if (updateRes.affectedRows === 0) {
+            await connection.rollback();
+            connection.release();
+            return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+          }
+        } else {
+          // Unlock: only restore trang_thai to hoat_dong, keep role as-is
+          const [updateRes] = await connection.execute(
+            'UPDATE nguoi_dung SET trang_thai = ? WHERE id = ?',
+            ['hoat_dong', id]
+          );
+
+          console.log('AdminController.lockUser unlock updateRes:', updateRes);
+
+          if (updateRes.affectedRows === 0) {
+            await connection.rollback();
+            connection.release();
+            return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+          }
+        }
+
+        await connection.commit();
+        connection.release();
+
+        res.json({ success: true, message: `Đã ${lock ? 'khóa' : 'mở khóa'} tài khoản` });
+      } catch (innerErr) {
+        await connection.rollback();
+        connection.release();
+        throw innerErr;
+      }
+    } catch (error) {
+      console.error('Lock user error:', error);
+      res.status(500).json({ success: false, message: 'Lỗi khi thay đổi trạng thái tài khoản' });
+    }
+  }
+
+  // Change user's role (and create driver profile if necessary)
+  static async changeUserRole(req, res) {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+
+      const allowed = ['tai_xe', 'khach_hang', 'admin'];
+      if (!allowed.includes(role)) {
+        return res.status(400).json({ success: false, message: 'Role không hợp lệ' });
+      }
+
+      const connection = await pool.getConnection();
+      try {
+        await connection.beginTransaction();
+
+        // Update role on user
+        const [updateRes] = await connection.execute(
+          'UPDATE nguoi_dung SET loai_tai_khoan = ? WHERE id = ?',
+          [role, id]
+        );
+
+        if (updateRes.affectedRows === 0) {
+          await connection.rollback();
+          connection.release();
+          return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+        }
+
+        // If role changed to tai_xe ensure a tai_xe record exists
+        if (role === 'tai_xe') {
+          // check if driver record exists
+          const [rows] = await connection.execute(
+            'SELECT id FROM tai_xe WHERE nguoi_dung_id = ? LIMIT 1',
+            [id]
+          );
+
+          if (rows.length === 0) {
+            // create an empty driver profile so admin can edit it later
+            await connection.execute(
+              `INSERT INTO tai_xe (nguoi_dung_id, so_bang_lai, loai_bang_lai, kinh_nghiem_lien_tuc, trang_thai_tai_xe, created_at)
+               VALUES (?, '', '', 0, 'cho_xac_nhan', NOW())`,
+              [id]
+            );
+          }
+        }
+
+        await connection.commit();
+        connection.release();
+
+        res.json({ success: true, message: 'Cập nhật role thành công' });
+      } catch (innerErr) {
+        await connection.rollback();
+        connection.release();
+        throw innerErr;
+      }
+    } catch (error) {
+      console.error('Change user role error:', error);
+      res.status(500).json({ success: false, message: 'Lỗi khi thay đổi vai trò người dùng' });
+    }
+  }
+
   // === QUẢN LÝ ĐĂNG KÝ TÀI XẾ ===
 
   // Lấy danh sách đơn đăng ký tài xế
@@ -78,9 +195,34 @@ class AdminController {
       const { trang_thai } = req.query;
       const registrations = await DriverRegistration.getAll(trang_thai);
 
+      // Normalize returned rows to ensure `trang_thai` is a status string.
+      const normalized = registrations.map(r => {
+        const row = Object.assign({}, r);
+
+        // If trang_thai looks like a date (possible schema mixup), move it to ngay_duyet and mark as approved
+        const maybeStatus = row.trang_thai;
+        if (maybeStatus && typeof maybeStatus === 'string') {
+          // check for ISO date or common date formats
+          const isoDateRegex = /^\d{4}-\d{2}-\d{2}/; // 2025-10-30
+          const slashDateRegex = /^\d{1,2}\/\d{1,2}\/\d{4}/; // 30/10/2025
+          if (isoDateRegex.test(maybeStatus) || slashDateRegex.test(maybeStatus) || !isNaN(Date.parse(maybeStatus))) {
+            // move this value to ngay_duyet if not already set
+            if (!row.ngay_duyet) row.ngay_duyet = maybeStatus;
+            row.trang_thai = 'da_duyet';
+          }
+        }
+
+        // Normalize common English keys to Vietnamese DB keys to keep UI consistent
+        if (row.trang_thai === 'pending') row.trang_thai = 'cho_duyet';
+        if (row.trang_thai === 'approved') row.trang_thai = 'da_duyet';
+        if (row.trang_thai === 'rejected') row.trang_thai = 'tu_choi';
+
+        return row;
+      });
+
       res.json({
         success: true,
-        data: registrations
+        data: normalized
       });
     } catch (error) {
       console.error('Get driver registrations error:', error);
@@ -317,6 +459,76 @@ class AdminController {
         success: false,
         message: 'Lỗi khi lấy thông tin voucher'
       });
+    }
+  }
+
+  // Lấy danh sách người dùng theo role (api cho admin sidebar)
+  static async getUsersByRole(req, res) {
+    try {
+      const { role, status } = req.query;
+      console.log(`AdminController.getUsersByRole called with role=${role}, status=${status}`);
+      const allowed = ['tai_xe', 'khach_hang', 'admin'];
+      const target = allowed.includes(role) ? role : null;
+
+      // Build WHERE clauses dynamically. If status is provided use it; otherwise default to active users.
+      const whereClauses = [];
+      const params = [];
+
+      // If status is provided and not 'all', filter by it. If status === 'all' do not filter by trang_thai.
+      if (status && status !== 'all') {
+        whereClauses.push('trang_thai = ?');
+        params.push(status);
+      } else if (!status) {
+        // default behavior: only active users
+        whereClauses.push('trang_thai = ?');
+        params.push('hoat_dong');
+      }
+
+      if (target) {
+        whereClauses.push('loai_tai_khoan = ?');
+        params.push(target);
+      }
+
+      let query = `SELECT id, ten, email, so_dien_thoai, loai_tai_khoan, trang_thai, created_at FROM nguoi_dung`;
+      if (whereClauses.length) query += ' WHERE ' + whereClauses.join(' AND ');
+      query += ' ORDER BY created_at DESC LIMIT 200';
+
+  const [rows] = await pool.execute(query, params);
+  console.log(`AdminController.getUsersByRole returning ${rows.length} users`);
+
+  res.json({ success: true, data: { users: rows } });
+    } catch (error) {
+      console.error('Get users by role error:', error);
+      res.status(500).json({ success: false, message: 'Lỗi khi lấy danh sách người dùng' });
+    }
+  }
+
+  // Lấy thông tin chi tiết người dùng theo ID (bao gồm profile tài xế nếu có)
+  static async getUserById(req, res) {
+    try {
+      const { id } = req.params;
+
+      const [rows] = await pool.execute(
+        `SELECT n.id, n.ten, n.email, n.so_dien_thoai, n.loai_tai_khoan, n.trang_thai, n.created_at,
+                t.id AS tai_xe_id, t.so_bang_lai, t.loai_bang_lai, t.kinh_nghiem_lien_tuc, t.trang_thai_tai_xe
+         FROM nguoi_dung n
+         LEFT JOIN tai_xe t ON t.nguoi_dung_id = n.id
+         WHERE n.id = ?
+         LIMIT 1`,
+        [id]
+      );
+
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+      }
+
+      // Normalize keys for frontend convenience
+      const user = rows[0];
+
+      res.json({ success: true, data: user });
+    } catch (error) {
+      console.error('Get user by ID error:', error);
+      res.status(500).json({ success: false, message: 'Lỗi khi lấy thông tin người dùng' });
     }
   }
 }

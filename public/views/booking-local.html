@@ -12,6 +12,10 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <!-- Leaflet Maps JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet MarkerCluster (for clustering POI markers) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <!-- OSM Parser Library with fallback -->
     <script src="https://unpkg.com/osmtogeojson@3.0.0/osmtogeojson.js" 
             onerror="console.warn('osmtogeojson library failed to load, using fallback')"></script>
@@ -417,8 +421,10 @@
                 
                 updateMapStatus('Leaflet library sẵn sẵng');
                 
-                // Default location (center of OSM bounds)
-                const defaultLocation = [10.789, 106.733]; // Center of loaded area
+                // Ho Chi Minh City bounding box (fallback/default)
+                const HCMC_BOUNDS = [[10.495, 106.465], [10.994, 106.85]]; // SW, NE
+                // Default location (center of HCMC bounds)
+                const defaultLocation = [(10.495 + 10.994) / 2, (106.465 + 106.85) / 2]; // approx center
                 
                 // Destroy existing map if any
                 if (map && map.remove) {
@@ -442,6 +448,13 @@
                     tileSize: 256,
                     zoomOffset: 0
                 }).addTo(map);
+
+                // Fit map to HCMC bounds by default so users see the whole city
+                try {
+                    map.fitBounds(HCMC_BOUNDS);
+                } catch (e) {
+                    console.warn('Could not fit to HCMC bounds, keeping default view', e);
+                }
 
                 // Create marker
                 updateMapStatus('Đang tạo marker...');
@@ -552,60 +565,121 @@
                 osmData = osmtogeojson(osmDoc);
                 console.log('GeoJSON features:', osmData.features.length);
                 
-                // Add OSM data as layer
+                // Add OSM data as layers with categorized POI clusters
                 if (osmLayer) {
-                    map.removeLayer(osmLayer);
+                    try { map.removeLayer(osmLayer); } catch(e){}
                 }
-                
-                if (osmData.features.length > 0) {
-                    osmLayer = L.geoJSON(osmData, {
-                        style: function(feature) {
-                            // Different styles for different feature types
-                            const style = {
-                                color: '#3388ff',
-                                weight: 1,
-                                opacity: 0.6,
-                                fillOpacity: 0.2
-                            };
-                            
-                            if (feature.properties.highway) {
-                                style.color = '#ff7800';
-                                style.weight = 2;
-                            } else if (feature.properties.building) {
-                                style.color = '#8b4513';
-                                style.fillOpacity = 0.5;
-                            } else if (feature.properties.natural) {
-                                style.color = '#228b22';
-                                style.fillOpacity = 0.3;
-                            }
-                            
-                            return style;
-                        },
-                        onEachFeature: function(feature, layer) {
-                            let popupContent = '';
-                            if (feature.properties.name) {
-                                popupContent += '<strong>' + feature.properties.name + '</strong><br>';
-                            }
-                            if (feature.properties.highway) {
-                                popupContent += 'Đường: ' + feature.properties.highway + '<br>';
-                            }
-                            if (feature.properties.building) {
-                                popupContent += 'Tòa nhà: ' + feature.properties.building + '<br>';
-                            }
-                            if (feature.properties.amenity) {
-                                popupContent += 'Tiện ích: ' + feature.properties.amenity + '<br>';
-                            }
-                            
-                            if (popupContent) {
-                                layer.bindPopup(popupContent);
-                            }
+
+                // Prepare containers
+                const overlays = {};
+                const clusterGroups = {}; // category -> markerClusterGroup
+                const otherGeoJsonLayers = [];
+
+                // Helper: determine a category for a feature
+                function getFeatureCategory(feature) {
+                    const p = feature.properties || {};
+                    if (p.amenity) return p.amenity; // e.g., restaurant, hospital
+                    if (p.shop) return 'shop:' + p.shop;
+                    if (p.tourism) return 'tourism:' + p.tourism;
+                    if (p.highway) return 'highway';
+                    if (p.building) return 'building';
+                    if (p.natural) return 'natural';
+                    return p.type || 'other';
+                }
+
+                // Create cluster groups for frequently useful categories
+                const defaultCategories = ['restaurant','cafe','fuel','hospital','parking','bus_stop','bank','supermarket','atm'];
+                defaultCategories.forEach(cat => {
+                    clusterGroups[cat] = L.markerClusterGroup();
+                });
+
+                // Iterate features and add to appropriate layers
+                osmData.features.forEach(feature => {
+                    const geom = feature.geometry || {};
+                    const props = feature.properties || {};
+
+                    if (geom.type === 'Point') {
+                        const coords = geom.coordinates; // [lon, lat]
+                        const lat = coords[1];
+                        const lng = coords[0];
+                        const name = props.name || null;
+                        const category = getFeatureCategory(feature);
+
+                        const marker = L.marker([lat, lng]);
+                        let popup = '';
+                        if (name) popup += `<strong>${name}</strong><br>`;
+                        for (const k of ['amenity','shop','tourism','building','highway']) {
+                            if (props[k]) popup += `${k}: ${props[k]}<br>`;
                         }
-                    }).addTo(map);
-                    
-                    showAlert('success', `Đã tải thành công ${osmData.features.length} features từ bản đồ địa phương!`);
-                } else {
-                    showAlert('warning', 'File OSM không chứa features hiển thị được');
+                        if (popup) marker.bindPopup(popup);
+
+                        // Choose cluster group
+                        if (clusterGroups[category]) {
+                            clusterGroups[category].addLayer(marker);
+                        } else if (clusterGroups[props.amenity]) {
+                            clusterGroups[props.amenity].addLayer(marker);
+                        } else {
+                            // fallback cluster for uncategorized points
+                            if (!clusterGroups['other']) clusterGroups['other'] = L.markerClusterGroup();
+                            clusterGroups['other'].addLayer(marker);
+                        }
+                    } else {
+                        // Non-point features: keep as GeoJSON layers with style
+                        const layer = L.geoJSON(feature, {
+                            style: function(f) {
+                                const style = { color: '#3388ff', weight: 1, opacity: 0.6, fillOpacity: 0.2 };
+                                if (f.properties && f.properties.building) { style.color = '#8b4513'; style.fillOpacity = 0.5; }
+                                if (f.properties && f.properties.natural) { style.color = '#228b22'; style.fillOpacity = 0.3; }
+                                return style;
+                            },
+                            onEachFeature: function(f, l) {
+                                if (f.properties && f.properties.name) {
+                                    l.bindPopup('<strong>' + f.properties.name + '</strong>');
+                                }
+                            }
+                        });
+                        otherGeoJsonLayers.push(layer);
+                    }
+                });
+
+                // Add cluster groups to map and overlays object
+                Object.keys(clusterGroups).forEach(cat => {
+                    const group = clusterGroups[cat];
+                    if (group && group.getLayers && group.getLayers().length > 0) {
+                        overlays[cat] = group;
+                        group.addTo(map);
+                    }
+                });
+
+                // Add other geojson layers
+                if (otherGeoJsonLayers.length > 0) {
+                    const combined = L.layerGroup(otherGeoJsonLayers);
+                    overlays['geojson'] = combined;
+                    combined.addTo(map);
                 }
+
+                // Keep a reference for cleanup
+                osmLayer = L.layerGroup(Object.values(overlays));
+
+                // Add layer control so users can toggle POI categories
+                try {
+                    L.control.layers(null, overlays, { collapsed: false, position: 'topright' }).addTo(map);
+                } catch (e) {
+                    console.warn('Could not add layer control', e);
+                }
+
+                // Small legend control
+                const legend = L.control({ position: 'bottomright' });
+                legend.onAdd = function(map) {
+                    const div = L.DomUtil.create('div', 'map-legend card p-2');
+                    div.style.minWidth = '160px';
+                    div.innerHTML = '<strong>Legend</strong><br/>' +
+                        '<small class="text-muted">POIs grouped by category. Use the layer control to filter.</small>';
+                    return div;
+                };
+                legend.addTo(map);
+
+                showAlert('success', `Đã tải thành công ${osmData.features.length} features từ bản đồ địa phương và nhóm POI theo danh mục!`);
                 
             } catch (error) {
                 console.error('Error loading local OSM:', error);
@@ -1014,7 +1088,8 @@
                         if (map) {
                             console.log('Refreshing existing map...');
                             map.invalidateSize(); // Refresh map
-                            map.setView([10.789, 106.733], 15); // Reset view
+                            // Re-fit to HCMC bounds when modal opens so the whole city is visible
+                            map.fitBounds([[10.495, 106.465], [10.994, 106.85]]);
                         } else {
                             console.log('Initializing new map...');
                             initMap(); // Initialize map if not done

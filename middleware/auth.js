@@ -18,8 +18,8 @@ const authenticate = async (req, res, next) => {
     // Verify token
     const decoded = verifyToken(token);
     
-    // Kiểm tra user còn tồn tại
-    const user = await User.findById(decoded.userId);
+    // Kiểm tra user còn tồn tại (không lọc theo trang_thai) để có thể trả lỗi rõ ràng nếu bị khoá
+    const user = await User.findByIdRaw(decoded.userId);
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -27,12 +27,22 @@ const authenticate = async (req, res, next) => {
       });
     }
 
+    // Nếu tài khoản đang bị khoá hoặc đã xoá - chặn truy cập và trả thông báo rõ ràng
+    // Note: DB uses 'tam_khoa' for nguoi_dung.trang_thai
+    if (user.trang_thai === 'tam_khoa') {
+      return res.status(403).json({ success: false, message: 'Tài khoản đã bị khoá' });
+    }
+    if (user.trang_thai === 'da_xoa') {
+      return res.status(403).json({ success: false, message: 'Tài khoản không tồn tại' });
+    }
+
     // Gắn thông tin user vào request
     req.user = {
       id: user.id,
       email: user.email,
       ten: user.ten,
-      loai_tai_khoan: user.loai_tai_khoan
+      loai_tai_khoan: user.loai_tai_khoan,
+      trang_thai: user.trang_thai
     };
 
     next();

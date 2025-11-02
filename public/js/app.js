@@ -323,6 +323,7 @@ class DCCarBooking {
         console.log('updateUI called with user:', this.user); // Debug log
         const authNav = document.getElementById('auth-nav');
         const authBtn = document.getElementById('auth-btn'); // For booking page
+        const signupBtn = document.getElementById('signup-btn'); // Hero signup button
         const userNav = document.getElementById('user-nav');
         const userInfo = document.getElementById('user-info'); // Alternative user nav
         const userName = document.getElementById('user-name');
@@ -338,6 +339,7 @@ class DCCarBooking {
             // User is logged in - hide all auth buttons
             if (authNav) authNav.classList.add('d-none');
             if (authBtn) authBtn.classList.add('d-none');
+            if (signupBtn) signupBtn.classList.add('d-none');
             
             // Show user navigation
             if (userNav) userNav.classList.remove('d-none');
@@ -375,6 +377,7 @@ class DCCarBooking {
             // User is not logged in - show auth buttons
             if (authNav) authNav.classList.remove('d-none');
             if (authBtn) authBtn.classList.remove('d-none');
+            if (signupBtn) signupBtn.classList.remove('d-none');
             
             // Hide user navigation
             if (userNav) userNav.classList.add('d-none');

@@ -61,6 +61,19 @@ class User {
     }
   }
 
+  // Tìm người dùng theo ID (không lọc theo trang_thai) — dùng để xác thực token và kiểm tra trạng thái
+  static async findByIdRaw(id) {
+    try {
+      const [rows] = await pool.execute(
+        'SELECT * FROM nguoi_dung WHERE id = ? LIMIT 1',
+        [id]
+      );
+      return rows.length > 0 ? new User(rows[0]) : null;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Tìm người dùng theo số điện thoại
   static async findByPhone(so_dien_thoai) {
     try {

@@ -105,38 +105,71 @@ class DriverRegistration {
 
       const registration = regRows[0];
 
-      // Kiểm tra email đã tồn tại chưa
+      // Check if there is an existing active user with same email or phone
       const [existingUsers] = await connection.execute(
-        'SELECT id FROM nguoi_dung WHERE email = ?',
-        [registration.email]
+        'SELECT * FROM nguoi_dung WHERE (email = ? OR so_dien_thoai = ?) AND trang_thai = "hoat_dong" LIMIT 1',
+        [registration.email, registration.so_dien_thoai]
       );
 
+      let userId;
+      let createdNewUser = false;
+      let createdPassword = null;
+
       if (existingUsers.length > 0) {
-        throw new Error('Email đã tồn tại trong hệ thống');
+        // Use the existing user account and convert role to 'tai_xe' if needed
+        const user = existingUsers[0];
+        userId = user.id;
+
+        if (user.loai_tai_khoan !== 'tai_xe') {
+          await connection.execute(
+            'UPDATE nguoi_dung SET loai_tai_khoan = ? WHERE id = ?',
+            ['tai_xe', userId]
+          );
+        }
+
+        // Ensure there is a tai_xe record for this user
+        const [driverRows] = await connection.execute(
+          'SELECT id FROM tai_xe WHERE nguoi_dung_id = ? LIMIT 1',
+          [userId]
+        );
+
+        if (driverRows.length === 0) {
+          await connection.execute(`
+            INSERT INTO tai_xe (
+              nguoi_dung_id, so_bang_lai, loai_bang_lai, kinh_nghiem_lien_tuc,
+              bien_so_xe, loai_xe, mau_xe, hang_xe, so_cho_ngoi
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [
+            userId, registration.so_bang_lai, registration.loai_bang_lai, registration.kinh_nghiem_lien_tuc,
+            registration.bien_so_xe, registration.loai_xe, registration.mau_xe, registration.hang_xe, registration.so_cho_ngoi
+          ]);
+        }
+      } else {
+        // No existing user -> create new user and driver
+        // Hash password
+        const bcrypt = require('bcryptjs');
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        const [userResult] = await connection.execute(`
+          INSERT INTO nguoi_dung (ten, email, so_dien_thoai, mat_khau, dia_chi, loai_tai_khoan)
+          VALUES (?, ?, ?, ?, ?, 'tai_xe')
+        `, [registration.ten, registration.email, registration.so_dien_thoai, hashedPassword, registration.dia_chi]);
+
+        userId = userResult.insertId;
+        createdNewUser = true;
+        createdPassword = password;
+
+        // Create tai_xe record
+        await connection.execute(`
+          INSERT INTO tai_xe (
+            nguoi_dung_id, so_bang_lai, loai_bang_lai, kinh_nghiem_lien_tuc,
+            bien_so_xe, loai_xe, mau_xe, hang_xe, so_cho_ngoi
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          userId, registration.so_bang_lai, registration.loai_bang_lai, registration.kinh_nghiem_lien_tuc,
+          registration.bien_so_xe, registration.loai_xe, registration.mau_xe, registration.hang_xe, registration.so_cho_ngoi
+        ]);
       }
-
-      // Hash password
-      const bcrypt = require('bcryptjs');
-      const hashedPassword = await bcrypt.hash(password, 12);
-
-      // Tạo tài khoản người dùng
-      const [userResult] = await connection.execute(`
-        INSERT INTO nguoi_dung (ten, email, so_dien_thoai, mat_khau, dia_chi, loai_tai_khoan)
-        VALUES (?, ?, ?, ?, ?, 'tai_xe')
-      `, [registration.ten, registration.email, registration.so_dien_thoai, hashedPassword, registration.dia_chi]);
-
-      const userId = userResult.insertId;
-
-      // Tạo thông tin tài xế
-      await connection.execute(`
-        INSERT INTO tai_xe (
-          nguoi_dung_id, so_bang_lai, loai_bang_lai, kinh_nghiem_lien_tuc,
-          bien_so_xe, loai_xe, mau_xe, hang_xe, so_cho_ngoi
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        userId, registration.so_bang_lai, registration.loai_bang_lai, registration.kinh_nghiem_lien_tuc,
-        registration.bien_so_xe, registration.loai_xe, registration.mau_xe, registration.hang_xe, registration.so_cho_ngoi
-      ]);
 
       // Cập nhật trạng thái đơn đăng ký
       await connection.execute(`

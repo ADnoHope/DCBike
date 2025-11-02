@@ -18,6 +18,67 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Static files
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
+// Protect access to admin.html: serve a small gatekeeper page that verifies
+// the user's JWT (from localStorage) via /api/auth/profile before allowing
+// the actual admin HTML to be served. This is necessary because the app
+// stores JWT in localStorage (not cookies) so the initial HTML request
+// cannot include Authorization header. The gatekeeper performs a client-side
+// check and then reloads /admin.html?allow=1 which will be passed to static.
+app.get('/admin.html', (req, res, next) => {
+  if (req.query && req.query.allow === '1') return next();
+
+  // Gatekeeper HTML
+  return res.send(`
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Checking access...</title>
+      </head>
+      <body>
+        <p>Đang kiểm tra quyền truy cập...</p>
+        <script>
+          (async function(){
+            try {
+              const token = localStorage.getItem('token');
+              if (!token) {
+                // no token -> redirect to login
+                window.location.href = '/index.html';
+                return;
+              }
+
+              const res = await fetch('/api/auth/profile', {
+                headers: { 'Authorization': 'Bearer ' + token }
+              });
+
+              if (!res.ok) {
+                window.location.href = '/index.html';
+                return;
+              }
+
+              const data = await res.json();
+              // AuthController.getProfile returns user in data.data or similar
+              const user = data && (data.data || data.user || data);
+              if (user && user.loai_tai_khoan === 'admin') {
+                // allow: reload admin.html through static with allow=1
+                const nextUrl = '/admin.html?allow=1';
+                window.location.href = nextUrl;
+              } else {
+                alert('Bạn không có quyền truy cập trang này');
+                window.location.href = '/index.html';
+              }
+            } catch (e) {
+              console.error('Gatekeeper error', e);
+              window.location.href = '/index.html';
+            }
+          })();
+        </script>
+      </body>
+    </html>
+  `);
+});
+
 // Test database connection
 testConnection();
 

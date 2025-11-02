@@ -459,7 +459,7 @@
                 updateMapStatus('Đang tạo Leaflet map...');
                 map = L.map('map', {
                     center: defaultLocation,
-                    zoom: 15,
+                    zoom: 13,
                     zoomControl: true,
                     attributionControl: true
                 });
@@ -496,6 +496,14 @@
                 console.log('Leaflet Map loaded successfully');
                 updateMapStatus('Bản đồ đã sẵn sàng! Click để chọn vị trí', 'success');
                 
+                // Fit map to Ho Chi Minh City bounds by default
+                try {
+                    const hcmBounds = [[10.495, 106.465], [10.994, 106.85]]; // SW, NE
+                    map.fitBounds(hcmBounds);
+                } catch (e) {
+                    console.warn('Could not fit bounds to HCMC:', e.message);
+                }
+
                 // Load local OSM data after map is ready
                 setTimeout(() => {
                     loadLocalOSM();
@@ -1374,22 +1382,28 @@
                 console.log('Map modal opening...');
                 console.log('Current mode when modal opens:', currentMapMode);
                 // Don't reset mode here - let the button click set the mode
-                setTimeout(() => {
-                    try {
-                        if (map) {
-                            console.log('Refreshing existing map...');
-                            map.invalidateSize(); // Refresh map
-                            map.setView([10.789, 106.733], 15); // Reset view
-                        } else {
-                            console.log('Initializing new map...');
-                            initMap(); // Initialize map if not done
-                        }
-                    } catch (error) {
-                        console.error('Map initialization error:', error);
-                        // Fallback: show error message in map container
-                        const mapContainer = document.getElementById('map');
-                        if (mapContainer) {
-                            mapContainer.innerHTML = `
+                    setTimeout(() => {
+                        try {
+                            if (map) {
+                                console.log('Refreshing existing map...');
+                                map.invalidateSize(); // Refresh map
+                                // Reset view to HCMC bounds instead of a tight city center
+                                try {
+                                    const hcmBounds = [[10.495, 106.465], [10.994, 106.85]];
+                                    map.fitBounds(hcmBounds);
+                                } catch (e) {
+                                    console.warn('Could not fit bounds on modal show:', e.message);
+                                }
+                            } else {
+                                console.log('Initializing new map...');
+                                initMap(); // Initialize map if not done
+                            }
+                        } catch (error) {
+                            console.error('Map initialization error:', error);
+                            // Fallback: show error message in map container
+                            const mapContainer = document.getElementById('map');
+                            if (mapContainer) {
+                                mapContainer.innerHTML = `
                                 <div class="alert alert-warning text-center" style="margin: 50px;">
                                     <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
                                     <h5>Không thể tải bản đồ</h5>
@@ -1397,9 +1411,9 @@
                                     <button class="btn btn-primary" onclick="retryInitMap()">Thử lại</button>
                                 </div>
                             `;
+                            }
                         }
-                    }
-                }, 500); // Increase timeout
+                    }, 500); // Increase timeout
             });
 
             // Make sure all functions are available before DOM loads

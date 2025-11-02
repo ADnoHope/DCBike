@@ -58,7 +58,13 @@
         
         .table-responsive {
             border-radius: 10px;
-            overflow: hidden;
+            /* allow dropdowns inside tables to overflow (so menus are not clipped) */
+            overflow: visible;
+        }
+
+        /* Ensure dropdown menus render above table/card content */
+        .dropdown-menu {
+            z-index: 1200;
         }
         
         .stats-card {
@@ -101,7 +107,22 @@
                     </li>
                     <li class="nav-item mb-2">
                         <a class="nav-link" href="#driver-registrations" data-section="driver-registrations">
-                            <i class="bi bi-person-plus me-2"></i>Đăng ký tài xế
+                            <i class="bi bi-person-plus me-2"></i>Duyệt tài xế
+                        </a>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link" href="#" id="openDriversList">
+                            <i class="bi bi-people-fill me-2"></i>Danh sách tài xế
+                        </a>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link" href="#" id="openLockedList">
+                            <i class="bi bi-lock-fill me-2"></i>Tài khoản bị khoá
+                        </a>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link" href="#" id="openCustomersList">
+                            <i class="bi bi-person-lines-fill me-2"></i>Danh sách khách hàng
                         </a>
                     </li>
                     <li class="nav-item mb-2">
@@ -182,7 +203,6 @@
                         <div>
                             <select class="form-select" id="status-filter" style="width: auto;">
                                 <option value="">Tất cả trạng thái</option>
-                                <option value="pending">Chờ duyệt</option>
                                 <option value="approved">Đã duyệt</option>
                                 <option value="rejected">Đã từ chối</option>
                             </select>
@@ -218,7 +238,106 @@
                         </div>
                     </div>
                 </div>
-                
+
+                <!-- Drivers Section -->
+                <div id="drivers-section" class="content-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Danh sách tài xế</h2>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-people-fill me-
+                                2"></i>Danh sách tài xế</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Họ tên</th>
+                                            <th>Email</th>
+                                            <th>Số điện thoại</th>
+                                            <th>Trạng thái</th>
+                                            <th>Vai trò</th>
+                                            <th>Ngày tạo</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="drivers-table">
+                                        <tr><td colspan="8" class="text-center">Đang tải...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customers Section -->
+                <div id="customers-section" class="content-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Danh sách khách hàng</h2>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>Danh sách khách hàng</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Họ tên</th>
+                                            <th>Email</th>
+                                            <th>Số điện thoại</th>
+                                            <th>Trạng thái</th>
+                                            <th>Vai trò</th>
+                                            <th>Ngày tạo</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="customers-table">
+                                        <tr><td colspan="8" class="text-center">Đang tải...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Locked Accounts Section -->
+                <div id="locked-section" class="content-section" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>Tài khoản bị khoá</h2>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-lock-fill me-2"></i>Danh sách tài khoản đang bị khoá</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Họ tên</th>
+                                            <th>Email</th>
+                                            <th>Số điện thoại</th>
+                                            <th>Vai trò</th>
+                                            <th>Ngày tạo</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="locked-table">
+                                        <tr><td colspan="7" class="text-center">Đang tải...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Vouchers Section -->
                 <div id="vouchers-section" class="content-section" style="display: none;">
                     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -261,6 +380,32 @@
         </div>
     </div>
     
+        <!-- Offcanvas: Drivers List -->
+        <div class="offcanvas offcanvas-start" tabindex="-1" id="driversOffcanvas" aria-labelledby="driversOffcanvasLabel">
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title" id="driversOffcanvasLabel">Danh sách tài xế</h5>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+            </div>
+            <div class="offcanvas-body">
+                <div id="drivers-list-container">
+                    <div class="text-center text-muted">Đang tải...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Offcanvas: Customers List -->
+        <div class="offcanvas offcanvas-start" tabindex="-1" id="customersOffcanvas" aria-labelledby="customersOffcanvasLabel">
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title" id="customersOffcanvasLabel">Danh sách khách hàng</h5>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+            </div>
+            <div class="offcanvas-body">
+                <div id="customers-list-container">
+                    <div class="text-center text-muted">Đang tải...</div>
+                </div>
+            </div>
+        </div>
+    
     <!-- Driver Registration Detail Modal -->
     <div class="modal fade" id="driverModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
@@ -279,6 +424,24 @@
         </div>
     </div>
     
+    <!-- User Detail Modal -->
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chi tiết người dùng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="userModalBody">
+                    <!-- User details loaded here -->
+                </div>
+                <div class="modal-footer" id="userModalFooter">
+                    <!-- Actions: lock/unlock, change role -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Voucher Modal -->
     <div class="modal fade" id="voucherModal" tabindex="-1">
         <div class="modal-dialog">
@@ -288,7 +451,8 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="voucherForm">
+                                <form id="voucherForm">
+                                    <input type="hidden" id="voucher-id" name="id" />
                         <div class="mb-3">
                             <label class="form-label">Mã voucher *</label>
                             <input type="text" class="form-control" name="ma_khuyen_mai" required>
@@ -338,11 +502,19 @@
                             <label class="form-label">Giới hạn sử dụng</label>
                             <input type="number" class="form-control" name="gioi_han_su_dung" min="1">
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label">Trạng thái</label>
+                            <select class="form-select" name="trang_thai">
+                                <option value="hoat_dong">Hoạt động</option>
+                                <option value="tam_dung">Tạm dừng</option>
+                                <option value="het_han">Hết hạn</option>
+                            </select>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                    <button type="button" class="btn btn-primary" onclick="createVoucher()">Tạo voucher</button>
+                    <button type="button" class="btn btn-primary" id="voucherSaveButton" onclick="createVoucher()">Tạo voucher</button>
                 </div>
             </div>
         </div>
@@ -386,8 +558,14 @@
                 sec.style.display = 'none';
             });
             
-            // Show selected section
-            document.getElementById(section + '-section').style.display = 'block';
+            // Show selected section. support both ids like 'drivers-section' and legacy 'drivers-section'
+            const idWithSuffix = section + '-section';
+            const el = document.getElementById(idWithSuffix) || document.getElementById(section);
+            if (el) {
+                el.style.display = 'block';
+            } else {
+                console.warn('Requested section not found:', section, idWithSuffix);
+            }
             
             // Load section data
             switch(section) {
@@ -396,6 +574,15 @@
                     break;
                 case 'driver-registrations':
                     loadDriverRegistrations();
+                    break;
+                case 'drivers':
+                    loadDriversSection();
+                    break;
+                case 'locked':
+                    loadLockedAccountsSection();
+                    break;
+                case 'customers':
+                    loadCustomersSection();
                     break;
                 case 'vouchers':
                     loadVouchers();
@@ -460,17 +647,13 @@
                     <td>${reg.email}</td>
                     <td>${reg.so_dien_thoai}</td>
                     <td>${reg.so_bang_lai}</td>
-                    <td>
-                        <span class="badge bg-${getStatusColor(reg.trang_thai)}">
-                            ${getStatusText(reg.trang_thai)}
-                        </span>
-                    </td>
+                    <td><span class="badge bg-${getStatusColor(reg.trang_thai)}">${getStatusText(reg.trang_thai)}</span></td>
                     <td>${new Date(reg.created_at).toLocaleDateString('vi-VN')}</td>
                     <td>
                         <button class="btn btn-sm btn-info" onclick="viewDriverDetail(${reg.id})">
                             <i class="bi bi-eye"></i>
                         </button>
-                        ${reg.trang_thai === 'pending' ? `
+                        ${reg.trang_thai === 'pending' || reg.trang_thai === 'cho_duyet' ? `
                             <button class="btn btn-sm btn-success ms-1" onclick="approveDriver(${reg.id})">
                                 <i class="bi bi-check"></i>
                             </button>
@@ -483,21 +666,44 @@
             `).join('');
         }
 
+        // Normalize and map different status values (DB uses Vietnamese keys)
         function getStatusColor(status) {
-            switch(status) {
-                case 'pending': return 'warning';
-                case 'approved': return 'success';
-                case 'rejected': return 'danger';
-                default: return 'secondary';
+            switch((status || '').toString()) {
+                case 'pending':
+                case 'cho_duyet':
+                    return 'warning';
+                case 'approved':
+                case 'da_duyet':
+                    return 'success';
+                case 'rejected':
+                case 'tu_choi':
+                    return 'danger';
+                case 'hoat_dong':
+                    return 'success';
+                case 'tam_khoa':
+                    return 'danger';
+                default:
+                    return 'secondary';
             }
         }
 
         function getStatusText(status) {
-            switch(status) {
-                case 'pending': return 'Chờ duyệt';
-                case 'approved': return 'Đã duyệt';
-                case 'rejected': return 'Đã từ chối';
-                default: return 'Không xác định';
+            switch((status || '').toString()) {
+                case 'pending':
+                case 'cho_duyet':
+                    return 'Chờ duyệt';
+                case 'approved':
+                case 'da_duyet':
+                    return 'Đã duyệt';
+                case 'rejected':
+                case 'tu_choi':
+                    return 'Đã từ chối';
+                case 'hoat_dong':
+                    return 'Đang mở tài khoản';
+                case 'tam_khoa':
+                    return 'Đang khóa tài khoản';
+                default:
+                    return 'Không xác định';
             }
         }
 
@@ -705,29 +911,55 @@
             const form = document.getElementById('voucherForm');
             const formData = new FormData(form);
             const voucherData = Object.fromEntries(formData);
-            
+            // If an id exists, perform update instead
+            const id = document.getElementById('voucher-id').value;
             try {
-                const response = await fetch('/api/admin/vouchers', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(voucherData)
-                });
-                
-                if (response.ok) {
-                    alert('Tạo voucher thành công!');
-                    bootstrap.Modal.getInstance(document.getElementById('voucherModal')).hide();
-                    form.reset();
-                    loadVouchers();
-                    loadDashboard();
+                if (id) {
+                    // update existing voucher
+                    const res = await fetch(`/api/admin/vouchers/${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(voucherData)
+                    });
+
+                    if (res.ok) {
+                        alert('Cập nhật voucher thành công!');
+                        bootstrap.Modal.getInstance(document.getElementById('voucherModal')).hide();
+                        form.reset();
+                        document.getElementById('voucher-id').value = '';
+                        document.getElementById('voucherSaveButton').textContent = 'Tạo voucher';
+                        loadVouchers();
+                        loadDashboard();
+                    } else {
+                        const err = await res.json().catch(() => ({}));
+                        alert('Lỗi: ' + (err.message || 'Không thể cập nhật voucher'));
+                    }
                 } else {
-                    const error = await response.json();
-                    alert('Lỗi: ' + error.message);
+                    const response = await fetch('/api/admin/vouchers', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(voucherData)
+                    });
+
+                    if (response.ok) {
+                        alert('Tạo voucher thành công!');
+                        bootstrap.Modal.getInstance(document.getElementById('voucherModal')).hide();
+                        form.reset();
+                        loadVouchers();
+                        loadDashboard();
+                    } else {
+                        const error = await response.json();
+                        alert('Lỗi: ' + error.message);
+                    }
                 }
             } catch (error) {
-                console.error('Error creating voucher:', error);
+                console.error('Error creating/updating voucher:', error);
                 alert('Có lỗi xảy ra!');
             }
         }
@@ -757,6 +989,39 @@
             }
         }
 
+        // Edit voucher: load voucher data into modal and switch save to update
+        async function editVoucher(id) {
+            try {
+                const res = await fetch(`/api/admin/vouchers/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('Không thể tải voucher');
+                const json = await res.json();
+                const v = json.data;
+
+                const form = document.getElementById('voucherForm');
+                form.elements['ma_khuyen_mai'].value = v.ma_khuyen_mai || '';
+                form.elements['ten_khuyen_mai'].value = v.ten_khuyen_mai || '';
+                form.elements['mo_ta'].value = v.mo_ta || '';
+                form.elements['loai_khuyen_mai'].value = v.loai_khuyen_mai || 'phan_tram';
+                form.elements['gia_tri'].value = v.gia_tri || '';
+                form.elements['gia_tri_toi_da'].value = v.gia_tri_toi_da || '';
+                form.elements['gia_tri_toi_thieu'].value = v.gia_tri_toi_thieu || '';
+                form.elements['ngay_bat_dau'].value = v.ngay_bat_dau ? new Date(v.ngay_bat_dau).toISOString().slice(0,10) : '';
+                form.elements['ngay_ket_thuc'].value = v.ngay_ket_thuc ? new Date(v.ngay_ket_thuc).toISOString().slice(0,10) : '';
+                form.elements['gioi_han_su_dung'].value = v.gioi_han_su_dung || '';
+                if (form.elements['trang_thai']) form.elements['trang_thai'].value = v.trang_thai || 'hoat_dong';
+                // set trang_thai control by adding a hidden or using select? We'll reuse existing field by creating a temporary select if needed
+                document.getElementById('voucher-id').value = v.id;
+                document.getElementById('voucherSaveButton').textContent = 'Cập nhật';
+                document.getElementById('voucherModal').querySelector('.modal-title').textContent = 'Chỉnh sửa voucher';
+                new bootstrap.Modal(document.getElementById('voucherModal')).show();
+            } catch (err) {
+                console.error('editVoucher error:', err);
+                alert('Lỗi khi tải voucher');
+            }
+        }
+
         function logout() {
             localStorage.removeItem('token');
             window.location.href = 'index.html';
@@ -770,6 +1035,393 @@
 
         // Initialize dashboard
         loadDashboard();
+
+        // Offcanvas handlers for drivers/customers
+        // Sidebar links: show main-section instead of offcanvas
+        document.getElementById('openDriversList').addEventListener('click', function(e) {
+            e.preventDefault();
+            // update active nav - use currentTarget to avoid inner-icon click issues
+            document.querySelectorAll('.nav-link').forEach(nav => nav.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            showSection('drivers');
+        });
+
+        document.getElementById('openCustomersList').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelectorAll('.nav-link').forEach(nav => nav.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            showSection('customers');
+        });
+
+        document.getElementById('openLockedList').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelectorAll('.nav-link').forEach(nav => nav.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            showSection('locked');
+        });
+
+        async function loadDriversList() {
+            const container = document.getElementById('drivers-list-container');
+            container.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+            try {
+                const res = await fetch('/api/admin/users?role=tai_xe', { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!res.ok) throw new Error('Lỗi khi tải danh sách');
+                const json = await res.json();
+                const users = json.data && Array.isArray(json.data.users) ? json.data.users : (json.data || []);
+                if (!users || users.length === 0) {
+                    container.innerHTML = '<div class="text-center text-muted">Không có tài xế</div>';
+                    return;
+                }
+                container.innerHTML = '<ul class="list-group"></ul>';
+                const list = container.querySelector('.list-group');
+                users.forEach(u => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    li.innerHTML = `<div>
+                        <strong>${u.ten || u.email}</strong><br><small class="text-muted">${u.email || ''} • ${u.so_dien_thoai || ''}</small>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="viewUser(${u.id})">Xem</button>
+                    </div>`;
+                    list.appendChild(li);
+                });
+            } catch (err) {
+                console.error('Load drivers error:', err);
+                container.innerHTML = '<div class="text-danger">Lỗi khi tải danh sách tài xế</div>';
+            }
+        }
+
+        async function loadCustomersList() {
+            const container = document.getElementById('customers-list-container');
+            container.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+            try {
+                // request all customers including locked ones
+                const res = await fetch('/api/admin/users?role=khach_hang&status=all', { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!res.ok) throw new Error('Lỗi khi tải danh sách');
+                const json = await res.json();
+                const users = json.data && Array.isArray(json.data.users) ? json.data.users : (json.data || []);
+                if (!users || users.length === 0) {
+                    container.innerHTML = '<div class="text-center text-muted">Không có khách hàng</div>';
+                    return;
+                }
+                container.innerHTML = '<ul class="list-group"></ul>';
+                const list = container.querySelector('.list-group');
+                users.forEach(u => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    li.innerHTML = `<div>
+                        <strong>${u.ten || u.email}</strong><br><small class="text-muted">${u.email || ''} • ${u.so_dien_thoai || ''}</small>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="viewUser(${u.id})">Xem</button>
+                    </div>`;
+                    list.appendChild(li);
+                });
+            } catch (err) {
+                console.error('Load customers error:', err);
+                container.innerHTML = '<div class="text-danger">Lỗi khi tải danh sách khách hàng</div>';
+            }
+        }
+
+        // Load drivers into the main drivers-section table
+        async function loadDriversSection() {
+            const tbody = document.getElementById('drivers-table');
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center"><div class="spinner-border" role="status"></div></td></tr>';
+            try {
+                // request all drivers (including locked) so they remain visible
+                const res = await fetch('/api/admin/users?role=tai_xe&status=all', { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!res.ok) throw new Error('Lỗi khi tải danh sách tài xế');
+                const json = await res.json();
+                const users = json.data && Array.isArray(json.data.users) ? json.data.users : (json.data || []);
+                if (!users || users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center">Không có tài xế</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = users.map(u => `
+                    <tr data-user-id="${u.id}">
+                        <td>${u.id}</td>
+                        <td>${u.ten || ''}</td>
+                        <td>${u.email || ''}</td>
+                        <td>${u.so_dien_thoai || ''}</td>
+                        <td class="user-status-cell"><span class="badge bg-${getStatusColor(u.trang_thai)}">${getStatusText(u.trang_thai)}</span></td>
+                        <td>${u.loai_tai_khoan || ''}</td>
+                        <td>${new Date(u.created_at).toLocaleDateString('vi-VN')}</td>
+                        <td class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-info" onclick="viewUser(${u.id})"><i class="bi bi-eye"></i></button>
+                            <button class="btn btn-sm btn-danger" onclick="lockUserAction(${u.id}, ${u.trang_thai === 'hoat_dong'})" ${u.trang_thai === 'hoat_dong' ? '' : 'disabled'}>Khóa</button>
+                            <div class="input-group input-group-sm ms-2" style="width: 200px;">
+                                <select class="form-select" id="role-select-${u.id}">
+                                    <option value="tai_xe" ${u.loai_tai_khoan === 'tai_xe' ? 'selected' : ''}>Tài xế</option>
+                                    <option value="khach_hang" ${u.loai_tai_khoan === 'khach_hang' ? 'selected' : ''}>Khách hàng</option>
+                                    <option value="admin" ${u.loai_tai_khoan === 'admin' ? 'selected' : ''}>Admin</option>
+                                </select>
+                                <button class="btn btn-outline-secondary" type="button" onclick="changeUserRoleActionFromSelect(${u.id})">Cập nhật</button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error('Load drivers section error:', err);
+                tbody.innerHTML = '<tr><td colspan="8" class="text-danger text-center">Lỗi khi tải danh sách</td></tr>';
+            }
+        }
+
+        // Load customers into the main customers-section table
+    async function loadCustomersSection() {
+            const tbody = document.getElementById('customers-table');
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center"><div class="spinner-border" role="status"></div></td></tr>';
+            try {
+                const res = await fetch('/api/admin/users?role=khach_hang', { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!res.ok) throw new Error('Lỗi khi tải danh sách khách hàng');
+                const json = await res.json();
+                const users = json.data && Array.isArray(json.data.users) ? json.data.users : (json.data || []);
+                if (!users || users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center">Không có khách hàng</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = users.map(u => `
+                    <tr data-user-id="${u.id}">
+                        <td>${u.id}</td>
+                        <td>${u.ten || ''}</td>
+                        <td>${u.email || ''}</td>
+                        <td>${u.so_dien_thoai || ''}</td>
+                        <td class="user-status-cell"><span class="badge bg-${getStatusColor(u.trang_thai)}">${getStatusText(u.trang_thai)}</span></td>
+                        <td>${u.loai_tai_khoan || ''}</td>
+                        <td>${new Date(u.created_at).toLocaleDateString('vi-VN')}</td>
+                        <td>
+                            <button class="btn btn-sm btn-info" onclick="viewUser(${u.id})"><i class="bi bi-eye"></i></button>
+                            ${u.trang_thai === 'hoat_dong' ? `<button class="btn btn-sm btn-danger ms-1" onclick="lockUserAction(${u.id}, true)">Khóa</button>` : ''}
+                            <div class="btn-group ms-1">
+                                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">Role</button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="changeUserRoleAction(${u.id}, 'tai_xe')">Tài xế</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="changeUserRoleAction(${u.id}, 'khach_hang')">Khách hàng</a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="changeUserRoleAction(${u.id}, 'admin')">Admin</a></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error('Load customers section error:', err);
+                tbody.innerHTML = '<tr><td colspan="7" class="text-danger text-center">Lỗi khi tải danh sách</td></tr>';
+            }
+        }
+
+        // Load locked accounts
+        async function loadLockedAccountsSection() {
+            const tbody = document.getElementById('locked-table');
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center"><div class="spinner-border" role="status"></div></td></tr>';
+            try {
+                // request only locked users (DB uses 'tam_khoa' for nguoi_dung.trang_thai)
+                const res = await fetch('/api/admin/users?status=tam_khoa', { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!res.ok) throw new Error('Lỗi khi tải danh sách tài khoản bị khoá');
+                const json = await res.json();
+                console.log('loadLockedAccountsSection response:', json);
+                const users = json.data && Array.isArray(json.data.users) ? json.data.users : (json.data || []);
+                if (!users || users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center">Không có tài khoản bị khoá</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = users.map(u => `
+                    <tr data-user-id="${u.id}">
+                        <td>${u.id}</td>
+                        <td>${u.ten || ''}</td>
+                        <td>${u.email || ''}</td>
+                        <td>${u.so_dien_thoai || ''}</td>
+                        <td class="user-status-cell"><span class="badge bg-${getStatusColor(u.trang_thai)}">${getStatusText(u.trang_thai)}</span></td>
+                        <td>${u.loai_tai_khoan || ''}</td>
+                        <td>${new Date(u.created_at).toLocaleDateString('vi-VN')}</td>
+                        <td>
+                            <button class="btn btn-sm btn-info" onclick="viewUser(${u.id})"><i class="bi bi-eye"></i></button>
+                            <button class="btn btn-sm btn-success ms-1" onclick="lockUserAction(${u.id}, ${u.trang_thai === 'hoat_dong'})">Mở</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error('Load locked accounts error:', err);
+                tbody.innerHTML = '<tr><td colspan="7" class="text-danger text-center">Lỗi khi tải danh sách</td></tr>';
+            }
+        }
+
+        // wire refresh button
+        document.addEventListener('DOMContentLoaded', function() {
+            const btn = document.getElementById('refreshLockedBtn');
+            if (btn) btn.addEventListener('click', () => loadLockedAccountsSection());
+        });
+
+        // Lock/unlock action from main section
+        async function lockUserAction(userId, currentlyActive) {
+            const shouldLock = currentlyActive; // if active -> lock
+            if (shouldLock && !confirm('Bạn có chắc chắn muốn khóa tài khoản này? (Tài khoản sẽ bị đổi về vai trò Khách hàng và không thể đăng ký tài xế nữa)')) return;
+            try {
+                // If we're locking, first force the user's role back to 'khach_hang' so they cannot be promoted to driver
+                if (shouldLock) {
+                    const roleRes = await fetch(`/api/admin/users/${userId}/role`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ role: 'khach_hang' })
+                    });
+                    const roleJson = await roleRes.json();
+                    if (!roleRes.ok) {
+                        throw new Error(roleJson.message || 'Lỗi khi thay đổi vai trò');
+                    }
+                }
+
+                // Now call lock/unlock endpoint
+                const res = await fetch(`/api/admin/users/${userId}/lock`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lock: shouldLock })
+                });
+                const json = await res.json();
+                if (!res.ok) throw new Error(json.message || 'Lỗi khi thay đổi trạng thái');
+
+                // Update UI immediately: modal badge and table row buttons
+                const newStatus = shouldLock ? 'tam_khoa' : 'hoat_dong';
+                try { updateUserRowStatus(userId, newStatus); } catch(e) { console.warn('Failed to update row status UI', e); }
+                try {
+                    const modalBadge = document.querySelector('#userModalBody .badge');
+                    if (modalBadge) {
+                        modalBadge.className = 'badge bg-' + getStatusColor(newStatus);
+                        modalBadge.textContent = getStatusText(newStatus);
+                    }
+                } catch(e) { /* ignore */ }
+
+                // Inform admin and refresh lists
+                alert(shouldLock ? 'Tài khoản đã bị khóa và đổi về vai trò Khách hàng.' : json.message || 'Đã thay đổi trạng thái tài khoản.');
+                // Ensure locked users are visible: refresh lists and open locked section if we just locked
+                loadDriversSection();
+                loadCustomersSection();
+                loadDashboard();
+                if (shouldLock) {
+                    // show locked section and refresh it
+                    showSection('locked');
+                    loadLockedAccountsSection();
+                } else {
+                    // if unlocking, refresh locked list too
+                    loadLockedAccountsSection();
+                }
+            } catch (err) {
+                console.error('lockUserAction error:', err);
+                alert('Lỗi: ' + (err.message || 'Không thể thay đổi trạng thái'));
+            }
+        }
+
+        // Update the row UI for a given userId to reflect new status
+        function updateUserRowStatus(userId, status) {
+            const row = document.querySelector(`tr[data-user-id="${userId}"]`);
+            if (!row) return;
+
+            // Find lock/unlock buttons in the row
+            const lockBtn = row.querySelector('button[onclick^="lockUserAction"][class*="btn-danger"]');
+            const unlockBtn = row.querySelector('button[onclick^="lockUserAction"][class*="btn-success"]');
+            if (status === 'tam_khoa') {
+                if (lockBtn) lockBtn.setAttribute('disabled', '');
+                if (unlockBtn) unlockBtn.removeAttribute('disabled');
+            } else if (status === 'hoat_dong') {
+                if (lockBtn) lockBtn.removeAttribute('disabled');
+                if (unlockBtn) unlockBtn.setAttribute('disabled', '');
+            }
+
+            // If there's a status cell in the row, update it (defensive)
+            const statusCell = row.querySelector('.user-status-cell');
+            if (statusCell) {
+                statusCell.innerHTML = `<span class="badge bg-${getStatusColor(status)}">${getStatusText(status)}</span>`;
+            }
+        }
+
+        // Change role action from main section
+        async function changeUserRoleAction(userId, role) {
+            if (!confirm(`Bạn có chắc chắn muốn đổi role thành "${role}"?`)) return;
+            try {
+                const res = await fetch(`/api/admin/users/${userId}/role`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ role })
+                });
+                const json = await res.json();
+                if (!res.ok) throw new Error(json.message || 'Lỗi khi thay đổi vai trò');
+                alert(json.message);
+                loadDriversSection();
+                loadCustomersSection();
+                loadDashboard();
+            } catch (err) {
+                console.error('changeUserRoleAction error:', err);
+                alert('Lỗi: ' + (err.message || 'Không thể thay đổi vai trò'));
+            }
+        }
+
+        // Helper: read selected role from inline select and call the change role action
+        function changeUserRoleActionFromSelect(userId) {
+            const sel = document.getElementById(`role-select-${userId}`);
+            if (!sel) return alert('Không tìm thấy control role');
+            const role = sel.value;
+            changeUserRoleAction(userId, role);
+        }
+
+        // View user details inline (modal). Hides offcanvas if open.
+        async function viewUser(userId) {
+            try {
+                // hide offcanvas if any
+                const driversOff = document.getElementById('driversOffcanvas');
+                const customersOff = document.getElementById('customersOffcanvas');
+                try { bootstrap.Offcanvas.getInstance(driversOff)?.hide(); } catch(e) {}
+                try { bootstrap.Offcanvas.getInstance(customersOff)?.hide(); } catch(e) {}
+
+                const res = await fetch(`/api/admin/users/${userId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.message || 'Không thể tải thông tin người dùng');
+                }
+                const json = await res.json();
+                const u = json.data || json.user || json;
+
+                const body = document.getElementById('userModalBody');
+                const footer = document.getElementById('userModalFooter');
+                body.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Họ tên:</strong> ${u.ten || ''}</p>
+                            <p><strong>Email:</strong> ${u.email || ''}</p>
+                            <p><strong>Số điện thoại:</strong> ${u.so_dien_thoai || ''}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Vai trò:</strong> ${u.loai_tai_khoan || ''}</p>
+                            <p><strong>Ngày tạo:</strong> ${u.created_at ? new Date(u.created_at).toLocaleString('vi-VN') : ''}</p>
+                            <p><strong>Trạng thái:</strong> <span class="badge bg-${getStatusColor(u.trang_thai)}">${getStatusText(u.trang_thai)}</span></p>
+                        </div>
+                    </div>
+                `;
+
+                // Only show the lock button in the modal when the user is active.
+                // Unlocking should be done from the "Tài khoản bị khoá" section only.
+                footer.innerHTML = `
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    ${u.trang_thai === 'hoat_dong' ? `
+                        <button type="button" class="btn btn-danger" onclick="lockUserAction(${u.id}, true)">Khóa</button>
+                    ` : ''}
+                    <div class="input-group ms-2" style="width:220px;">
+                        <select id="modal-role-select-${u.id}" class="form-select">
+                            <option value="tai_xe" ${u.loai_tai_khoan === 'tai_xe' ? 'selected' : ''}>Tài xế</option>
+                            <option value="khach_hang" ${u.loai_tai_khoan === 'khach_hang' ? 'selected' : ''}>Khách hàng</option>
+                            <option value="admin" ${u.loai_tai_khoan === 'admin' ? 'selected' : ''}>Admin</option>
+                        </select>
+                        <button class="btn btn-outline-secondary" onclick="changeUserRoleAction(${u.id}, document.getElementById('modal-role-select-${u.id}').value)">Cập nhật</button>
+                    </div>
+                `;
+
+                new bootstrap.Modal(document.getElementById('userModal')).show();
+            } catch (err) {
+                console.error('viewUser error:', err);
+                alert('Lỗi: ' + (err.message || 'Không thể tải thông tin người dùng'));
+            }
+        }
     </script>
 </body>
 </html>

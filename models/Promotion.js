@@ -47,6 +47,19 @@ class Promotion {
     }
   }
 
+  // Tìm khuyến mãi theo ID
+  static async findById(id) {
+    try {
+      const [rows] = await pool.execute(
+        'SELECT * FROM khuyen_mai WHERE id = ? LIMIT 1',
+        [id]
+      );
+      return rows.length > 0 ? new Promotion(rows[0]) : null;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Tìm khuyến mãi theo mã
   static async findByCode(ma_khuyen_mai) {
     try {
@@ -220,8 +233,9 @@ class Promotion {
   // Xóa khuyến mãi (soft delete)
   static async delete(id) {
     try {
+      // Permanently delete the promotion from database as requested
       const [result] = await pool.execute(
-        'UPDATE khuyen_mai SET trang_thai = "het_han" WHERE id = ?',
+        'DELETE FROM khuyen_mai WHERE id = ?',
         [id]
       );
       return result.affectedRows > 0;

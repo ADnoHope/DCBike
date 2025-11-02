@@ -20,6 +20,18 @@ router.get('/driver-registrations/:id', authenticate, adminAuth, AdminController
 router.post('/driver-registrations/:id/approve', authenticate, adminAuth, AdminController.approveDriverRegistration);
 router.post('/driver-registrations/:id/reject', authenticate, adminAuth, AdminController.rejectDriverRegistration);
 
+// New: list users by role (tai_xe, khach_hang, admin)
+router.get('/users', authenticate, adminAuth, AdminController.getUsersByRole);
+
+// Lấy thông tin người dùng theo ID
+router.get('/users/:id', authenticate, adminAuth, AdminController.getUserById);
+
+// Lock/unlock user
+router.post('/users/:id/lock', authenticate, adminAuth, AdminController.lockUser);
+
+// Change user role (body: { role: 'tai_xe'|'khach_hang'|'admin' })
+router.post('/users/:id/role', authenticate, adminAuth, AdminController.changeUserRole);
+
 // Quản lý voucher
 router.get('/vouchers', authenticate, adminAuth, AdminController.getVouchers);
 router.post('/vouchers', authenticate, adminAuth, AdminController.createVoucher);
