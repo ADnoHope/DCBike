@@ -84,10 +84,25 @@ class AdminController {
         await connection.beginTransaction();
 
         if (lock) {
-          // When locking: atomically set role back to 'khach_hang' and trang_thai to 'tam_khoa' (DB enum)
+          // When locking: save existing role into previous_loai_tai_khoan then set role to 'khach_hang' and trang_thai to 'tam_khoa'
+          // This allows us to restore the original role when unlocking.
+          const [rows] = await connection.execute(
+            'SELECT loai_tai_khoan FROM nguoi_dung WHERE id = ? LIMIT 1',
+            [id]
+          );
+
+          if (!rows || rows.length === 0) {
+            await connection.rollback();
+            connection.release();
+            return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+          }
+
+          const currentRole = rows[0].loai_tai_khoan || null;
+
+          // Update previous_loai_tai_khoan, loai_tai_khoan and trang_thai atomically
           const [updateRes] = await connection.execute(
-            'UPDATE nguoi_dung SET loai_tai_khoan = ?, trang_thai = ? WHERE id = ?',
-            ['khach_hang', 'tam_khoa', id]
+            `UPDATE nguoi_dung SET previous_loai_tai_khoan = ?, loai_tai_khoan = ?, trang_thai = ? WHERE id = ?`,
+            [currentRole, 'khach_hang', 'tam_khoa', id]
           );
 
           console.log('AdminController.lockUser lock updateRes:', updateRes);
@@ -98,18 +113,46 @@ class AdminController {
             return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
           }
         } else {
-          // Unlock: only restore trang_thai to hoat_dong, keep role as-is
-          const [updateRes] = await connection.execute(
-            'UPDATE nguoi_dung SET trang_thai = ? WHERE id = ?',
-            ['hoat_dong', id]
+          // Unlock: if we have a previous role saved, restore it; otherwise only set trang_thai to hoat_dong
+          const [rows] = await connection.execute(
+            'SELECT previous_loai_tai_khoan FROM nguoi_dung WHERE id = ? LIMIT 1',
+            [id]
           );
 
-          console.log('AdminController.lockUser unlock updateRes:', updateRes);
-
-          if (updateRes.affectedRows === 0) {
+          if (!rows || rows.length === 0) {
             await connection.rollback();
             connection.release();
             return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+          }
+
+          const prevRole = rows[0].previous_loai_tai_khoan || null;
+
+          if (prevRole) {
+            const [updateRes] = await connection.execute(
+              `UPDATE nguoi_dung SET loai_tai_khoan = ?, trang_thai = ?, previous_loai_tai_khoan = NULL WHERE id = ?`,
+              [prevRole, 'hoat_dong', id]
+            );
+
+            console.log('AdminController.lockUser unlock restore updateRes:', updateRes);
+
+            if (updateRes.affectedRows === 0) {
+              await connection.rollback();
+              connection.release();
+              return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+            }
+          } else {
+            const [updateRes] = await connection.execute(
+              'UPDATE nguoi_dung SET trang_thai = ? WHERE id = ?',
+              ['hoat_dong', id]
+            );
+
+            console.log('AdminController.lockUser unlock updateRes:', updateRes);
+
+            if (updateRes.affectedRows === 0) {
+              await connection.rollback();
+              connection.release();
+              return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+            }
           }
         }
 
