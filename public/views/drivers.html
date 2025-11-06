@@ -23,16 +23,16 @@
                     <li class="nav-item">
                         <a class="nav-link" href="../index.html">Trang chủ</a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" id="booking-nav">
                         <a class="nav-link" href="booking.html">Đặt xe</a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" id="trips-nav">
                         <a class="nav-link" href="trips.html">Chuyến đi</a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" id="drivers-nav">
                         <a class="nav-link active" href="drivers.html">Tài xế</a>
                     </li>
-                    <li class="nav-item">
+                    <li class="nav-item" id="promos-nav">
                         <a class="nav-link" href="promotions.html">Khuyến mãi</a>
                     </li>
                 </ul>
@@ -66,7 +66,7 @@
                 <p class="text-muted">Tìm kiếm và lựa chọn tài xế phù hợp</p>
             </div>
             <div class="col-md-4 text-end">
-                <a href="../driver-registration.html" class="btn btn-success">
+                <a id="driver-register-btn" href="../driver-registration.html" class="btn btn-success">
                     <i class="fas fa-user-plus me-2"></i>Đăng ký làm tài xế
                 </a>
             </div>
@@ -239,6 +239,60 @@
                 userMenu.style.display = 'block';
                 authBtn.style.display = 'none';
             }
+
+            // Hide driver registration button on this page for users who are already drivers
+            try {
+                const driverRegisterBtn = document.getElementById('driver-register-btn');
+                if (driverRegisterBtn) {
+                    if (user.loai_tai_khoan === 'tai_xe') {
+                        driverRegisterBtn.style.display = 'none';
+                    } else {
+                        driverRegisterBtn.style.display = '';
+                    }
+                }
+            } catch (e) {
+                console.error('Error applying driver button visibility', e);
+            }
+
+            // Hide booking nav link in header for drivers
+            try {
+                const bookingNav = document.getElementById('booking-nav');
+                if (bookingNav) {
+                    if (user.loai_tai_khoan === 'tai_xe') {
+                        bookingNav.style.display = 'none';
+                    } else {
+                        bookingNav.style.display = '';
+                    }
+                }
+            } catch (e) {
+                console.error('Error applying booking nav visibility', e);
+            }
+
+            // If user is a driver, hide/disable booking buttons on this page
+            try {
+                if (user.loai_tai_khoan === 'tai_xe') {
+                    document.querySelectorAll('button').forEach(btn => {
+                        try {
+                            const txt = (btn.textContent || '').trim();
+                            if (txt.includes('Đặt xe')) {
+                                btn.style.display = 'none';
+                            }
+                        } catch (e) {}
+                    });
+                } else {
+                    // show booking buttons for non-driver users
+                    document.querySelectorAll('button').forEach(btn => {
+                        try {
+                            const txt = (btn.textContent || '').trim();
+                            if (txt.includes('Đặt xe')) {
+                                btn.style.display = '';
+                            }
+                        } catch (e) {}
+                    });
+                }
+            } catch (e) {
+                console.error('Error hiding booking buttons', e);
+            }
         }
 
         function updateUIForGuest() {
@@ -248,6 +302,14 @@
             if (userMenu && authBtn) {
                 userMenu.style.display = 'none';
                 authBtn.style.display = 'block';
+            }
+
+            // Ensure the driver registration button is visible for guests
+            try {
+                const driverRegisterBtn = document.getElementById('driver-register-btn');
+                if (driverRegisterBtn) driverRegisterBtn.style.display = '';
+            } catch (e) {
+                console.error('Error showing driver register button for guest', e);
             }
         }
 
@@ -381,7 +443,7 @@
                                     <button class="btn btn-outline-primary" onclick="viewDriverDetail(${driver.id || driver.tai_xe_id})">
                                         <i class="fas fa-eye me-2"></i>Xem chi tiết
                                     </button>
-                                    <button class="btn btn-primary" onclick="bookWithDriver(${driver.id || driver.tai_xe_id})">
+                                    <button class="btn btn-primary book-now-btn" onclick="bookWithDriver(${driver.id || driver.tai_xe_id})">
                                         <i class="fas fa-car me-2"></i>Đặt xe ngay
                                     </button>
                                 </div>

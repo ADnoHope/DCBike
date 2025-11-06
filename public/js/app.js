@@ -351,7 +351,14 @@ class DCCarBooking {
             if (tripsNav) tripsNav.classList.remove('d-none');
             if (driversNav) driversNav.classList.remove('d-none');
             if (promosNav) promosNav.classList.remove('d-none');
-            if (driverRegNav) driverRegNav.classList.remove('d-none');
+            // Hide driver registration link for users who are already drivers
+            if (driverRegNav) {
+                if (this.user.loai_tai_khoan === 'tai_xe') {
+                    driverRegNav.classList.add('d-none');
+                } else {
+                    driverRegNav.classList.remove('d-none');
+                }
+            }
             
             // Thêm link admin nếu user có role admin
             if (this.user.loai_tai_khoan === 'admin') {
@@ -394,6 +401,69 @@ class DCCarBooking {
             if (adminLink && adminLink.parentElement) {
                 adminLink.parentElement.remove();
             }
+        }
+
+        // Additional role-based UI restrictions (client-side)
+        try {
+            const role = this.user ? this.user.loai_tai_khoan : null;
+
+            // Elements we may want to hide/show across pages
+            const bookingFormEl = document.getElementById('booking-form');
+            const bookNewBtn = document.getElementById('book-new-btn');
+            const promoUseBtn = document.getElementById('use-promotion-btn');
+            const bookDriverBtn = document.getElementById('book-driver-btn');
+            const bookNowButtons = document.querySelectorAll('.book-now-btn');
+
+            // If the user is a driver, hide booking features and prevent access to booking page
+            if (role === 'tai_xe') {
+                if (bookingNav) bookingNav.classList.add('d-none');
+
+                // Hide common booking buttons
+                if (bookNewBtn) bookNewBtn.style.display = 'none';
+                if (promoUseBtn) promoUseBtn.style.display = 'none';
+                if (bookDriverBtn) bookDriverBtn.style.display = 'none';
+                bookNowButtons.forEach(el => el.style.display = 'none');
+
+                // If current page is booking page, block access and redirect to home after showing message
+                const path = window.location.pathname.toLowerCase();
+                if (path.includes('booking.html')) {
+                    showAlert('warning', 'Tài khoản tài xế không được phép sử dụng chức năng đặt xe.');
+                    setTimeout(() => {
+                        window.location.href = '/index.html';
+                    }, 1200);
+                }
+
+                // Also disable any booking form on the page if present
+                if (bookingFormEl) {
+                    bookingFormEl.querySelectorAll('input, select, textarea, button').forEach(el => el.disabled = true);
+                }
+            } else {
+                // Non-driver users: ensure booking elements are visible/usable
+                if (bookingNav) bookingNav.classList.remove('d-none');
+                if (bookNewBtn) bookNewBtn.style.display = '';
+                if (promoUseBtn) promoUseBtn.style.display = '';
+                if (bookDriverBtn) bookDriverBtn.style.display = '';
+                bookNowButtons.forEach(el => el.style.display = '');
+                if (bookingFormEl) {
+                    bookingFormEl.querySelectorAll('input, select, textarea, button').forEach(el => el.disabled = false);
+                }
+            }
+
+            // Hide or show the "Đăng ký làm tài xế" button on the drivers page depending on role
+            try {
+                const driverRegisterBtn = document.getElementById('driver-register-btn');
+                if (driverRegisterBtn) {
+                    if (role === 'tai_xe') {
+                        driverRegisterBtn.style.display = 'none';
+                    } else {
+                        driverRegisterBtn.style.display = '';
+                    }
+                }
+            } catch (e) {
+                console.error('Error hiding/showing driver register button', e);
+            }
+        } catch (err) {
+            console.error('Error applying role-based UI restrictions', err);
         }
     }
 

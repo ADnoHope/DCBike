@@ -147,8 +147,9 @@
                             </div>
                         </div>
 
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Gửi đăng ký</button>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-secondary flex-fill" onclick="window.location.href='index.html'">Quay về trang chủ</button>
+                            <button type="submit" class="btn btn-primary flex-fill">Gửi đăng ký</button>
                         </div>
                     </form>
                     
@@ -237,6 +238,23 @@
             } catch (error) {
                 console.error('Registration error:', error);
                 alert('Có lỗi xảy ra. Vui lòng thử lại!');
+            }
+        });
+    </script>
+    <script>
+        // Prevent access to driver registration page if logged-in user is already a driver
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const userJson = localStorage.getItem('user');
+                if (userJson) {
+                    const user = JSON.parse(userJson);
+                    if (user && user.loai_tai_khoan === 'tai_xe') {
+                        alert('Bạn đã là tài xế, không được truy cập trang đăng ký tài xế.');
+                        window.location.href = 'index.html';
+                    }
+                }
+            } catch (err) {
+                console.error('Error checking user role on driver registration page', err);
             }
         });
     </script>

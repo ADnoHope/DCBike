@@ -1,24 +1,12 @@
-const mysql = require('mysql2/promise');
+const { pool } = require('../config/database');
 require('dotenv').config();
 
 const createTables = async () => {
   try {
-    console.log('Đang kết nối đến database DCdb...');
-    
-    // Kết nối trực tiếp đến database DCdb có sẵn
-    const connection = await mysql.createConnection({
-      host: process.env.DB_HOST || 'localhost',
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'DCdb',
-      charset: 'utf8mb4',
-      timezone: '+07:00'
-    });
+    console.log('Sử dụng cấu hình database từ config/database.js (pool)');
 
-    console.log('Kết nối database DCdb thành công!');
-
-    // Tạo bảng người dùng (users)
-    await connection.execute(`
+  // Tạo bảng người dùng (users)
+  await pool.execute(`
       CREATE TABLE IF NOT EXISTS nguoi_dung (
         id INT PRIMARY KEY AUTO_INCREMENT,
         ten VARCHAR(255) NOT NULL,
@@ -33,8 +21,8 @@ const createTables = async () => {
       )
     `);
 
-    // Tạo bảng tài xế (drivers) - mở rộng thông tin cho tài xế
-    await connection.execute(`
+  // Tạo bảng tài xế (drivers) - mở rộng thông tin cho tài xế
+  await pool.execute(`
       CREATE TABLE IF NOT EXISTS tai_xe (
         id INT PRIMARY KEY AUTO_INCREMENT,
         nguoi_dung_id INT NOT NULL,
@@ -56,8 +44,8 @@ const createTables = async () => {
       )
     `);
 
-    // Tạo bảng khuyến mãi
-    await connection.execute(`
+  // Tạo bảng khuyến mãi
+  await pool.execute(`
       CREATE TABLE IF NOT EXISTS khuyen_mai (
         id INT PRIMARY KEY AUTO_INCREMENT,
         ma_khuyen_mai VARCHAR(50) UNIQUE NOT NULL,
@@ -78,8 +66,8 @@ const createTables = async () => {
       )
     `);
 
-    // Tạo bảng đăng ký tài xế (chờ duyệt)
-    await connection.execute(`
+  // Tạo bảng đăng ký tài xế (chờ duyệt)
+  await pool.execute(`
       CREATE TABLE IF NOT EXISTS driver_registrations (
         id INT PRIMARY KEY AUTO_INCREMENT,
         ten VARCHAR(255) NOT NULL,
@@ -111,8 +99,8 @@ const createTables = async () => {
 
 
 
-    // Tạo bảng chuyến đi
-    await connection.execute(`
+  // Tạo bảng chuyến đi
+  await pool.execute(`
       CREATE TABLE IF NOT EXISTS chuyen_di (
         id INT PRIMARY KEY AUTO_INCREMENT,
         khach_hang_id INT NOT NULL,
@@ -145,8 +133,8 @@ const createTables = async () => {
 
 
 
-    // Tạo bảng thanh toán
-    await connection.execute(`
+  // Tạo bảng thanh toán
+  await pool.execute(`
       CREATE TABLE IF NOT EXISTS thanh_toan (
         id INT PRIMARY KEY AUTO_INCREMENT,
         chuyen_di_id INT NOT NULL,
@@ -161,8 +149,8 @@ const createTables = async () => {
       )
     `);
 
-    // Tạo bảng đánh giá
-    await connection.execute(`
+  // Tạo bảng đánh giá
+  await pool.execute(`
       CREATE TABLE IF NOT EXISTS danh_gia (
         id INT PRIMARY KEY AUTO_INCREMENT,
         chuyen_di_id INT NOT NULL,
@@ -179,11 +167,8 @@ const createTables = async () => {
 
 
 
-    console.log('Tất cả bảng đã được tạo thành công!');
-    
-    await connection.end();
-    console.log('Hoàn thành thiết lập database DCdb!');
-    
+  console.log('Tất cả bảng đã được tạo thành công!');
+  console.log('Hoàn thành thiết lập database!');
   } catch (error) {
     console.error('Lỗi khi tạo bảng:', error.message);
     console.error('Chi tiết lỗi:', error);
