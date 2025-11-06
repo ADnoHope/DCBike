@@ -31,6 +31,21 @@ class DCCarBooking {
         
         // Bind event listeners
         this.bindEvents();
+        // Attach click guards for elements that require authentication
+        this.attachAuthGuards();
+
+        // Hide page-level loading overlay if present (booking page uses this)
+        try {
+            const overlay = document.getElementById('page-loading-overlay');
+            if (overlay) {
+                // fade out for a smoother UX
+                overlay.style.transition = 'opacity 200ms ease-in-out';
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.remove(), 250);
+            }
+        } catch (e) {
+            console.debug('No page loading overlay found or failed to remove it', e);
+        }
     }
 
     bindEvents() {
@@ -42,6 +57,53 @@ class DCCarBooking {
                 this.bookTrip();
             });
         }
+    }
+
+    // Attach global auth guards: intercept clicks on elements with [data-auth]
+    attachAuthGuards() {
+        document.addEventListener('click', async (e) => {
+            try {
+                const el = e.target.closest('[data-auth]');
+                if (!el) return; // not a guarded element
+
+                // Optional roles attribute: comma-separated allowed roles
+                const rolesAttr = el.getAttribute('data-auth-roles');
+                const allowedRoles = rolesAttr ? rolesAttr.split(',').map(r => r.trim()) : null;
+
+                // If no app instance or not logged in, show login modal
+                if (!window.dcApp || !window.dcApp.token) {
+                    e.preventDefault();
+                    showAuthModal();
+                    return;
+                }
+
+                // Ensure user profile is loaded
+                if (!window.dcApp.user) {
+                    e.preventDefault();
+                    try {
+                        await window.dcApp.loadUserProfile();
+                        window.dcApp.updateUI();
+                    } catch (err) {
+                        showAuthModal();
+                        return;
+                    }
+                }
+
+                // Check role if provided
+                if (allowedRoles && allowedRoles.length > 0) {
+                    const userRole = window.dcApp.user && window.dcApp.user.loai_tai_khoan;
+                    if (!allowedRoles.includes(userRole)) {
+                        e.preventDefault();
+                        showAlert('warning', 'Bạn không có quyền truy cập chức năng này');
+                        return;
+                    }
+                }
+
+                // Otherwise allow the click to proceed
+            } catch (err) {
+                console.error('Auth guard error', err);
+            }
+        }, { capture: true });
     }
 
     setMinPickupTime() {
@@ -347,7 +409,10 @@ class DCCarBooking {
             if (userName) userName.textContent = this.user.ten || this.user.ho_ten;
 
             // Show main nav items for logged-in users
-            if (bookingNav) bookingNav.classList.remove('d-none');
+            if (bookingNav) {
+                bookingNav.classList.remove('d-none');
+                try { bookingNav.style.display = ''; } catch(e) {}
+            }
             if (tripsNav) tripsNav.classList.remove('d-none');
             if (driversNav) driversNav.classList.remove('d-none');
             if (promosNav) promosNav.classList.remove('d-none');
@@ -390,7 +455,10 @@ class DCCarBooking {
             if (userNav) userNav.classList.add('d-none');
             if (userInfo) userInfo.classList.add('d-none');
             // Hide main nav items for guests so only 'Trang chủ' and 'Đăng nhập' remain
-            if (bookingNav) bookingNav.classList.add('d-none');
+            if (bookingNav) {
+                bookingNav.classList.add('d-none');
+                try { bookingNav.style.display = 'none'; } catch(e) {}
+            }
             if (tripsNav) tripsNav.classList.add('d-none');
             if (driversNav) driversNav.classList.add('d-none');
             if (promosNav) promosNav.classList.add('d-none');
@@ -415,8 +483,11 @@ class DCCarBooking {
             const bookNowButtons = document.querySelectorAll('.book-now-btn');
 
             // If the user is a driver, hide booking features and prevent access to booking page
-            if (role === 'tai_xe') {
-                if (bookingNav) bookingNav.classList.add('d-none');
+                if (role === 'tai_xe') {
+                    if (bookingNav) {
+                        bookingNav.classList.add('d-none');
+                        try { bookingNav.style.display = 'none'; } catch(e) {}
+                    }
 
                 // Hide common booking buttons
                 if (bookNewBtn) bookNewBtn.style.display = 'none';

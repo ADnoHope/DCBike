@@ -82,7 +82,7 @@ app.get('/admin.html', (req, res, next) => {
 // Generic gatekeeper for protected HTML pages
 // Allow public pages (index, registration) but require login for others.
 app.get('/*.html', (req, res, next) => {
-  const publicPages = ['/index.html', '/', '/driver-registration.html'];
+  const publicPages = ['/index.html', '/', '/driver-registration.html', '/views/booking.html'];
   const reqPath = req.path;
 
   // If the requested page is in the allow list or already has allow=1, proceed
