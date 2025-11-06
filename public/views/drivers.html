@@ -161,7 +161,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="button" class="btn btn-primary" id="book-driver-btn">
+                    <button type="button" class="btn btn-primary" id="book-driver-btn" data-auth data-auth-roles="khach_hang">
                         <i class="fas fa-car me-2"></i>Đặt xe với tài xế này
                     </button>
                 </div>
@@ -443,7 +443,7 @@
                                     <button class="btn btn-outline-primary" onclick="viewDriverDetail(${driver.id || driver.tai_xe_id})">
                                         <i class="fas fa-eye me-2"></i>Xem chi tiết
                                     </button>
-                                    <button class="btn btn-primary book-now-btn" onclick="bookWithDriver(${driver.id || driver.tai_xe_id})">
+                                    <button class="btn btn-primary book-now-btn" data-auth data-auth-roles="khach_hang" onclick="bookWithDriver(${driver.id || driver.tai_xe_id})">
                                         <i class="fas fa-car me-2"></i>Đặt xe ngay
                                     </button>
                                 </div>
