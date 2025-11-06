@@ -268,6 +268,15 @@
 
             <!-- Available Drivers & Quick Actions -->
             <div class="col-lg-4">
+                <!-- Customer's Bookings (visible when logged in as customer) -->
+                <div id="customer-bookings-card" class="card shadow mb-3" style="display:none;">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="fas fa-ticket-alt me-2"></i>Đơn của tôi</h5>
+                    </div>
+                    <div class="card-body" style="max-height: 240px; overflow-y: auto;" id="customer-bookings-container">
+                        <div class="text-center text-muted small">Vui lòng đăng nhập để xem đơn của bạn</div>
+                    </div>
+                </div>
                 <!-- Quick Actions removed per user request -->
 
                 <!-- Available Drivers -->
@@ -1073,8 +1082,10 @@
             
             const distanceText = `${distance.toFixed(1)} km (${routeSource})`;
             const durationText = duration > 0 ? ` • ${Math.round(duration)} phút` : '';
-            document.getElementById('distance-info').textContent = distanceText + durationText;
-            document.getElementById('distance-loading').style.display = 'none';
+        document.getElementById('distance-info').textContent = distanceText + durationText;
+        // Expose last calculated distance and duration for booking payload
+        try { window.lastCalculatedDistance = distance; window.lastCalculatedDuration = duration; } catch (e) { console.debug('Cannot set lastCalculatedDistance', e); }
+        document.getElementById('distance-loading').style.display = 'none';
 
             // Show detailed pricing breakdown
             document.getElementById('starting-fee').textContent = 
@@ -1373,6 +1384,8 @@
 
             // Load available drivers
             loadAvailableDrivers();
+            // Load recent bookings if user is logged in as customer
+            try { loadCustomerBookings(); } catch (e) { console.debug('loadCustomerBookings init failed', e); }
 
             // Setup form submission
             document.getElementById('booking-form').addEventListener('submit', function(e) {
@@ -1578,6 +1591,94 @@
             }
         }
 
+        // --------------------- Customer bookings (on booking page) ---------------------
+        async function loadCustomerBookings() {
+            try {
+                if (typeof dcApp === 'undefined' || !dcApp.token) {
+                    // show login prompt
+                    document.getElementById('customer-bookings-card').style.display = 'none';
+                    return;
+                }
+
+                document.getElementById('customer-bookings-card').style.display = '';
+                const res = await fetch('/api/trips/user?limit=5', {
+                    headers: { 'Authorization': `Bearer ${dcApp.token}` }
+                });
+
+                if (!res.ok) throw new Error('Không thể tải đơn');
+                const result = await res.json();
+                if (!result.success) throw new Error(result.message || 'Lỗi');
+
+                const trips = result.data.trips || [];
+                displayCustomerBookings(trips);
+            } catch (e) {
+                console.error('Load customer bookings error', e);
+                const container = document.getElementById('customer-bookings-container');
+                container.innerHTML = `<div class="text-center text-danger small">Lỗi khi tải đơn: ${e.message}</div>`;
+            }
+        }
+
+        function displayCustomerBookings(trips) {
+            const container = document.getElementById('customer-bookings-container');
+            if (!trips || trips.length === 0) {
+                container.innerHTML = `<div class="text-center text-muted small">Bạn chưa có đơn nào gần đây</div>`;
+                return;
+            }
+
+            let html = '<div class="list-group">';
+            trips.forEach(trip => {
+                const price = trip.gia_cuoc ? new Intl.NumberFormat('vi-VN').format(trip.gia_cuoc) + ' VND' : 'Chưa xác định';
+                html += `
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="fw-bold">#${trip.id} — ${trip.diem_don} → ${trip.diem_den}</div>
+                            <small class="text-muted">${price}</small>
+                        </div>
+                        <div class="text-end">
+                            <button class="btn btn-sm btn-link" onclick="viewBookingDetail(${trip.id})">Chi tiết</button>
+                            ${trip.trang_thai === 'cho_xac_nhan' || trip.trang_thai === 'da_xac_nhan' ? `<button class="btn btn-sm btn-outline-danger" onclick="cancelBooking(${trip.id})">Hủy</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function viewBookingDetail(tripId) {
+            try {
+                const res = await fetch(`/api/trips/${tripId}`, { headers: { 'Authorization': `Bearer ${dcApp.token}` } });
+                const result = await res.json();
+                if (!result.success) return showAlert('error', result.message || 'Không thể tải chi tiết');
+
+                const trip = result.data;
+                const content = `
+                    Mã: #${trip.id}\nĐiểm đón: ${trip.diem_don}\nĐiểm đến: ${trip.diem_den}\nThời gian: ${trip.thoi_gian_du_kien || trip.thoi_gian_dat}\nGiá: ${trip.gia_cuoc || trip.tong_tien}\nTrạng thái: ${trip.trang_thai}\nGhi chú: ${trip.ghi_chu || '-'}
+                `;
+                alert(content);
+            } catch (e) {
+                console.error('View booking detail error', e);
+                showAlert('error', 'Lỗi khi lấy chi tiết đơn');
+            }
+        }
+
+        async function cancelBooking(tripId) {
+            if (!confirm('Bạn có chắc chắn muốn hủy đơn này?')) return;
+            try {
+                const res = await fetch(`/api/trips/${tripId}/cancel`, { method: 'POST', headers: { 'Authorization': `Bearer ${dcApp.token}`, 'Content-Type': 'application/json' } });
+                const result = await res.json();
+                if (result.success) {
+                    showAlert('success', 'Đã hủy đơn thành công');
+                    loadCustomerBookings();
+                } else {
+                    showAlert('error', result.message || 'Không thể hủy đơn');
+                }
+            } catch (e) {
+                console.error('Cancel booking error', e);
+                showAlert('error', 'Lỗi khi hủy đơn');
+            }
+        }
+
         async function submitBooking() {
             // Check if user is logged in
             if (typeof dcApp === 'undefined' || !dcApp.token) {
@@ -1585,14 +1686,63 @@
                 return;
             }
 
+            // Ensure price/distance are calculated and available
+            try { await calculatePrice(); } catch (e) { console.debug('calculatePrice failed before submit', e); }
+
+            const pickupInput = document.getElementById('pickup-location');
+            const destinationInput = document.getElementById('destination');
+
+            const lat_don = parseFloat(pickupInput.getAttribute('data-lat')) || null;
+            const lng_don = parseFloat(pickupInput.getAttribute('data-lng')) || null;
+            const lat_den = parseFloat(destinationInput.getAttribute('data-lat')) || null;
+            const lng_den = parseFloat(destinationInput.getAttribute('data-lng')) || null;
+
+            // Promotion data (if promotionService available)
+            let khuyen_mai_id = null;
+            let so_tien_giam_gia = 0;
+            try {
+                if (typeof promotionService !== 'undefined' && promotionService.getAppliedPromotion()) {
+                    const p = promotionService.getAppliedPromotion();
+                    khuyen_mai_id = p.id || null;
+                    so_tien_giam_gia = parseFloat(p.gia_tri_giam) || 0;
+                }
+            } catch (e) { console.debug('No promotion data', e); }
+
             const formData = {
-                diem_don: document.getElementById('pickup-location').value,
-                diem_den: document.getElementById('destination').value,
-                thoi_gian_don: document.getElementById('pickup-date').value + ' ' + document.getElementById('pickup-time').value,
+                diem_don: pickupInput.value,
+                diem_den: destinationInput.value,
+                lat_don: lat_don,
+                lng_don: lng_don,
+                lat_den: lat_den,
+                lng_den: lng_den,
+                khoang_cach: parseFloat(window.lastCalculatedDistance) || 0,
+                thoi_gian_du_kien: document.getElementById('pickup-date').value + ' ' + document.getElementById('pickup-time').value,
                 loai_xe: document.getElementById('car-type').value,
-                so_hanh_khach: document.getElementById('passengers').value,
+                so_hanh_khach: parseInt(document.getElementById('passengers').value) || 1,
+                gia_cuoc: parseFloat(window.lastCalculatedTotal) || 0,
+                phi_dich_vu: 0,
+                khuyen_mai_id: khuyen_mai_id,
+                so_tien_giam_gia: so_tien_giam_gia,
                 ghi_chu: document.getElementById('note').value || null
             };
+
+            // Basic client-side validation to avoid server-side 'Dữ liệu không hợp lệ'
+            if (!formData.diem_don || formData.diem_don.length < 5) {
+                showAlert('warning', 'Vui lòng nhập địa chỉ điểm đón hợp lệ (ít nhất 5 ký tự)');
+                return;
+            }
+            if (!formData.diem_den || formData.diem_den.length < 5) {
+                showAlert('warning', 'Vui lòng nhập địa chỉ điểm đến hợp lệ (ít nhất 5 ký tự)');
+                return;
+            }
+            if (!formData.khoang_cach || formData.khoang_cach <= 0) {
+                showAlert('warning', 'Vui lòng tính giá để xác định khoảng cách trước khi đặt xe');
+                return;
+            }
+            if (!formData.gia_cuoc || formData.gia_cuoc < 1000) {
+                showAlert('warning', 'Giá cước không hợp lệ. Vui lòng tính giá và thử lại');
+                return;
+            }
 
             try {
                 const response = await fetch('/api/trips', {

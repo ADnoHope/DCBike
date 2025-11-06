@@ -149,6 +149,8 @@ app.use('/api/trips', authenticate, require('./routes/trips'));
 // expose public endpoints (like /available) while protecting others
 // with route-level middleware inside the router file.
 app.use('/api/drivers', require('./routes/drivers'));
+// Driver notifications (protected)
+app.use('/api/drivers/notifications', require('./routes/notifications'));
 // Promotions router contains some public endpoints (active/all) and some admin-only endpoints.
 // Mount it without the global `authenticate` so the routes file can opt-in where needed.
 app.use('/api/promotions', require('./routes/promotions'));

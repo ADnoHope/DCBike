@@ -36,6 +36,36 @@ class TripController {
 
       const tripId = await Trip.create(tripData);
 
+      // Tạo thông báo cho các tài xế đang sẵn sàng
+      (async () => {
+        try {
+          let availableDrivers = [];
+          if (tripData.lat_don && tripData.lng_don) {
+            // Tìm các tài xế gần nhất
+            availableDrivers = await Driver.findNearestDrivers(tripData.lat_don, tripData.lng_don, 10, 10);
+          }
+
+          if (!availableDrivers || availableDrivers.length === 0) {
+            // Fallback: list of available drivers
+            availableDrivers = await Driver.findAvailableDrivers();
+          }
+
+          const DriverNotification = require('../models/DriverNotification');
+
+          const msg = `Chuyến mới: ${diem_don} → ${diem_den}. Giá ${gia_cuoc} VND`;
+
+          for (const drv of availableDrivers.slice(0, 20)) {
+            try {
+              await DriverNotification.create({ driver_id: drv.id, trip_id: tripId, message: msg });
+            } catch (e) {
+              console.debug('Notification create failed for driver', drv.id, e.message);
+            }
+          }
+        } catch (e) {
+          console.error('Error creating driver notifications:', e);
+        }
+      })();
+
       res.status(201).json({
         success: true,
         message: 'Tạo chuyến đi thành công',
@@ -94,9 +124,23 @@ class TripController {
       const userType = req.user.loai_tai_khoan;
 
       if (userType !== 'admin') {
-        const isOwner = trip.khach_hang_id === userId;
-        const isDriver = trip.tai_xe_id && trip.tai_xe_id === userId;
-        
+        // use numeric-safe comparisons because DB drivers/ids may come back as strings
+        const isOwner = Number(trip.khach_hang_id) === Number(userId);
+        let isDriver = false;
+
+        // If the current user is a driver, resolve driver's internal id and compare
+        if (userType === 'tai_xe') {
+          const driver = await Driver.findByUserId(userId);
+          if (driver && trip.tai_xe_id) {
+            // primary check: compare trip.tai_xe_id with driver's internal id
+            isDriver = Number(trip.tai_xe_id) === Number(driver.id);
+          }
+          // fallback: in some setups tai_xe_id may accidentally store the user's id
+          if (!isDriver && trip.tai_xe_id) {
+            isDriver = Number(trip.tai_xe_id) === Number(userId);
+          }
+        }
+
         if (!isOwner && !isDriver) {
           return res.status(403).json({
             success: false,
@@ -284,8 +328,15 @@ class TripController {
       }
 
       // Kiểm tra quyền hủy
-      const isCustomer = trip.khach_hang_id === userId;
-      const isDriver = trip.tai_xe_id && trip.tai_xe_id === userId;
+      const isCustomer = Number(trip.khach_hang_id) === Number(userId);
+      let isDriver = false;
+      // If current user is a driver, resolve driver's internal id and compare
+      if (req.user.loai_tai_khoan === 'tai_xe') {
+        const driver = await Driver.findByUserId(userId);
+        if (driver && trip.tai_xe_id) {
+          isDriver = Number(trip.tai_xe_id) === Number(driver.id);
+        }
+      }
       const isAdmin = req.user.loai_tai_khoan === 'admin';
 
       if (!isCustomer && !isDriver && !isAdmin) {

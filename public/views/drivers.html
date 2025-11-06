@@ -130,6 +130,33 @@
             </div>
         </div>
 
+        <!-- Available requests for drivers (chuyến chờ) -->
+        <div id="available-requests-card" class="card shadow-sm mb-4" style="display:none;">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Yêu cầu mới</h5>
+            </div>
+            <div class="card-body" id="available-requests-container" style="max-height:260px; overflow-y:auto;">
+                <div class="text-center text-muted small">Không có yêu cầu mới</div>
+            </div>
+        </div>
+
+        <!-- Driver's own trips (only visible for drivers) -->
+        <div id="driver-trips-section" style="display:none;" class="mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Đơn của tôi</h5>
+                </div>
+                <div class="card-body" id="driver-trips-container" style="max-height: 360px; overflow-y:auto;">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Đang tải danh sách đơn của bạn...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Drivers Grid -->
         <div id="drivers-container">
             <div class="text-center">
@@ -186,6 +213,31 @@
             // Initialize user authentication
             checkAuth();
             loadDrivers();
+            // If the logged-in user is a driver, start polling for notifications
+            setTimeout(() => {
+                try {
+                    const token = localStorage.getItem('token');
+                    if (token) {
+                        // Try fetch profile to detect driver role
+                        fetch(`${API_BASE_URL}/auth/profile`, { headers: { 'Authorization': `Bearer ${token}` } })
+                            .then(r => r.json())
+                            .then(data => {
+                                const user = data && (data.data || data.user || data);
+                                if (user && user.loai_tai_khoan === 'tai_xe') {
+                                                    startNotificationPolling();
+                                                    // Show driver's trip section and load trips
+                                                    try {
+                                                        document.getElementById('driver-trips-section').style.display = '';
+                                                        loadDriverTrips();
+                                        // show available requests and load them
+                                        document.getElementById('available-requests-card').style.display = '';
+                                        loadAvailableRequests();
+                                                    } catch (e) { console.debug('Load driver trips failed init', e); }
+                                }
+                            }).catch(() => {});
+                    }
+                } catch (e) { console.debug('Notification poll init failed', e); }
+            }, 500);
             
             // Setup search on Enter key
             const searchInput = document.getElementById('search-input');
@@ -675,6 +727,304 @@
             
             // Redirect to booking page with driver pre-selected
             window.location.href = `booking.html?driver=${driverId}`;
+        }
+
+        // ----------------------- Driver Trips (assigned to this driver) -----------------------
+        async function loadDriverTrips(page = 1) {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+
+                const res = await fetch(`${API_BASE_URL}/trips/my-trips?page=${page}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) throw new Error('Không thể tải đơn');
+                const result = await res.json();
+                if (!result.success) throw new Error(result.message || 'Lỗi');
+
+                const trips = result.data.trips || [];
+                displayDriverTrips(trips);
+            } catch (e) {
+                console.error('Load driver trips error', e);
+                document.getElementById('driver-trips-container').innerHTML = `
+                    <div class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                        <p>Lỗi khi tải danh sách đơn: ${e.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayDriverTrips(trips) {
+            const container = document.getElementById('driver-trips-container');
+            if (!trips || trips.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted">
+                        <i class="fas fa-check-circle fa-2x mb-2"></i>
+                        <p>Hiện chưa có đơn nào được gán cho bạn.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="list-group">';
+            trips.forEach(t => {
+                const statusBadge = {
+                    'cho_tai_xe': '<span class="badge bg-secondary">Chờ tài xế</span>',
+                    'da_nhan': '<span class="badge bg-info">Đã nhận</span>',
+                    'dang_di': '<span class="badge bg-primary">Đang đi</span>',
+                    'hoan_thanh': '<span class="badge bg-success">Hoàn thành</span>',
+                    'huy_bo': '<span class="badge bg-danger">Đã hủy</span>'
+                }[t.trang_thai] || `<span class="badge bg-light text-dark">${t.trang_thai}</span>`;
+
+                html += `
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">#${t.id} — ${t.diem_don} → ${t.diem_den}</h6>
+                            <small>${statusBadge}</small>
+                        </div>
+                        <p class="mb-1 text-muted">Giá: ${new Intl.NumberFormat('vi-VN').format(t.gia_cuoc || t.tong_tien || 0)} VND • Thời gian: ${t.thoi_gian_du_kien || t.thoi_gian_dat || ''}</p>
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-outline-primary me-2" onclick="viewTripDetail(${t.id})">Xem chi tiết</button>
+                            ${t.trang_thai === 'cho_tai_xe' ? `<button class="btn btn-sm btn-success me-2" onclick="acceptTrip(${t.id})">Nhận</button>` : ''}
+                            ${t.trang_thai === 'da_nhan' ? `<button class="btn btn-sm btn-primary me-2" onclick="startTrip(${t.id})">Bắt đầu</button>` : ''}
+                            ${t.trang_thai === 'dang_di' ? `<button class="btn btn-sm btn-success me-2" onclick="completeTrip(${t.id})">Hoàn thành</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function viewTripDetail(tripId) {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return showAlert('warning', 'Vui lòng đăng nhập');
+                const res = await fetch(`${API_BASE_URL}/trips/${tripId}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const result = await res.json();
+                if (!result.success) return showAlert('error', result.message || 'Không thể tải chi tiết');
+
+                const trip = result.data;
+                // Show simple modal or alert with details
+                const content = `
+                    Điểm đón: ${trip.diem_don}\n
+                    Điểm đến: ${trip.diem_den}\n
+                    Giá cước: ${new Intl.NumberFormat('vi-VN').format(trip.gia_cuoc || trip.tong_tien || 0)} VND\n
+                    Trạng thái: ${trip.trang_thai}\n
+                    Ghi chú: ${trip.ghi_chu || '-'}
+                `;
+                alert(content);
+            } catch (e) {
+                console.error('View trip detail error', e);
+                showAlert('error', 'Lỗi khi tải chi tiết chuyến');
+            }
+        }
+
+        async function acceptTrip(tripId) {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return showAlert('warning', 'Vui lòng đăng nhập');
+                const res = await fetch(`${API_BASE_URL}/trips/${tripId}/accept`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+                const result = await res.json();
+                if (result.success) {
+                    showAlert('success', 'Bạn đã nhận chuyến');
+                    loadDriverTrips();
+                } else {
+                    showAlert('error', result.message || 'Không thể nhận chuyến');
+                }
+            } catch (e) {
+                console.error('Accept trip error', e);
+                showAlert('error', 'Lỗi khi nhận chuyến');
+            }
+        }
+
+        async function startTrip(tripId) {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return showAlert('warning', 'Vui lòng đăng nhập');
+                const res = await fetch(`${API_BASE_URL}/trips/${tripId}/start`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+                const result = await res.json();
+                if (result.success) {
+                    showAlert('success', 'Đã bắt đầu chuyến đi');
+                    loadDriverTrips();
+                } else {
+                    showAlert('error', result.message || 'Không thể bắt đầu chuyến');
+                }
+            } catch (e) {
+                console.error('Start trip error', e);
+                showAlert('error', 'Lỗi khi bắt đầu chuyến');
+            }
+        }
+
+        async function completeTrip(tripId) {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return showAlert('warning', 'Vui lòng đăng nhập');
+                const res = await fetch(`${API_BASE_URL}/trips/${tripId}/complete`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+                const result = await res.json();
+                if (result.success) {
+                    showAlert('success', 'Đã hoàn thành chuyến đi');
+                    loadDriverTrips();
+                } else {
+                    showAlert('error', result.message || 'Không thể hoàn thành chuyến');
+                }
+            } catch (e) {
+                console.error('Complete trip error', e);
+                showAlert('error', 'Lỗi khi hoàn thành chuyến');
+            }
+        }
+
+        // ----------------------- Driver notification polling -----------------------
+        let notificationPollInterval = null;
+        async function fetchDriverNotifications() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+
+                const res = await fetch(`${API_BASE_URL}/drivers/notifications`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) return;
+                const result = await res.json();
+                if (result.success && result.data && result.data.length > 0) {
+                    // Show the first pending notification(s)
+                    result.data.forEach(n => {
+                        if (n.status === 'pending') {
+                            showDriverNotificationToast(n);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.debug('Driver notification fetch error', e);
+            }
+        }
+
+        // ----------------------- Available trip requests -----------------------
+        async function loadAvailableRequests() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+
+                const res = await fetch(`${API_BASE_URL}/trips/available/list`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) throw new Error('Không thể tải yêu cầu');
+                const result = await res.json();
+                if (!result.success) throw new Error(result.message || 'Lỗi');
+
+                const trips = result.data || [];
+                displayAvailableRequests(trips);
+            } catch (e) {
+                console.error('Load available requests error', e);
+                const container = document.getElementById('available-requests-container');
+                container.innerHTML = `<div class="text-center text-danger small">Lỗi khi tải yêu cầu</div>`;
+            }
+        }
+
+        function displayAvailableRequests(trips) {
+            const container = document.getElementById('available-requests-container');
+            if (!trips || trips.length === 0) {
+                container.innerHTML = `<div class="text-center text-muted small">Không có yêu cầu mới</div>`;
+                return;
+            }
+
+            let html = '';
+            trips.forEach(t => {
+                html += `
+                    <div class="d-flex align-items-start justify-content-between mb-2 p-2 border rounded">
+                        <div>
+                            <div class="fw-bold">#${t.id} • ${t.diem_don} → ${t.diem_den}</div>
+                            <small class="text-muted">Giá: ${t.gia_cuoc ? new Intl.NumberFormat('vi-VN').format(t.gia_cuoc) + ' VND' : 'Chưa xác định'}</small>
+                        </div>
+                        <div class="text-end">
+                            <button class="btn btn-sm btn-primary me-1" onclick="viewTripDetail(${t.id})">Chi tiết</button>
+                            <button class="btn btn-sm btn-success" onclick="acceptTrip(${t.id})">Nhận</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function startNotificationPolling() {
+            if (notificationPollInterval) return;
+            // Poll every 10 seconds
+            fetchDriverNotifications();
+            notificationPollInterval = setInterval(fetchDriverNotifications, 10000);
+        }
+
+        function stopNotificationPolling() {
+            if (notificationPollInterval) {
+                clearInterval(notificationPollInterval);
+                notificationPollInterval = null;
+            }
+        }
+
+        function showDriverNotificationToast(notification) {
+            // Create a simple dismissible toast in the corner
+            const container = document.getElementById('alert-container');
+            const div = document.createElement('div');
+            div.className = 'toast show align-items-center text-bg-light border';
+            div.style.minWidth = '320px';
+            div.style.marginBottom = '8px';
+            div.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <strong>Thông báo chuyến mới</strong><br>
+                        <small class="text-muted">${notification.message || 'Bạn có chuyến mới'}</small>
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-success me-2" onclick="acceptTripFromNotification(${notification.trip_id}, ${notification.id})">Nhận</button>
+                            <button class="btn btn-sm btn-secondary" onclick="dismissNotification(${notification.id})">Đóng</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close me-2 m-auto" aria-label="Close" onclick="dismissNotification(${notification.id})"></button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        async function dismissNotification(notificationId) {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+                await fetch(`${API_BASE_URL}/drivers/notifications/${notificationId}/seen`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            } catch (e) { console.debug('Dismiss notification failed', e); }
+        }
+
+        async function acceptTripFromNotification(tripId, notificationId) {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return showAlert('warning', 'Vui lòng đăng nhập');
+
+                const res = await fetch(`${API_BASE_URL}/trips/${tripId}/accept`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    showAlert('success', 'Bạn đã nhận chuyến đi');
+                    // Mark notification as accepted (best-effort)
+                    await fetch(`${API_BASE_URL}/drivers/notifications/${notificationId}/status`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'accepted' })
+                    });
+                } else {
+                    showAlert('error', result.message || 'Không thể nhận chuyến');
+                }
+            } catch (e) {
+                console.error('Accept trip error', e);
+                showAlert('error', 'Lỗi khi nhận chuyến');
+            }
         }
     </script>
 
