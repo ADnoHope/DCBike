@@ -79,15 +79,75 @@ app.get('/admin.html', (req, res, next) => {
   `);
 });
 
+// Generic gatekeeper for protected HTML pages
+// Allow public pages (index, registration) but require login for others.
+app.get('/*.html', (req, res, next) => {
+  const publicPages = ['/index.html', '/', '/driver-registration.html'];
+  const reqPath = req.path;
+
+  // If the requested page is in the allow list or already has allow=1, proceed
+  if (publicPages.includes(reqPath) || (req.query && req.query.allow === '1')) {
+    return next();
+  }
+
+  // Otherwise send a client-side gatekeeper that checks localStorage token
+  // and calls /api/auth/profile. If authenticated, reload with ?allow=1.
+  return res.send(`
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>Checking access...</title>
+      </head>
+      <body>
+        <p>Đang kiểm tra quyền truy cập...</p>
+        <script>
+          (async function(){
+            try {
+              const token = localStorage.getItem('token');
+              if (!token) {
+                // no token -> redirect to home (login available there)
+                window.location.href = '/index.html';
+                return;
+              }
+
+              const res = await fetch('/api/auth/profile', {
+                headers: { 'Authorization': 'Bearer ' + token }
+              });
+
+              if (!res.ok) {
+                window.location.href = '/index.html';
+                return;
+              }
+
+              // If profile is ok, reload the original page with allow=1
+              const nextUrl = location.pathname + '?allow=1' + (location.hash || '');
+              window.location.href = nextUrl;
+            } catch (e) {
+              console.error('Gatekeeper error', e);
+              window.location.href = '/index.html';
+            }
+          })();
+        </script>
+      </body>
+    </html>
+  `);
+});
+
 // Test database connection
 testConnection();
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/trips', require('./routes/trips'));
-app.use('/api/drivers', require('./routes/drivers'));
-app.use('/api/promotions', require('./routes/promotions'));
-app.use('/api/admin', require('./routes/admin'));
+
+// Protect API routes (require valid token) - /api/auth remains public
+const { authenticate } = require('./middleware/auth');
+
+app.use('/api/trips', authenticate, require('./routes/trips'));
+app.use('/api/drivers', authenticate, require('./routes/drivers'));
+app.use('/api/promotions', authenticate, require('./routes/promotions'));
+app.use('/api/admin', authenticate, require('./routes/admin'));
 
 // Serve static HTML pages
 app.use(express.static(path.join(__dirname, 'public')));
