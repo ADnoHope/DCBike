@@ -7,6 +7,10 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
+    <style>
+        /* Hide booking nav by default until app.js decides to show it for logged-in users */
+        #booking-nav { display: none !important; }
+    </style>
 </head>
 <body>
     <!-- Navigation -->
@@ -23,17 +27,17 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#home">Trang chủ</a>
                     </li>
-                    <li class="nav-item" id="booking-nav">
-                        <a class="nav-link" href="views/booking.html">Đặt xe</a>
+                    <li class="nav-item d-none" id="booking-nav">
+                        <a class="nav-link" href="views/booking.html" data-auth>Đặt xe</a>
                     </li>
                     <li class="nav-item" id="trips-nav">
-                        <a class="nav-link" href="views/trips.html">Chuyến đi</a>
+                        <a class="nav-link" href="views/trips.html" data-auth>Chuyến đi</a>
                     </li>
                     <li class="nav-item" id="drivers-nav">
-                        <a class="nav-link" href="views/drivers.html">Tài xế</a>
+                        <a class="nav-link" href="views/drivers.html" data-auth>Tài xế</a>
                     </li>
                     <li class="nav-item" id="promos-nav">
-                        <a class="nav-link" href="views/promotions.html">Khuyến mãi</a>
+                        <a class="nav-link" href="views/promotions.html" data-auth>Khuyến mãi</a>
                     </li>
                     <li class="nav-item" id="driverreg-nav">
                         <a class="nav-link" href="driver-registration.html">Đăng ký tài xế</a>
@@ -73,7 +77,7 @@
                             DC Car Booking - Giải pháp di chuyển thông minh với công nghệ hiện đại
                         </p>
                         <div class="d-grid gap-2 d-md-flex">
-                            <a href="views/booking.html" class="btn btn-warning btn-lg px-4">
+                            <a href="views/booking.html" class="btn btn-warning btn-lg px-4" data-auth>
                                 <i class="fas fa-car"></i> Đặt xe ngay
                             </a>
                             <button id="signup-btn" class="btn btn-outline-light btn-lg px-4" onclick="showAuthModal()">
