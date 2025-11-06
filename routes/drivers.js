@@ -177,6 +177,24 @@ router.get('/available', async (req, res) => {
   }
 });
 
+// Lấy thông tin tài xế cho mục đích hiển thị công khai (không yêu cầu admin)
+router.get('/public/:id', async (req, res) => {
+  try {
+    const driverId = req.params.id;
+    const driver = await Driver.findById(driverId);
+
+    if (!driver) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy tài xế' });
+    }
+
+    // Return driver data (suitable for public display)
+    return res.json({ success: true, data: driver });
+  } catch (error) {
+    console.error('Get public driver error:', error);
+    return res.status(500).json({ success: false, message: 'Lỗi hệ thống khi lấy thông tin tài xế' });
+  }
+});
+
 // Lấy danh sách tài xế (admin)
 router.get('/', authenticate, requireAdmin, async (req, res) => {
   try {

@@ -145,8 +145,13 @@ app.use('/api/auth', require('./routes/auth'));
 const { authenticate } = require('./middleware/auth');
 
 app.use('/api/trips', authenticate, require('./routes/trips'));
-app.use('/api/drivers', authenticate, require('./routes/drivers'));
-app.use('/api/promotions', authenticate, require('./routes/promotions'));
+// Mount drivers router without global authentication so the router can
+// expose public endpoints (like /available) while protecting others
+// with route-level middleware inside the router file.
+app.use('/api/drivers', require('./routes/drivers'));
+// Promotions router contains some public endpoints (active/all) and some admin-only endpoints.
+// Mount it without the global `authenticate` so the routes file can opt-in where needed.
+app.use('/api/promotions', require('./routes/promotions'));
 app.use('/api/admin', authenticate, require('./routes/admin'));
 
 // Serve static HTML pages

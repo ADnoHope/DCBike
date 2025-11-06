@@ -9,6 +9,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "db:create": "node database/createTables.js",
     "db:seed": "node database/seedData.js",
+    "db:clear": "node database/clearSeedData.js",
     "db:setup": "node database/createTables.js && node database/seedData.js"
   },
   "keywords": ["car-booking", "taxi", "transportation", "mysql", "nodejs"],

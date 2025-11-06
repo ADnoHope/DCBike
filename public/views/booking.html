@@ -213,6 +213,10 @@
                                                 <i class="fas fa-calculator me-2"></i>Ước tính giá cước
                                             </h5>
                                             <h3 id="estimated-price" class="text-primary mb-2">-- VND</h3>
+                                            <div id="price-after-promo" style="display:none;">
+                                                <small class="text-muted">Giá trước khuyến mãi: <span id="original-price" style="text-decoration:line-through"></span></small>
+                                                <div class="text-success mt-1">Giá sau khi áp voucher: <strong id="final-price"></strong></div>
+                                            </div>
                                             <div class="pricing-details">
                                                 <small class="text-muted d-block">
                                                     <i class="fas fa-route me-1"></i>
@@ -228,6 +232,22 @@
                                                         </div>
                                                     </div>
                                                 </small>
+                                            </div>
+
+                                            <!-- Promotion input area: keep only button to open promo modal -->
+                                            <div id="promotion-section" class="mt-3">
+                                                <div id="promo-manual-area">
+                                                    <button class="btn btn-outline-primary" type="button" onclick="openPromotionModal()">
+                                                        <i class="fas fa-ticket-alt me-1"></i> Nhập / Chọn voucher
+                                                    </button>
+                                                </div>
+
+                                                <div id="promo-available-area" style="display:none;" class="mt-2">
+                                                    <div id="available-promotions-mini" class="row g-2"></div>
+                                                    <div class="text-muted small mt-1">Chọn một mã ở trên để áp dụng cho chuyến đi.</div>
+                                                </div>
+
+                                                <div id="promotion-result" class="mt-2"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -248,34 +268,7 @@
 
             <!-- Available Drivers & Quick Actions -->
             <div class="col-lg-4">
-                <!-- Quick Actions -->
-                <div class="card shadow mb-3">
-                    <div class="card-header bg-warning text-dark">
-                        <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Thao tác nhanh</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-grid gap-2">
-                            <button class="btn btn-outline-primary btn-sm" onclick="getCurrentLocation()">
-                                <i class="fas fa-location-arrow me-2"></i>Điểm đón hiện tại
-                            </button>
-                            <button class="btn btn-outline-info btn-sm" id="map-select-btn">
-                                <i class="fas fa-map me-2"></i>Chọn trên bản đồ
-                            </button>
-                            <button class="btn btn-outline-secondary btn-sm" onclick="loadLocalOSM()">
-                                <i class="fas fa-download me-2"></i>Tải bản đồ local
-                            </button>
-                            <button class="btn btn-outline-info btn-sm" onclick="testDestinationButton()">
-                                <i class="fas fa-bug me-2"></i>Test nút điểm đến
-                            </button>
-                            <button class="btn btn-outline-success btn-sm" onclick="viewPromotions()">
-                                <i class="fas fa-tags me-2"></i>Xem khuyến mãi
-                            </button>
-                            <button class="btn btn-outline-warning btn-sm" onclick="callSupport()">
-                                <i class="fas fa-phone me-2"></i>Hỗ trợ: 1900 1234
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <!-- Quick Actions removed per user request -->
 
                 <!-- Available Drivers -->
                 <div class="card shadow">
@@ -370,6 +363,36 @@
             </div>
         </div>
     </div>
+    
+                <!-- Promotion Modal -->
+                <div class="modal fade" id="promotionModal" tabindex="-1">
+                    <div class="modal-dialog modal-md">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="fas fa-ticket-alt me-2"></i>Áp dụng voucher</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="small text-muted">Nhập mã voucher hoặc chọn một trong các mã còn hiệu lực bên dưới.</p>
+
+                                <div class="mb-3">
+                                    <div class="input-group">
+                                        <input type="text" id="promotion-code-modal" class="form-control" placeholder="Nhập mã voucher">
+                                        <button class="btn btn-primary" type="button" id="apply-promo-modal-btn" onclick="applyPromotionFromModal()">Áp dụng</button>
+                                    </div>
+                                </div>
+
+                                <div id="available-promotions-modal" class="row g-2">
+                                    <!-- Promotions rendered here by promotionService -->
+                                    <div class="col-12 text-center text-muted small">Đang tải mã khuyến mãi...</div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
     <!-- Alert Container -->
     <div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1055;"></div>
@@ -377,6 +400,7 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../js/app.js"></script>
+    <script src="../js/promotions.js"></script>
     <script>
         // Global variables for Leaflet Maps with Local OSM
         let map;
@@ -1015,9 +1039,37 @@
             
             const totalPrice = startingFee + distancePrice + passengerSurcharge;
 
-            // Update display with detailed breakdown
-            document.getElementById('estimated-price').textContent = 
-                new Intl.NumberFormat('vi-VN').format(Math.round(totalPrice)) + ' VND';
+            // Expose last calculated total (pre-discount) so promotionService can use the live order total
+            try { window.lastCalculatedTotal = Math.round(totalPrice); } catch (e) { console.debug('Cannot set lastCalculatedTotal', e); }
+
+            // Apply promotion if any
+            let discount = 0;
+            try {
+                if (typeof promotionService !== 'undefined' && promotionService.getAppliedPromotion()) {
+                    discount = parseFloat(promotionService.getAppliedPromotion().gia_tri_giam) || 0;
+                }
+            } catch (e) {
+                console.debug('No promotion service available or no promotion applied', e);
+            }
+
+            const finalPrice = Math.max(0, Math.round(totalPrice - discount));
+
+            // Update display with detailed breakdown (show final price; show original if discount applied)
+            document.getElementById('estimated-price').textContent = new Intl.NumberFormat('vi-VN').format(finalPrice) + ' VND';
+
+            if (discount > 0) {
+                const origEl = document.getElementById('original-price');
+                const finalEl = document.getElementById('final-price');
+                const priceAfterPromo = document.getElementById('price-after-promo');
+                if (origEl && finalEl && priceAfterPromo) {
+                    origEl.textContent = new Intl.NumberFormat('vi-VN').format(Math.round(totalPrice)) + ' VND';
+                    finalEl.textContent = new Intl.NumberFormat('vi-VN').format(finalPrice) + ' VND';
+                    priceAfterPromo.style.display = 'block';
+                }
+            } else {
+                const priceAfterPromo = document.getElementById('price-after-promo');
+                if (priceAfterPromo) priceAfterPromo.style.display = 'none';
+            }
             
             const distanceText = `${distance.toFixed(1)} km (${routeSource})`;
             const durationText = duration > 0 ? ` • ${Math.round(duration)} phút` : '';
@@ -1349,6 +1401,20 @@
                 console.error('❌ Pickup map button not found!');
             }
 
+            // Small "get current location" button next to pickup input
+            const getCurrentLocationBtn = document.getElementById('get-current-location');
+            if (getCurrentLocationBtn) {
+                getCurrentLocationBtn.addEventListener('click', function() {
+                    try {
+                        getCurrentLocation();
+                    } catch (e) {
+                        console.error('Error calling getCurrentLocation():', e);
+                    }
+                });
+            } else {
+                console.warn('get-current-location button not found');
+            }
+
             if (destinationMapBtn) {
                 destinationMapBtn.addEventListener('click', function() {
                     console.log('🎯 Destination map button clicked');
@@ -1434,6 +1500,29 @@
             window.retryInitMap = retryInitMap;
             window.testMapInit = testMapInit;
             window.testDestinationButton = testDestinationButton;
+            
+            // Promotion mode toggle (manual vs available)
+            try {
+                const manualRadio = document.getElementById('promo-manual');
+                const availableRadio = document.getElementById('promo-available');
+                const manualArea = document.getElementById('promo-manual-area');
+                const availableArea = document.getElementById('promo-available-area');
+
+                function updatePromoMode() {
+                    if (availableRadio && availableRadio.checked) {
+                        if (manualArea) manualArea.style.display = 'none';
+                        if (availableArea) availableArea.style.display = 'block';
+                    } else {
+                        if (manualArea) manualArea.style.display = 'block';
+                        if (availableArea) availableArea.style.display = 'none';
+                    }
+                }
+
+                if (manualRadio) manualRadio.addEventListener('change', updatePromoMode);
+                if (availableRadio) availableRadio.addEventListener('change', updatePromoMode);
+                // Initialize
+                updatePromoMode();
+            } catch (e) { console.debug('promo mode toggle init failed', e); }
         });
 
         // Copy existing functions from original booking.html

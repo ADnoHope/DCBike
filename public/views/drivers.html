@@ -570,7 +570,8 @@
 
         async function viewDriverDetail(driverId) {
             try {
-                const response = await fetch(`${API_BASE_URL}/drivers/${driverId}`);
+                // Use public driver info endpoint so non-admin users can view details
+                const response = await fetch(`${API_BASE_URL}/drivers/public/${driverId}`);
                 const result = await response.json();
 
                 if (result.success) {

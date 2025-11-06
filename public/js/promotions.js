@@ -12,17 +12,105 @@ class PromotionService {
     // Load all promotions
     async loadPromotions() {
         try {
-            const response = await fetch('/api/promotions');
+            // Fetch active promotions (public endpoint)
+            const response = await fetch('/api/promotions/active');
             const result = await response.json();
 
             if (result.success) {
-                this.displayPromotions(result.data.promotions);
+                // Normalize server response shapes: result.data may be an array or an object
+                let promotions = [];
+                if (Array.isArray(result.data)) promotions = result.data;
+                else if (result.data && Array.isArray(result.data.promotions)) promotions = result.data.promotions;
+                else promotions = [];
+
+                this.displayPromotions(promotions);
+                // If booking page has a small container, render a compact list of available promotions
+                if (document.getElementById('available-promotions-mini')) {
+                    this.renderAvailablePromotions(promotions);
+                }
+                // If booking modal exists, render promotions there too
+                if (document.getElementById('available-promotions-modal')) {
+                    this.renderAvailablePromotionsModal(promotions);
+                }
             } else {
                 console.error('Failed to load promotions:', result.message);
             }
         } catch (error) {
             console.error('Load promotions error:', error);
         }
+    }
+
+    // Render compact list of available promotions into booking page small container
+    renderAvailablePromotions(promotions) {
+        const container = document.getElementById('available-promotions-mini');
+        if (!container) return;
+
+        // Filter active-like statuses
+        const active = promotions.filter(p => !p.trang_thai || p.trang_thai === 'hoat_dong' || p.trang_thai === 'kich_hoat' || p.trang_thai === 'active');
+        if (active.length === 0) {
+            container.innerHTML = `<div class="col-12 text-muted small">Không có mã khả dụng.</div>`;
+            return;
+        }
+
+        let html = '';
+        active.forEach(p => {
+            const totalAllowed = p.so_luong_toi_da || p.so_luong_toi_da || p.gioi_han_su_dung || null;
+            const used = p.so_luong_su_dung || 0;
+            const remaining = totalAllowed ? Math.max(0, totalAllowed - used) : 'Không giới hạn';
+
+            html += `
+                <div class="col-12">
+                    <div class="d-flex align-items-center border rounded p-2">
+                        <div class="flex-grow-1">
+                            <div class="fw-bold">${p.ten_khuyen_mai || p.ten || ''}</div>
+                            <div class="small text-muted">Mã: ${p.ma_khuyen_mai} • Giảm: ${this.formatDiscount(p)}</div>
+                            <div class="small text-muted">Còn lại: ${remaining}</div>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-primary" onclick="applyPromotionFromModal('${p.ma_khuyen_mai}')">Sử dụng</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    // Render list of available promotions into the booking modal
+    renderAvailablePromotionsModal(promotions) {
+        const container = document.getElementById('available-promotions-modal');
+        if (!container) return;
+
+        const active = promotions.filter(p => !p.trang_thai || p.trang_thai === 'hoat_dong' || p.trang_thai === 'kich_hoat' || p.trang_thai === 'active');
+        if (active.length === 0) {
+            container.innerHTML = `<div class="col-12 text-muted small">Không có mã khả dụng.</div>`;
+            return;
+        }
+
+        let html = '';
+        active.forEach(p => {
+            const totalAllowed = p.so_luong_toi_da || p.gioi_han_su_dung || null;
+            const used = p.so_luong_su_dung || 0;
+            const remaining = totalAllowed ? Math.max(0, totalAllowed - used) : 'Không giới hạn';
+
+            html += `
+                <div class="col-12">
+                    <div class="d-flex align-items-center border rounded p-2">
+                        <div class="flex-grow-1">
+                            <div class="fw-bold">${p.ten_khuyen_mai || p.ten || ''}</div>
+                            <div class="small text-muted">Mã: ${p.ma_khuyen_mai}</div>
+                            <div class="small text-muted">Giảm: ${this.formatDiscount(p)} • Còn lại: ${remaining}</div>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-primary" onclick="applyPromotionFromModal('${p.ma_khuyen_mai}')">Sử dụng</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
     }
 
     // Display promotions
@@ -36,6 +124,11 @@ class PromotionService {
             html = '<div class="col-12 text-center"><p>Hiện tại không có khuyến mãi nào.</p></div>';
         } else {
             promotions.forEach(promotion => {
+                // Compute remaining uses if fields exist
+                const totalAllowed = promotion.so_luong_toi_da || promotion.gioi_han_su_dung || null;
+                const used = promotion.so_luong_su_dung || 0;
+                const remaining = totalAllowed ? Math.max(0, totalAllowed - used) : 'Không giới hạn';
+
                 html += `
                     <div class="col-md-6 col-lg-4 mb-4">
                         <div class="card h-100 ${promotion.trang_thai !== 'kich_hoat' ? 'opacity-75' : ''}">
@@ -77,7 +170,7 @@ class PromotionService {
                                         ` : ''}
                                         <div class="col-6">
                                             <strong>Còn lại:</strong><br>
-                                            ${promotion.so_luong_con_lai}/${promotion.so_luong_toi_da}
+                                            ${remaining}
                                         </div>
                                     </div>
                                 </div>
@@ -89,7 +182,7 @@ class PromotionService {
                                     </small>
                                 </div>
 
-                                ${promotion.trang_thai === 'kich_hoat' && promotion.so_luong_con_lai > 0 ? `
+                                ${((promotion.trang_thai === 'kich_hoat' || promotion.trang_thai === 'hoat_dong') && (totalAllowed === null || remaining > 0)) ? `
                                     <div class="mt-3">
                                         <button class="btn btn-primary btn-sm w-100" 
                                                 onclick="usePromotionCode('${promotion.ma_khuyen_mai}')">
@@ -131,10 +224,11 @@ class PromotionService {
 
     // Format discount value
     formatDiscount(promotion) {
+        if (!promotion) return '';
         if (promotion.loai_khuyen_mai === 'phan_tram') {
-            return `${promotion.gia_tri_khuyen_mai}%`;
+            return `${promotion.gia_tri}%`;
         } else {
-            return `${this.formatPrice(promotion.gia_tri_khuyen_mai)} VND`;
+            return `${this.formatPrice(promotion.gia_tri)} VND`;
         }
     }
 
@@ -153,27 +247,33 @@ class PromotionService {
     // Apply promotion code
     async applyPromotionCode(promotionCode, orderTotal) {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('/api/promotions/apply', {
+            // Call public validate endpoint which expects { ma_khuyen_mai, gia_don_hang }
+            const response = await fetch('/api/promotions/validate', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     ma_khuyen_mai: promotionCode,
-                    gia_tri_don_hang: orderTotal
+                    gia_don_hang: orderTotal
                 })
             });
 
             const result = await response.json();
 
-            if (result.success) {
-                this.appliedPromotion = result.data;
-                this.displayPromotionResult(result.data);
-                return result.data;
+            if (result.success && result.data) {
+                // Normalize appliedPromotion shape for UI code (gia_tri_giam absolute value)
+                const applied = {
+                    ma_khuyen_mai: promotionCode,
+                    gia_tri_giam: result.data.giam_gia || 0,
+                    promotion: result.data.promotion || null
+                };
+
+                this.appliedPromotion = applied;
+                this.displayPromotionResult(applied);
+                return applied;
             } else {
-                this.displayPromotionError(result.message);
+                this.displayPromotionError(result.message || 'Mã không hợp lệ');
                 return null;
             }
         } catch (error) {
@@ -232,31 +332,7 @@ class PromotionService {
     getAppliedPromotion() {
         return this.appliedPromotion;
     }
-}
 
-// Copy promotion code to clipboard
-function copyPromotionCode(code) {
-    navigator.clipboard.writeText(code).then(() => {
-        showAlert('success', `Đã sao chép mã: ${code}`);
-    }).catch(() => {
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = code;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        showAlert('success', `Đã sao chép mã: ${code}`);
-    });
-}
-
-// Use promotion code
-function usePromotionCode(code) {
-    const promotionInput = document.getElementById('promotion-code');
-    if (promotionInput) {
-        promotionInput.value = code;
-        applyPromotion();
-    }
 }
 
 // Apply promotion (called from booking form)
@@ -269,14 +345,85 @@ async function applyPromotion() {
         return;
     }
 
-    // For demo, use a sample order total
-    // In real implementation, calculate based on trip cost
-    const orderTotal = 100000; // Sample total
+    // Use last calculated total if available, otherwise fallback to a sample
+    const orderTotal = (typeof window.lastCalculatedTotal === 'number' && window.lastCalculatedTotal > 0) ? window.lastCalculatedTotal : 100000;
 
     const result = await promotionService.applyPromotionCode(promotionCode, orderTotal);
     
     if (result) {
         showAlert('success', `Áp dụng mã khuyến mãi thành công! Giảm ${promotionService.formatPrice(result.gia_tri_giam)} VND`);
+        // Recalculate UI prices if booking page has calculatePrice
+        try { if (typeof calculatePrice === 'function') calculatePrice(); } catch (e) { console.debug('calculatePrice not available', e); }
+    }
+}
+
+// Apply an available promotion code directly from the compact list on booking page
+async function applyAvailablePromotion(code) {
+    const orderTotal = (typeof window.lastCalculatedTotal === 'number' && window.lastCalculatedTotal > 0) ? window.lastCalculatedTotal : 100000;
+
+    const result = await promotionService.applyPromotionCode(code, orderTotal);
+    if (result) {
+        showAlert('success', `Áp dụng mã ${code} thành công! Giảm ${promotionService.formatPrice(result.gia_tri_giam)} VND`);
+        // Switch UI to manual mode and show code in input
+        const manualRadio = document.getElementById('promo-manual');
+        const manualArea = document.getElementById('promo-manual-area');
+        const availableArea = document.getElementById('promo-available-area');
+        const promoInput = document.getElementById('promotion-code');
+        try {
+            if (manualRadio) manualRadio.checked = true;
+            if (manualArea) manualArea.style.display = 'block';
+            if (availableArea) availableArea.style.display = 'none';
+            if (promoInput) promoInput.value = code;
+        } catch (e) { console.debug(e); }
+
+        try { if (typeof calculatePrice === 'function') calculatePrice(); } catch (e) { console.debug('calculatePrice not available', e); }
+    }
+}
+
+// Open promotion modal (booking page)
+function openPromotionModal() {
+    const modalEl = document.getElementById('promotionModal');
+    if (!modalEl) return;
+    const modal = new bootstrap.Modal(modalEl);
+    // Ensure promotions are up-to-date
+    try {
+        promotionService.loadPromotions();
+    } catch (e) { console.debug('Failed to reload promotions before opening modal', e); }
+    modal.show();
+    // Focus input after short delay
+    setTimeout(() => {
+        const input = document.getElementById('promotion-code-modal');
+        if (input) input.focus();
+    }, 250);
+}
+
+// Apply promotion from modal: either typed code or selected code
+async function applyPromotionFromModal(code) {
+    const promoCode = code || (document.getElementById('promotion-code-modal') && document.getElementById('promotion-code-modal').value.trim());
+    if (!promoCode) {
+        showAlert('warning', 'Vui lòng nhập hoặc chọn mã khuyến mãi');
+        return;
+    }
+
+    const orderTotal = (typeof window.lastCalculatedTotal === 'number' && window.lastCalculatedTotal > 0) ? window.lastCalculatedTotal : 100000;
+
+    const result = await promotionService.applyPromotionCode(promoCode, orderTotal);
+    if (result) {
+        showAlert('success', `Áp dụng mã ${promoCode} thành công! Giảm ${promotionService.formatPrice(result.gia_tri_giam)} VND`);
+
+        // Mirror code into main input (if present)
+        const mainInput = document.getElementById('promotion-code');
+        if (mainInput) mainInput.value = promoCode;
+
+        // Close modal
+        try {
+            const modalEl = document.getElementById('promotionModal');
+            const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modal.hide();
+        } catch (e) { console.debug('Promotion modal close failed', e); }
+
+        // Recalculate prices on booking page if available
+        try { if (typeof calculatePrice === 'function') calculatePrice(); } catch (e) { console.debug('calculatePrice not available', e); }
     }
 }
 
