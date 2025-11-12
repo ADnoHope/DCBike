@@ -150,8 +150,16 @@ class DCCarBooking {
         this.user = null;
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        this.updateUI();
-        showAlert('info', 'Đăng xuất thành công!');
+        // Optional UI update before redirect
+        try { this.updateUI(); } catch (e) {}
+        // Redirect everyone to home after logout
+        try {
+            showAlert('info', 'Đăng xuất thành công!');
+        } catch (e) {}
+        // Small delay to allow alert paint, then navigate
+        setTimeout(() => {
+            window.location.href = '/index.html';
+        }, 200);
     }
 
     // Trip Management
@@ -194,6 +202,11 @@ class DCCarBooking {
                 method: 'POST',
                 body: JSON.stringify(tripData)
             });
+
+            // If a promotion was applied, force re-fetch of active promotions so remaining uses update in UI
+            if (typeof promotionService !== 'undefined' && promotionService.getAppliedPromotion()) {
+                try { promotionService.loadPromotions(); } catch (e) { console.debug('Reload promotions failed', e); }
+            }
 
             showAlert('success', 'Đặt xe thành công! Đang tìm tài xế...');
             
@@ -322,7 +335,13 @@ class DCCarBooking {
                 this.showTripDetailsModal(response.data);
             }
         } catch (error) {
-            showAlert('error', 'Không thể tải thông tin chuyến đi');
+            // Nếu lỗi 403, hiển thị thông điệp theo yêu cầu: chỉ khi đã nhận chuyến mới xem chi tiết
+            const msg = (error && error.message) ? error.message : '';
+            if (/403|không có quyền/i.test(msg)) {
+                showAlert('warning', 'Chỉ khi tài xế đã nhận chuyến đi mới có quyền xem chi tiết.');
+            } else {
+                showAlert('error', 'Không thể tải thông tin chi tiết chuyến đi');
+            }
         }
     }
 

@@ -1,5 +1,6 @@
 const Trip = require('../models/Trip');
 const Driver = require('../models/Driver');
+const Promotion = require('../models/Promotion');
 
 class TripController {
   // Tạo chuyến đi mới
@@ -8,13 +9,46 @@ class TripController {
       const {
         diem_don, diem_den, lat_don, lng_don, lat_den, lng_den,
         khoang_cach, thoi_gian_du_kien, gia_cuoc, phi_dich_vu,
-        khuyen_mai_id, so_tien_giam_gia, ghi_chu
+        khuyen_mai_id, ma_khuyen_mai, so_tien_giam_gia, ghi_chu
       } = req.body;
 
       const khach_hang_id = req.user.id;
 
+      // Nếu có khuyến mãi, xác nhận và tăng lượt sử dụng ngay tại server để đảm bảo đồng bộ
+      let appliedPromotionId = null;
+      let appliedDiscount = 0;
+      let promoIdToUse = khuyen_mai_id;
+      // Allow using promotion by code from client
+      if (!promoIdToUse && ma_khuyen_mai) {
+        try {
+          const promo = await Promotion.findByCode(ma_khuyen_mai);
+          if (promo) promoIdToUse = promo.id;
+        } catch (e) {
+          console.warn('findByCode failed', e?.message);
+        }
+      }
+
+      if (promoIdToUse) {
+        try {
+          const baseAmount = Number(gia_cuoc) + Number(phi_dich_vu || 0);
+          const result = await Promotion.useIfAvailableById(promoIdToUse, baseAmount);
+          if (result && result.ok) {
+            appliedPromotionId = promoIdToUse;
+            appliedDiscount = result.giam_gia || 0;
+          } else {
+            // Không thể dùng khuyến mãi (hết lượt/hết hạn). Vẫn tiếp tục tạo chuyến nhưng bỏ voucher.
+            appliedPromotionId = null;
+            appliedDiscount = 0;
+          }
+        } catch (e) {
+          console.error('Apply promotion error:', e);
+          appliedPromotionId = null;
+          appliedDiscount = 0;
+        }
+      }
+
       // Tính tổng tiền
-      const tong_tien = (gia_cuoc + (phi_dich_vu || 0)) - (so_tien_giam_gia || 0);
+      const tong_tien = (Number(gia_cuoc) + Number(phi_dich_vu || 0)) - (appliedDiscount || Number(so_tien_giam_gia || 0));
 
       const tripData = {
         khach_hang_id,
@@ -29,8 +63,8 @@ class TripController {
         gia_cuoc,
         phi_dich_vu: phi_dich_vu || 0,
         tong_tien,
-        khuyen_mai_id,
-        so_tien_giam_gia: so_tien_giam_gia || 0,
+        khuyen_mai_id: appliedPromotionId,
+        so_tien_giam_gia: appliedDiscount || so_tien_giam_gia || 0,
         ghi_chu
       };
 
@@ -144,7 +178,7 @@ class TripController {
         if (!isOwner && !isDriver) {
           return res.status(403).json({
             success: false,
-            message: 'Không có quyền xem chuyến đi này'
+            message: 'Chỉ khi tài xế đã nhận chuyến đi mới có quyền xem chi tiết'
           });
         }
       }

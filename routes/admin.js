@@ -39,4 +39,8 @@ router.get('/vouchers/:id', authenticate, adminAuth, AdminController.getVoucherB
 router.put('/vouchers/:id', authenticate, adminAuth, AdminController.updateVoucher);
 router.delete('/vouchers/:id', authenticate, adminAuth, AdminController.deleteVoucher);
 
+// Quản lý chuyến đi (lịch sử chuyến đi)
+router.get('/trips', authenticate, adminAuth, AdminController.getAllTrips);
+router.get('/trips/:id', authenticate, adminAuth, AdminController.getTripById);
+
 module.exports = router;

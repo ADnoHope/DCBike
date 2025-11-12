@@ -366,8 +366,15 @@
         }
 
         function logout() {
+            try {
+                if (window.dcApp && typeof window.dcApp.logout === 'function') {
+                    window.dcApp.logout();
+                    return;
+                }
+            } catch(e) {}
             localStorage.removeItem('token');
-            window.location.reload();
+            localStorage.removeItem('user');
+            window.location.href = '/index.html';
         }
 
         // Alert function
@@ -441,9 +448,9 @@
 
             let html = '<div class="row">';
             drivers.forEach((driver, index) => {
-                const rating = generateRandomRating();
-                const trips = Math.floor(Math.random() * 500) + 50;
-                const experience = driver.kinh_nghiem_lien_tuc || Math.floor(Math.random() * 10) + 1;
+                const rating = Number(driver.diem_danh_gia || 0).toFixed(1);
+                const trips = Number(driver.so_chuyen_di || 0);
+                const experience = driver.kinh_nghiem_lien_tuc || 0;
 
                 html += `
                     <div class="col-lg-4 col-md-6 mb-4">
@@ -509,9 +516,7 @@
             container.innerHTML = html;
         }
 
-        function generateRandomRating() {
-            return (Math.random() * 1.5 + 3.5).toFixed(1);
-        }
+        // rating now comes from database (diem_danh_gia)
 
         function generateStars(rating) {
             const fullStars = Math.floor(rating);
@@ -627,7 +632,8 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    displayDriverDetail(result.data);
+                        // driver data may already include so_chuyen_di after backend update
+                        displayDriverDetail(result.data);
                     const modal = new bootstrap.Modal(document.getElementById('driverDetailModal'));
                     modal.show();
                 } else {
@@ -640,21 +646,23 @@
         }
 
         function displayDriverDetail(driver) {
-            const rating = generateRandomRating();
-            const trips = Math.floor(Math.random() * 500) + 50;
-            const experience = driver.kinh_nghiem_lien_tuc || Math.floor(Math.random() * 10) + 1;
+                const rating = Number(driver.diem_danh_gia || 0).toFixed(1);
+                const trips = Number(driver.so_chuyen_di || 0);
+                const experience = driver.kinh_nghiem_lien_tuc || 0;
+                const reviewCount = Number(driver.so_luot_danh_gia || 0);
 
             const content = `
                 <div class="row">
                     <div class="col-md-4 text-center">
                         <i class="fas fa-user-circle fa-5x text-primary mb-3"></i>
                         <h4>${driver.ten}</h4>
-                        <div class="rating mb-3">
+                        <div class="rating mb-1">
                             ${generateStars(rating)}
                         </div>
+                        <div class="small text-muted mb-3">Đánh giá: ${rating} ★ (${reviewCount} lượt)</div>
                         <div class="stats">
                             <div class="stat-item mb-2">
-                                <strong>${trips}</strong> chuyến đi
+                                <strong>${trips}</strong> chuyến đi đã hoàn thành
                             </div>
                             <div class="stat-item mb-2">
                                 <strong>${experience}</strong> năm kinh nghiệm
@@ -680,6 +688,7 @@
                                     <tr><td><i class="fas fa-id-card me-2"></i>Số bằng lái:</td><td>${driver.so_bang_lai}</td></tr>
                                     <tr><td><i class="fas fa-certificate me-2"></i>Loại bằng lái:</td><td>${driver.loai_bang_lai}</td></tr>
                                     <tr><td><i class="fas fa-clock me-2"></i>Kinh nghiệm:</td><td>${experience} năm</td></tr>
+                                    <tr><td><i class="fas fa-star me-2"></i>Điểm TB:</td><td>${rating} ★ (${reviewCount} lượt)</td></tr>
                                 </table>
                             </div>
                             

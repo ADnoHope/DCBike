@@ -70,6 +70,40 @@ class AdminController {
     }
   }
 
+  // === QUẢN LÝ CHUYẾN ĐI (ADMIN) ===
+  static async getAllTrips(req, res) {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const { trang_thai, khach_hang_id, tai_xe_id } = req.query;
+
+      const filters = {};
+      if (trang_thai) filters.trang_thai = trang_thai;
+      if (khach_hang_id) filters.khach_hang_id = khach_hang_id;
+      if (tai_xe_id) filters.tai_xe_id = tai_xe_id;
+
+      const result = await Trip.getAll(page, limit, filters);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      console.error('Get all trips error:', error);
+      res.status(500).json({ success: false, message: 'Lỗi khi lấy danh sách chuyến đi', error: error.message });
+    }
+  }
+
+  static async getTripById(req, res) {
+    try {
+      const { id } = req.params;
+      const trip = await Trip.findById(id);
+      if (!trip) {
+        return res.status(404).json({ success: false, message: 'Không tìm thấy chuyến đi' });
+      }
+      res.json({ success: true, data: trip });
+    } catch (error) {
+      console.error('Get trip by id error:', error);
+      res.status(500).json({ success: false, message: 'Lỗi khi lấy chi tiết chuyến đi' });
+    }
+  }
+
   // Lock or unlock a user account
   static async lockUser(req, res) {
     try {

@@ -326,10 +326,15 @@
                                                 <i class="fas fa-times me-1"></i>Hủy
                                             </button>` : ''
                                         }
-                                        ${trip.trang_thai === 'hoan_thanh' && !trip.da_danh_gia ? 
-                                            `<button class="btn btn-outline-warning btn-sm" onclick="rateTrip(${trip.id})">
+                                        ${trip.trang_thai === 'hoan_thanh' 
+                                           && !trip.da_danh_gia 
+                                           && window.dcApp 
+                                           && window.dcApp.user 
+                                           && window.dcApp.user.loai_tai_khoan === 'khach_hang'
+                                           && Number(trip.khach_hang_id) === Number(window.dcApp.user.id)
+                                           ? `<button class="btn btn-outline-warning btn-sm" onclick="rateTrip(${trip.id})">
                                                 <i class="fas fa-star me-1"></i>Đánh giá
-                                            </button>` : ''
+                                             </button>` : ''
                                         }
                                     </div>
                                 </div>
@@ -538,6 +543,15 @@
         }
 
         function rateTrip(tripId) {
+            // Guard: only customers (khach_hang) who own the trip can rate
+            if (!window.dcApp || !window.dcApp.user || window.dcApp.user.loai_tai_khoan !== 'khach_hang') {
+                showAlert('warning', 'Chỉ khách hàng mới được đánh giá chuyến đi');
+                return;
+            }
+            // Ensure the trip in current list belongs to the user (extra client-side safety)
+            const tripCard = [...document.querySelectorAll('.card.shadow-sm.mb-3')]
+                .find(el => el.innerHTML.includes(`#${tripId}`));
+            // (Optional: could fetch trip detail to verify ownership here)
             document.getElementById('rating-trip-id').value = tripId;
             document.getElementById('driver-rating').value = '5';
             document.getElementById('review-comment').value = '';

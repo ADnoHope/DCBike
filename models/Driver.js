@@ -88,7 +88,14 @@ class Driver {
   static async findById(id) {
     try {
       const [rows] = await pool.execute(`
-        SELECT tx.*, nd.ten, nd.email, nd.so_dien_thoai, nd.dia_chi, nd.trang_thai
+        SELECT 
+          tx.*, 
+          nd.ten, nd.email, nd.so_dien_thoai, nd.dia_chi, nd.trang_thai,
+          (
+            SELECT COUNT(*) 
+            FROM chuyen_di cd 
+            WHERE cd.tai_xe_id = tx.id
+          ) AS so_chuyen_di
         FROM tai_xe tx
         LEFT JOIN nguoi_dung nd ON tx.nguoi_dung_id = nd.id
         WHERE tx.id = ? AND nd.trang_thai = 'hoat_dong'
@@ -306,7 +313,12 @@ class Driver {
           tx.trang_thai_tai_xe,
           tx.diem_danh_gia,
           tx.so_luot_danh_gia,
-          tx.kinh_nghiem_lien_tuc
+          tx.kinh_nghiem_lien_tuc,
+          (
+            SELECT COUNT(*) 
+            FROM chuyen_di cd 
+            WHERE cd.tai_xe_id = tx.id
+          ) AS so_chuyen_di
         FROM tai_xe tx
         INNER JOIN nguoi_dung nd ON tx.nguoi_dung_id = nd.id
         WHERE nd.trang_thai = 'hoat_dong' 
@@ -324,9 +336,10 @@ class Driver {
         mau_xe: row.mau_xe,
         so_cho_ngoi: row.so_cho_ngoi,
         trang_thai_tai_xe: row.trang_thai_tai_xe,
-        diem_danh_gia: row.diem_danh_gia || 4.5,
+        diem_danh_gia: row.diem_danh_gia || 0,
         so_luot_danh_gia: row.so_luot_danh_gia || 0,
-        kinh_nghiem_lien_tuc: row.kinh_nghiem_lien_tuc || 1
+        kinh_nghiem_lien_tuc: row.kinh_nghiem_lien_tuc || 0,
+        so_chuyen_di: row.so_chuyen_di || 0
       }));
     } catch (error) {
       console.error('Find available drivers error:', error);

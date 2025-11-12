@@ -47,6 +47,49 @@ class Promotion {
     }
   }
 
+  // Tăng lượt sử dụng nếu còn lượt và trả về mức giảm tính theo đơn hàng
+  static async useIfAvailableById(id, giaDonHang = 0) {
+    try {
+      // Lấy thông tin khuyến mãi
+      const promo = await this.findById(id);
+      if (!promo) return { ok: false, message: 'Không tìm thấy khuyến mãi' };
+
+      // Kiểm tra trạng thái/thời gian/giới hạn
+      const now = new Date();
+      if (promo.trang_thai !== 'hoat_dong') return { ok: false, message: 'Khuyến mãi không hoạt động' };
+      if (promo.ngay_bat_dau && now < new Date(promo.ngay_bat_dau)) return { ok: false, message: 'Chưa đến thời gian áp dụng' };
+      if (promo.ngay_ket_thuc && now > new Date(promo.ngay_ket_thuc)) return { ok: false, message: 'Khuyến mãi đã hết hạn' };
+      if (promo.gioi_han_su_dung && promo.so_luong_su_dung >= promo.gioi_han_su_dung) {
+        return { ok: false, message: 'Khuyến mãi đã hết lượt sử dụng' };
+      }
+
+      // Tính số tiền giảm dựa trên đơn hàng
+      let giam_gia = 0;
+      if (promo.loai_khuyen_mai === 'phan_tram') {
+        giam_gia = (Number(giaDonHang) * Number(promo.gia_tri)) / 100;
+        if (promo.gia_tri_toi_da && giam_gia > Number(promo.gia_tri_toi_da)) {
+          giam_gia = Number(promo.gia_tri_toi_da);
+        }
+      } else {
+        giam_gia = Number(promo.gia_tri);
+      }
+
+      // Tăng lượt sử dụng có điều kiện để tránh vượt quá giới hạn
+      const [result] = await pool.execute(
+        'UPDATE khuyen_mai SET so_luong_su_dung = so_luong_su_dung + 1 WHERE id = ? AND (gioi_han_su_dung IS NULL OR so_luong_su_dung < gioi_han_su_dung)'
+        , [id]
+      );
+
+      if (result.affectedRows === 0) {
+        return { ok: false, message: 'Khuyến mãi đã hết lượt sử dụng' };
+      }
+
+      return { ok: true, promotion: promo, giam_gia: Math.round(giam_gia) };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Tìm khuyến mãi theo ID
   static async findById(id) {
     try {

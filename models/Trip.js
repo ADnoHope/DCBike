@@ -57,6 +57,70 @@ class Trip {
     }
   }
 
+  // Lấy tất cả chuyến đi (cho admin) với phân trang và bộ lọc đơn giản
+  static async getAll(page = 1, limit = 10, filters = {}) {
+    try {
+      const offset = (page - 1) * limit;
+
+      const whereClauses = [];
+      const params = [];
+
+      if (filters.trang_thai) {
+        whereClauses.push('cd.trang_thai = ?');
+        params.push(filters.trang_thai);
+      }
+
+      if (filters.khach_hang_id) {
+        whereClauses.push('cd.khach_hang_id = ?');
+        params.push(filters.khach_hang_id);
+      }
+
+      if (filters.tai_xe_id) {
+        whereClauses.push('cd.tai_xe_id = ?');
+        params.push(filters.tai_xe_id);
+      }
+
+      let query = `
+        SELECT cd.*,
+               kh.ten as ten_khach_hang, kh.so_dien_thoai as sdt_khach_hang,
+               nd_tx.ten as ten_tai_xe, nd_tx.so_dien_thoai as sdt_tai_xe,
+               tx.bien_so_xe, tx.loai_xe, tx.mau_xe, tx.hang_xe
+        FROM chuyen_di cd
+        LEFT JOIN nguoi_dung kh ON cd.khach_hang_id = kh.id
+        LEFT JOIN tai_xe tx ON cd.tai_xe_id = tx.id
+        LEFT JOIN nguoi_dung nd_tx ON tx.nguoi_dung_id = nd_tx.id
+      `;
+
+      if (whereClauses.length) {
+        query += ' WHERE ' + whereClauses.join(' AND ');
+      }
+
+  // Sử dụng thoi_gian_dat để tương thích với DB cũ có thể chưa có created_at
+  query += ' ORDER BY cd.thoi_gian_dat DESC LIMIT ? OFFSET ?';
+
+      const listParams = params.concat([limit, offset]);
+      const [rows] = await pool.execute(query, listParams);
+
+      // Count total
+      let countQuery = 'SELECT COUNT(*) as total FROM chuyen_di cd';
+      if (whereClauses.length) countQuery += ' WHERE ' + whereClauses.join(' AND ');
+      const [countRows] = await pool.execute(countQuery, params);
+      const total = countRows[0]?.total || 0;
+
+      return {
+        trips: rows,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Tìm chuyến đi theo ID
   static async findById(id) {
     try {

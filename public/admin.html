@@ -183,14 +183,38 @@
                         </div>
                     </div>
                     
-                    <!-- Recent Activities -->
+                    <!-- Trip History -->
                     <div class="card">
                         <div class="card-header">
-                            <h5 class="mb-0"><i class="bi bi-activity me-2"></i>Hoạt động gần đây</h5>
+                            <h5 class="mb-0"><i class="bi bi-map me-2"></i>Lịch sử chuyến đi</h5>
                         </div>
                         <div class="card-body">
-                            <div id="recent-activities">
-                                <p class="text-muted">Đang tải...</p>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Khách hàng</th>
+                                            <th>Tài xế</th>
+                                            <th>Điểm đón</th>
+                                            <th>Điểm đến</th>
+                                            <th>Tổng tiền</th>
+                                            <th>Trạng thái</th>
+                                            <th>Ngày tạo</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="trips-table">
+                                        <tr><td colspan="9" class="text-center">Đang tải...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2" id="trips-pagination" style="min-height:38px;">
+                                <div class="text-muted small" id="trips-summary"></div>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-secondary" id="trips-prev">Trang trước</button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="trips-next">Trang sau</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -380,6 +404,24 @@
         </div>
     </div>
     
+    <!-- Trip Detail Modal -->
+    <div class="modal fade" id="tripModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Chi tiết chuyến đi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="tripModalBody">
+                    <!-- Trip details here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
         <!-- Offcanvas: Drivers List -->
         <div class="offcanvas offcanvas-start" tabindex="-1" id="driversOffcanvas" aria-labelledby="driversOffcanvasLabel">
             <div class="offcanvas-header">
@@ -608,8 +650,102 @@
                         new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' })
                         .format(data.monthlyRevenue || 0);
                 }
+                // Load trip history beneath stats
+                loadTripHistory(window.__tripsPage || 1);
             } catch (error) {
                 console.error('Error loading dashboard:', error);
+            }
+        }
+
+        // Load trip history (admin) with simple pagination
+        async function loadTripHistory(page = 1) {
+            const tbody = document.getElementById('trips-table');
+            const summary = document.getElementById('trips-summary');
+            const btnPrev = document.getElementById('trips-prev');
+            const btnNext = document.getElementById('trips-next');
+            window.__tripsPage = page;
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center"><div class="spinner-border" role="status"></div></td></tr>';
+            summary.textContent = '';
+            btnPrev.disabled = true; btnNext.disabled = true;
+            try {
+                const limit = 10;
+                const res = await fetch(`/api/admin/trips?page=${page}&limit=${limit}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error('Không thể tải lịch sử chuyến đi');
+                const json = await res.json();
+                const data = json.data || { trips: [], pagination: { page, total: 0, totalPages: 1 } };
+                const trips = data.trips || [];
+                if (trips.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">Chưa có chuyến đi</td></tr>';
+                } else {
+                    tbody.innerHTML = trips.map(t => `
+                        <tr>
+                            <td>${t.id}</td>
+                            <td>${t.ten_khach_hang || t.khach_hang_id || ''}</td>
+                            <td>${t.ten_tai_xe || ''}</td>
+                            <td>${t.diem_don || ''}</td>
+                            <td>${t.diem_den || ''}</td>
+                            <td>${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(t.tong_tien || 0)}</td>
+                            <td><span class="badge bg-${getStatusColor(t.trang_thai)}">${getStatusText(t.trang_thai)}</span></td>
+                            <td>${(t.created_at || t.thoi_gian_dat) ? new Date(t.created_at || t.thoi_gian_dat).toLocaleString('vi-VN') : ''}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="showTripDetail(${t.id})">Xem</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+
+                const { page: cur, total, totalPages } = data.pagination || { page, total: trips.length, totalPages: 1 };
+                summary.textContent = `Trang ${cur}/${totalPages} • Tổng ${total} chuyến`;
+                btnPrev.disabled = cur <= 1;
+                btnNext.disabled = cur >= totalPages;
+                btnPrev.onclick = () => loadTripHistory(cur - 1);
+                btnNext.onclick = () => loadTripHistory(cur + 1);
+            } catch (e) {
+                console.error('loadTripHistory error:', e);
+                tbody.innerHTML = '<tr><td colspan="9" class="text-danger text-center">Lỗi khi tải lịch sử chuyến đi</td></tr>';
+            }
+        }
+
+        // Show trip detail modal
+        async function showTripDetail(id) {
+            try {
+                const res = await fetch(`/api/admin/trips/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (!res.ok) throw new Error('Không thể tải chi tiết chuyến đi');
+                const json = await res.json();
+                const t = json.data;
+                const body = document.getElementById('tripModalBody');
+                body.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>ID chuyến:</strong> ${t.id}</p>
+                            <p><strong>Khách hàng:</strong> ${t.ten_khach_hang || t.khach_hang_id}</p>
+                            <p><strong>Tài xế:</strong> ${t.ten_tai_xe || ''}</p>
+                            <p><strong>Trạng thái:</strong> <span class="badge bg-${getStatusColor(t.trang_thai)}">${getStatusText(t.trang_thai)}</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Điểm đón:</strong> ${t.diem_don || ''}</p>
+                            <p><strong>Điểm đến:</strong> ${t.diem_den || ''}</p>
+                            <p><strong>Tổng tiền:</strong> ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(t.tong_tien || 0)}</p>
+                            <p><strong>Thời gian đặt:</strong> ${(t.created_at || t.thoi_gian_dat) ? new Date(t.created_at || t.thoi_gian_dat).toLocaleString('vi-VN') : ''}</p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Thời gian đón:</strong> ${t.thoi_gian_don ? new Date(t.thoi_gian_don).toLocaleString('vi-VN') : '-'}</p>
+                            <p><strong>Bắt đầu:</strong> ${t.thoi_gian_bat_dau ? new Date(t.thoi_gian_bat_dau).toLocaleString('vi-VN') : '-'}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Kết thúc:</strong> ${t.thoi_gian_ket_thuc ? new Date(t.thoi_gian_ket_thuc).toLocaleString('vi-VN') : '-'}</p>
+                            ${t.ly_do_huy ? `<p><strong>Lý do hủy:</strong> ${t.ly_do_huy}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+                new bootstrap.Modal(document.getElementById('tripModal')).show();
+            } catch (e) {
+                console.error('showTripDetail error:', e);
+                alert('Lỗi khi tải chi tiết chuyến đi');
             }
         }
 
@@ -682,6 +818,17 @@
                     return 'success';
                 case 'tam_khoa':
                     return 'danger';
+                // Trip statuses
+                case 'cho_tai_xe':
+                    return 'info';
+                case 'da_nhan':
+                    return 'primary';
+                case 'dang_di':
+                    return 'warning';
+                case 'hoan_thanh':
+                    return 'success';
+                case 'huy_bo':
+                    return 'secondary';
                 default:
                     return 'secondary';
             }
@@ -702,6 +849,17 @@
                     return 'Đang mở tài khoản';
                 case 'tam_khoa':
                     return 'Đang khóa tài khoản';
+                // Trip statuses
+                case 'cho_tai_xe':
+                    return 'Chờ tài xế';
+                case 'da_nhan':
+                    return 'Đã nhận';
+                case 'dang_di':
+                    return 'Đang đi';
+                case 'hoan_thanh':
+                    return 'Hoàn thành';
+                case 'huy_bo':
+                    return 'Hủy bỏ';
                 default:
                     return 'Không xác định';
             }
