@@ -154,6 +154,8 @@ app.use('/api/drivers/notifications', require('./routes/notifications'));
 // Promotions router contains some public endpoints (active/all) and some admin-only endpoints.
 // Mount it without the global `authenticate` so the routes file can opt-in where needed.
 app.use('/api/promotions', require('./routes/promotions'));
+// Reviews (protected): customers rate trips
+app.use('/api/reviews', authenticate, require('./routes/reviews'));
 app.use('/api/admin', authenticate, require('./routes/admin'));
 
 // Serve static HTML pages

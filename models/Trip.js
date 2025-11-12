@@ -152,7 +152,13 @@ class Trip {
         SELECT cd.*, 
                kh.ten as ten_khach_hang, kh.so_dien_thoai as sdt_khach_hang,
                nd_tx.ten as ten_tai_xe, nd_tx.so_dien_thoai as sdt_tai_xe,
-               tx.bien_so_xe, tx.loai_xe, tx.mau_xe, tx.hang_xe
+               tx.bien_so_xe, tx.loai_xe, tx.mau_xe, tx.hang_xe,
+               (
+                 SELECT COUNT(*) FROM danh_gia dg
+                 WHERE dg.chuyen_di_id = cd.id
+                   AND dg.nguoi_danh_gia_id = ?
+                   AND dg.loai_danh_gia = 'danh_gia_tai_xe'
+               ) AS da_danh_gia
         FROM chuyen_di cd
         LEFT JOIN nguoi_dung kh ON cd.khach_hang_id = kh.id
         LEFT JOIN tai_xe tx ON cd.tai_xe_id = tx.id
@@ -167,7 +173,7 @@ class Trip {
       
       query += ' ORDER BY cd.created_at DESC LIMIT ? OFFSET ?';
       
-      const [rows] = await pool.execute(query, [userId, limit, offset]);
+  const [rows] = await pool.execute(query, [userId, userId, limit, offset]);
       
       // Đếm tổng số
       let countQuery = 'SELECT COUNT(*) as total FROM chuyen_di cd';
@@ -177,7 +183,7 @@ class Trip {
         countQuery += ' WHERE cd.khach_hang_id = ?';
       }
       
-      const [countResult] = await pool.execute(countQuery, [userId]);
+  const [countResult] = await pool.execute(countQuery, [userId]);
       const total = countResult[0].total;
 
       return {

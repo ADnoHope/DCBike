@@ -147,7 +147,7 @@ body {
 }
 
 /* Many cards use light backgrounds — force readable dark text on light surfaces */
-.card, .card-body, .registration-card, .modal-content {
+.card, .card-body, .card-header, .registration-card, .modal-content {
     color: #111;
 }
 
