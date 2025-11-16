@@ -97,11 +97,15 @@
                                 <label class="form-label">Loại bằng lái *</label>
                                 <select class="form-select" name="bang_lai" required>
                                     <option value="">Chọn loại bằng lái</option>
-                                    <option value="B1">B1 - Xe máy</option>
-                                    <option value="B2">B2 - Ô tô đến 9 chỗ</option>
-                                    <option value="C">C - Xe tải</option>
-                                    <option value="D">D - Xe khách</option>
-                                    <option value="E">E - Xe container</option>
+                                    <option value="A1">A1 - Xe mô tô 2 bánh dưới 175cc</option>
+                                    <option value="A2">A2 - Xe mô tô 2 bánh từ 175cc trở lên</option>
+                                    <option value="B1">B1 - Xe ô tô đến 9 chỗ (không hành nghề)</option>
+                                    <option value="B2">B2 - Xe ô tô đến 9 chỗ (hành nghề lái xe)</option>
+                                    <option value="C">C - Xe tải, xe đầu kéo</option>
+                                    <option value="D">D - Xe khách 30 chỗ trở xuống</option>
+                                    <option value="E">E - Xe khách trên 30 chỗ</option>
+                                    <option value="FB2">FB2 - Xe ô tô chở người từ 9 chỗ trở xuống (kéo rơ moóc)</option>
+                                    <option value="FC">FC - Xe ô tô tải, kéo rơ moóc (trọng tải trên 3500kg)</option>
                                 </select>
                             </div>
                         </div>
@@ -213,10 +217,21 @@
             const loadingNotif = showLoading('Đang xử lý đăng ký...');
 
             try {
+                // Lấy token từ localStorage
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    showError('Bạn cần đăng nhập trước khi đăng ký tài xế');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                    return;
+                }
+
                 const response = await fetch('/api/auth/register-driver', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify(data)
                 });
@@ -251,21 +266,43 @@
         });
     </script>
     <script>
-        // Prevent access to driver registration page if logged-in user is already a driver
+        // Kiểm tra người dùng đã đăng nhập và quyền truy cập
         document.addEventListener('DOMContentLoaded', function() {
             try {
+                const token = localStorage.getItem('token');
                 const userJson = localStorage.getItem('user');
-                if (userJson) {
-                    const user = JSON.parse(userJson);
-                    if (user && user.loai_tai_khoan === 'tai_xe') {
-                        showWarning('Bạn đã là tài xế, không được truy cập trang đăng ký tài xế.');
-                        setTimeout(() => {
-                            window.location.href = 'index.html';
-                        }, 2000);
-                    }
+                
+                // Yêu cầu đăng nhập
+                if (!token || !userJson) {
+                    showError('Bạn cần đăng nhập trước khi đăng ký tài xế');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                    return;
+                }
+                
+                const user = JSON.parse(userJson);
+                
+                // Không cho phép tài xế đăng ký lại
+                if (user && user.loai_tai_khoan === 'tai_xe') {
+                    showWarning('Bạn đã là tài xế, không cần đăng ký lại.');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
+                    return;
+                }
+                
+                // Tự động điền thông tin từ user đã đăng nhập
+                if (user) {
+                    // Có thể thêm logic tự động điền nếu muốn
+                    console.log('User logged in:', user.ten);
                 }
             } catch (err) {
                 console.error('Error checking user role on driver registration page', err);
+                showError('Có lỗi xảy ra, vui lòng đăng nhập lại');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
             }
         });
     </script>
