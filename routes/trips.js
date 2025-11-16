@@ -14,7 +14,16 @@ router.get('/my-trips', authenticate, TripController.getUserTrips);
 // Lấy danh sách chuyến đi của người dùng (alias endpoint)
 router.get('/user', authenticate, TripController.getUserTrips);
 
-// Lấy chi tiết chuyến đi
+// Lấy danh sách chuyến đi có sẵn (tài xế) - PHẢI ĐẶT TRƯỚC /:id
+router.get('/available', authenticate, requireDriver, TripController.getAvailableTrips);
+
+// Lấy danh sách chuyến đi có sẵn (tài xế) - alias
+router.get('/available/list', authenticate, requireDriver, TripController.getAvailableTrips);
+
+// Thống kê chuyến đi (admin) - PHẢI ĐẶT TRƯỚC /:id
+router.get('/admin/statistics', authenticate, requireAdmin, TripController.getTripStatistics);
+
+// Lấy chi tiết chuyến đi - ĐẶT SAU các route cụ thể
 router.get('/:id', authenticate, TripController.getTripDetail);
 
 // Tài xế nhận chuyến đi
@@ -28,11 +37,5 @@ router.post('/:id/complete', authenticate, requireDriver, TripController.complet
 
 // Hủy chuyến đi
 router.post('/:id/cancel', authenticate, TripController.cancelTrip);
-
-// Lấy danh sách chuyến đi có sẵn (tài xế)
-router.get('/available/list', authenticate, requireDriver, TripController.getAvailableTrips);
-
-// Thống kê chuyến đi (admin)
-router.get('/admin/statistics', authenticate, requireAdmin, TripController.getTripStatistics);
 
 module.exports = router;

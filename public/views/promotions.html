@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Khuyến mãi - DC Car Booking</title>
+    <title>Khuyến mãi - DC Booking</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="../css/style.css" rel="stylesheet">
@@ -13,7 +13,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="../index.html">
-                <i class="fas fa-car me-2"></i>DC Car Booking
+                <i class="fas fa-car me-2"></i>DC Booking
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -34,6 +34,9 @@
                     </li>
                     <li class="nav-item" id="promos-nav">
                         <a class="nav-link active" href="promotions.html">Khuyến mãi</a>
+                    </li>
+                    <li class="nav-item d-none" id="driver-stats-nav">
+                        <a class="nav-link" href="driver-dashboard.html">Thống kê</a>
                     </li>
                 </ul>
                 <ul class="navbar-nav">
@@ -63,7 +66,7 @@
             <div class="row align-items-center">
                 <div class="col-lg-8">
                     <h2><i class="fas fa-tags me-2"></i>Khuyến mãi đặc biệt</h2>
-                    <p class="lead mb-0">Tiết kiệm chi phí với các chương trình khuyến mãi hấp dẫn từ DC Car Booking</p>
+                    <p class="lead mb-0">Tiết kiệm chi phí với các chương trình khuyến mãi hấp dẫn từ DC Booking</p>
                 </div>
                 <div class="col-lg-4 text-lg-end">
                     <div class="promotion-stats">
@@ -236,6 +239,7 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/notifications.js"></script>
     <script src="../js/app.js"></script>
     <script>
         let currentPage = 1;
@@ -643,7 +647,7 @@
                 id: promotionId,
                 ten_khuyen_mai: 'Giảm 20% cho khách hàng mới',
                 ma_khuyen_mai: 'NEW20',
-                mo_ta: 'Ưu đãi đặc biệt dành cho khách hàng lần đầu sử dụng dịch vụ DC Car Booking. Áp dụng cho tất cả các loại xe và không giới hạn quãng đường.',
+                mo_ta: 'Ưu đãi đặc biệt dành cho khách hàng lần đầu sử dụng dịch vụ DC Booking. Áp dụng cho tất cả các loại xe và không giới hạn quãng đường.',
                 loai_khuyen_mai: 'giam_gia_theo_phan_tram',
                 gia_tri: 20,
                 gia_tri_toi_da: 100000,

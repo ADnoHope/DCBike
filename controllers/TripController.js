@@ -1,6 +1,7 @@
 const Trip = require('../models/Trip');
 const Driver = require('../models/Driver');
 const Promotion = require('../models/Promotion');
+const Revenue = require('../models/Revenue');
 
 class TripController {
   // Tạo chuyến đi mới
@@ -331,6 +332,14 @@ class TripController {
 
       await Trip.updateStatus(tripId, 'hoan_thanh');
       await Driver.updateStatus(driver.id, 'san_sang');
+
+      // Tạo bản ghi doanh thu - chiết khấu 20% cho web, 80% cho tài xế
+      try {
+        await Revenue.createFromTrip(tripId, driver.id, trip.tong_tien);
+      } catch (revenueError) {
+        console.error('Create revenue record error:', revenueError);
+        // Không fail toàn bộ request nếu tạo bản ghi doanh thu lỗi
+      }
 
       res.json({
         success: true,

@@ -7,17 +7,13 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
-    <style>
-        /* Hide booking nav by default until app.js decides to show it for logged-in users */
-        #booking-nav { display: none !important; }
-    </style>
 </head>
 <body>
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand fw-bold" href="#">
-                <i class="fas fa-car"></i> DC Car Booking
+                <i class="fas fa-car"></i> DC Booking
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -38,6 +34,9 @@
                     </li>
                     <li class="nav-item" id="promos-nav">
                         <a class="nav-link" href="views/promotions.html" data-auth>Khuyến mãi</a>
+                    </li>
+                    <li class="nav-item d-none" id="driver-stats-nav">
+                        <a class="nav-link" href="views/driver-dashboard.html" data-auth>Thống kê</a>
                     </li>
                     <li class="nav-item" id="driverreg-nav">
                         <a class="nav-link" href="driver-registration.html">Đăng ký tài xế</a>
@@ -74,7 +73,7 @@
                             Đặt xe nhanh chóng, an toàn và tiện lợi
                         </h1>
                         <p class="lead text-light mb-4">
-                            DC Car Booking - Giải pháp di chuyển thông minh với công nghệ hiện đại
+                            DC Booking - Giải pháp di chuyển thông minh với công nghệ hiện đại
                         </p>
                         <div class="d-grid gap-2 d-md-flex">
                             <a href="views/booking.html" class="btn btn-warning btn-lg px-4" data-auth>
@@ -212,7 +211,7 @@
             <div class="container">
                 <div class="row align-items-center">
                     <div class="col-lg-6">
-                        <h2 class="fw-bold mb-4">Về DC Car Booking</h2>
+                        <h2 class="fw-bold mb-4">Về DC Booking</h2>
                         <p class="lead mb-4">
                             Chúng tôi cam kết mang đến dịch vụ đặt xe chất lượng cao với công nghệ hiện đại 
                             và đội ngũ tài xế chuyên nghiệp.
@@ -267,7 +266,7 @@
                     <div class="col-lg-6">
                         <div class="text-center">
                             <img src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" 
-                                 alt="DC Car Booking" class="img-fluid rounded shadow">
+                                 alt="DC Booking" class="img-fluid rounded shadow">
                         </div>
                     </div>
                 </div>
@@ -369,6 +368,7 @@
 
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/notifications.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

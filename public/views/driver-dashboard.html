@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Tài xế - DC Booking</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .status-toggle-container {
+            position: sticky;
+            top: 70px;
+            z-index: 100;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .status-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .status-toggle.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .status-toggle.inactive {
+            background: #f8f9fa;
+            color: #6c757d;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #28a745;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        .trip-card {
+            border-left: 4px solid #667eea;
+            transition: all 0.3s;
+        }
+
+        .trip-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+        }
+
+        .stats-card {
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/index.html">
+                <i class="fas fa-car me-2"></i>DC Booking
+            </a>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3" id="driver-name">Tài xế</span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                    <i class="fas fa-sign-out-alt me-1"></i>Đăng xuất
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Status Toggle Section -->
+        <div class="status-toggle-container">
+            <div class="status-toggle" id="status-container">
+                <div>
+                    <h5 class="mb-1" id="status-title">
+                        <i class="fas fa-circle me-2" id="status-icon"></i>
+                        <span id="status-text">Đang tải...</span>
+                    </h5>
+                    <p class="mb-0 small" id="status-description">Đang kiểm tra trạng thái</p>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="statusToggle" onchange="toggleDriverStatus()">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="mt-3 text-center" id="status-info">
+                <small class="text-muted">Bật để nhận chuyến đi mới</small>
+            </div>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stats-card bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Chuyến hôm nay</h6>
+                            <h3 class="mb-0" id="today-trips">0</h3>
+                        </div>
+                        <i class="fas fa-car fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Tổng chuyến</h6>
+                            <h3 class="mb-0" id="total-trips">0</h3>
+                        </div>
+                        <i class="fas fa-chart-line fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card bg-warning text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Đánh giá</h6>
+                            <h3 class="mb-0" id="rating">0.0 ★</h3>
+                        </div>
+                        <i class="fas fa-star fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card bg-info text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Thu nhập hôm nay</h6>
+                            <h3 class="mb-0" id="today-income">0đ</h3>
+                        </div>
+                        <i class="fas fa-wallet fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Available Trips Section -->
+        <div class="card shadow-sm mb-4" id="available-trips-section" style="display: none;">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-bell me-2"></i>
+                    Chuyến đi mới (<span id="available-count">0</span>)
+                </h5>
+            </div>
+            <div class="card-body" id="available-trips-container">
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-search fa-3x mb-3"></i>
+                    <p>Đang tìm chuyến đi...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Trip Section (Active Trip) -->
+        <div class="card shadow-sm mb-4" id="current-trip-section" style="display: none;">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-route me-2"></i>
+                    Chuyến đi hiện tại
+                </h5>
+            </div>
+            <div class="card-body" id="current-trip-container">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- My Trips Section -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    Lịch sử chuyến đi
+                </h5>
+            </div>
+            <div class="card-body" id="my-trips-container">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Đang tải chuyến đi...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/notifications.js"></script>
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api';
+        let currentDriverStatus = null;
+        let pollingInterval = null;
+
+        // Get token and user info
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/index.html';
+        }
+
+        // Load driver info and status
+        async function loadDriverInfo() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    const user = data.data;
+                    document.getElementById('driver-name').textContent = user.ten || 'Tài xế';
+                    
+                    // Get driver status
+                    await loadDriverStatus();
+                    await loadStats();
+                    await loadMyTrips();
+                }
+            } catch (error) {
+                console.error('Load driver info error:', error);
+            }
+        }
+
+        // Load driver status
+        async function loadDriverStatus() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/drivers/my-status`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    currentDriverStatus = data.data.trang_thai_tai_xe;
+                    updateStatusUI(currentDriverStatus);
+                }
+            } catch (error) {
+                console.error('Load status error:', error);
+            }
+        }
+
+        // Update UI based on status
+        function updateStatusUI(status) {
+            const container = document.getElementById('status-container');
+            const toggle = document.getElementById('statusToggle');
+            const icon = document.getElementById('status-icon');
+            const text = document.getElementById('status-text');
+            const description = document.getElementById('status-description');
+            const availableSection = document.getElementById('available-trips-section');
+
+            if (status === 'san_sang') {
+                container.classList.remove('inactive');
+                container.classList.add('active', 'pulse');
+                toggle.checked = true;
+                icon.className = 'fas fa-circle me-2';
+                text.textContent = 'Đang hoạt động';
+                description.textContent = 'Bạn có thể nhận chuyến đi mới';
+                availableSection.style.display = 'block';
+                
+                // Start polling for available trips
+                startPolling();
+            } else {
+                container.classList.remove('active', 'pulse');
+                container.classList.add('inactive');
+                toggle.checked = false;
+                icon.className = 'fas fa-moon me-2';
+                text.textContent = 'Không hoạt động';
+                description.textContent = 'Bật để bắt đầu nhận chuyến';
+                availableSection.style.display = 'none';
+                
+                // Stop polling
+                stopPolling();
+            }
+        }
+
+        // Toggle driver status
+        async function toggleDriverStatus() {
+            const toggle = document.getElementById('statusToggle');
+            const newStatus = toggle.checked ? 'san_sang' : 'nghi_lam';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/drivers/status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ trang_thai: newStatus })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentDriverStatus = newStatus;
+                    updateStatusUI(newStatus);
+                    showNotification(
+                        toggle.checked ? 'Đã bật trạng thái hoạt động' : 'Đã tắt trạng thái hoạt động',
+                        'success'
+                    );
+                } else {
+                    // Revert toggle if failed
+                    toggle.checked = !toggle.checked;
+                    showNotification('Không thể thay đổi trạng thái', 'error');
+                }
+            } catch (error) {
+                console.error('Toggle status error:', error);
+                toggle.checked = !toggle.checked;
+                showNotification('Lỗi khi thay đổi trạng thái', 'error');
+            }
+        }
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/drivers/statistics`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    const stats = data.data;
+                    document.getElementById('today-trips').textContent = stats.today_trips || 0;
+                    document.getElementById('total-trips').textContent = stats.total_trips || 0;
+                    document.getElementById('rating').textContent = `${stats.rating || 0} ★`;
+                    document.getElementById('today-income').textContent = formatCurrency(stats.today_income || 0);
+                }
+            } catch (error) {
+                console.error('Load stats error:', error);
+            }
+        }
+
+        // Load available trips (only when active)
+        async function loadAvailableTrips() {
+            if (currentDriverStatus !== 'san_sang') return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/trips/available`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                console.log('Available trips response:', data); // Debug log
+
+                const container = document.getElementById('available-trips-container');
+                const countEl = document.getElementById('available-count');
+
+                if (data.success && data.data && data.data.length > 0) {
+                    countEl.textContent = data.data.length;
+                    container.innerHTML = data.data.map(trip => `
+                        <div class="trip-card card mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-user-circle text-primary me-2"></i>
+                                        ${trip.ten_khach_hang || 'Khách hàng'}
+                                    </h6>
+                                    <span class="badge bg-success">${formatCurrency(trip.gia_cuoc)}</span>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-success">
+                                        <i class="fas fa-map-marker-alt me-1"></i>
+                                        ${trip.diem_don || trip.diem_di}
+                                    </small>
+                                </div>
+                                <div class="mb-3">
+                                    <small class="text-danger">
+                                        <i class="fas fa-map-marker-alt me-1"></i>
+                                        ${trip.diem_den}
+                                    </small>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>
+                                        ${new Date(trip.created_at || trip.thoi_gian_dat).toLocaleTimeString('vi-VN')}
+                                    </small>
+                                    <button class="btn btn-primary btn-sm" onclick="acceptTrip(${trip.id})">
+                                        <i class="fas fa-check me-1"></i>Nhận chuyến
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    countEl.textContent = '0';
+                    container.innerHTML = `
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-inbox fa-3x mb-3"></i>
+                            <p>Chưa có chuyến đi mới</p>
+                            <small>Các chuyến mới sẽ tự động xuất hiện ở đây</small>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Load available trips error:', error);
+            }
+        }
+
+        // Load my trips
+        async function loadMyTrips() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/trips/my-trips?page=1&limit=10`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                const container = document.getElementById('my-trips-container');
+                const currentTripSection = document.getElementById('current-trip-section');
+                const currentTripContainer = document.getElementById('current-trip-container');
+
+                if (data.success && data.data && data.data.trips && data.data.trips.length > 0) {
+                    // Separate current trip from history
+                    const currentTrip = data.data.trips.find(t => ['da_nhan', 'dang_di'].includes(t.trang_thai));
+                    const historyTrips = data.data.trips.filter(t => !['da_nhan', 'dang_di'].includes(t.trang_thai));
+
+                    // Display current trip if exists
+                    if (currentTrip) {
+                        currentTripSection.style.display = 'block';
+                        currentTripContainer.innerHTML = renderCurrentTrip(currentTrip);
+                    } else {
+                        currentTripSection.style.display = 'none';
+                    }
+
+                    // Display history
+                    if (historyTrips.length > 0) {
+                        container.innerHTML = historyTrips.map(trip => renderTripCard(trip)).join('');
+                    } else {
+                        container.innerHTML = `
+                            <div class="text-center py-5 text-muted">
+                                <i class="fas fa-car fa-3x mb-3"></i>
+                                <p>Chưa có lịch sử chuyến đi</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    currentTripSection.style.display = 'none';
+                    container.innerHTML = `
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-car fa-3x mb-3"></i>
+                            <p>Chưa có chuyến đi nào</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Load my trips error:', error);
+                document.getElementById('my-trips-container').innerHTML = `
+                    <div class="text-center py-5 text-danger">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <p>Không thể tải danh sách chuyến đi</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Render current trip with action buttons
+        function renderCurrentTrip(trip) {
+            const statusInfo = {
+                'da_nhan': {
+                    badge: 'warning',
+                    text: 'Đã nhận',
+                    action: `
+                        <button class="btn btn-success w-100" onclick="startTrip(${trip.id})">
+                            <i class="fas fa-play me-2"></i>Bắt đầu chuyến đi
+                        </button>
+                    `
+                },
+                'dang_di': {
+                    badge: 'primary',
+                    text: 'Đang di chuyển',
+                    action: `
+                        <button class="btn btn-success w-100" onclick="completeTrip(${trip.id})">
+                            <i class="fas fa-check me-2"></i>Hoàn thành chuyến đi
+                        </button>
+                    `
+                }
+            };
+
+            const info = statusInfo[trip.trang_thai] || { badge: 'secondary', text: trip.trang_thai, action: '' };
+
+            return `
+                <div class="alert alert-${info.badge} border-start border-5 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user-circle me-2"></i>
+                            ${trip.ten_khach_hang}
+                        </h5>
+                        <span class="badge bg-${info.badge}">${info.text}</span>
+                    </div>
+                    <hr>
+                    <div class="mb-3">
+                        <div class="mb-2">
+                            <i class="fas fa-map-marker-alt text-success me-2"></i>
+                            <strong>Điểm đón:</strong> ${trip.diem_di}
+                        </div>
+                        <div class="mb-2">
+                            <i class="fas fa-map-marker-alt text-danger me-2"></i>
+                            <strong>Điểm đến:</strong> ${trip.diem_den}
+                        </div>
+                        <div class="mb-2">
+                            <i class="fas fa-road me-2"></i>
+                            <strong>Khoảng cách:</strong> ${trip.khoang_cach} km
+                        </div>
+                        <div class="mb-2">
+                            <i class="fas fa-phone text-primary me-2"></i>
+                            <strong>SĐT khách hàng:</strong> ${trip.so_dien_thoai || 'Chưa có'}
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">
+                            <i class="fas fa-clock me-1"></i>
+                            ${new Date(trip.created_at).toLocaleString('vi-VN')}
+                        </span>
+                        <h4 class="mb-0 text-success">${formatCurrency(trip.gia_cuoc)}</h4>
+                    </div>
+                    ${info.action}
+                </div>
+            `;
+        }
+
+        // Render trip card for history
+        function renderTripCard(trip) {
+            const statusClass = {
+                'cho_tai_xe': 'warning',
+                'da_nhan': 'info',
+                'dang_di': 'primary',
+                'hoan_thanh': 'success',
+                'huy_bo': 'danger'
+            }[trip.trang_thai] || 'secondary';
+
+            const statusText = {
+                'cho_tai_xe': 'Chờ tài xế',
+                'da_nhan': 'Đã nhận',
+                'dang_di': 'Đang đi',
+                'hoan_thanh': 'Hoàn thành',
+                'huy_bo': 'Đã hủy'
+            }[trip.trang_thai] || trip.trang_thai;
+
+            return `
+                <div class="trip-card card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="mb-0">
+                                <i class="fas fa-user-circle text-primary me-2"></i>
+                                ${trip.ten_khach_hang}
+                            </h6>
+                            <span class="badge bg-${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-success">
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                ${trip.diem_di}
+                            </small>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-danger">
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                ${trip.diem_den}
+                            </small>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>
+                                ${new Date(trip.created_at).toLocaleString('vi-VN')}
+                            </small>
+                            <strong class="text-success">${formatCurrency(trip.gia_cuoc)}</strong>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Accept trip
+        async function acceptTrip(tripId) {
+            if (!confirm('Bạn có chắc muốn nhận chuyến đi này?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/trips/${tripId}/accept`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification('Đã nhận chuyến thành công!', 'success');
+                    loadAvailableTrips();
+                    loadMyTrips();
+                    loadStats();
+                } else {
+                    showNotification(data.message || 'Không thể nhận chuyến', 'error');
+                }
+            } catch (error) {
+                console.error('Accept trip error:', error);
+                showNotification('Lỗi khi nhận chuyến', 'error');
+            }
+        }
+
+        // Start trip
+        async function startTrip(tripId) {
+            if (!confirm('Bạn đã đến điểm đón và bắt đầu chuyến đi?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/trips/${tripId}/start`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification('Đã bắt đầu chuyến đi!', 'success');
+                    loadMyTrips();
+                    loadStats();
+                } else {
+                    showNotification(data.message || 'Không thể bắt đầu chuyến', 'error');
+                }
+            } catch (error) {
+                console.error('Start trip error:', error);
+                showNotification('Lỗi khi bắt đầu chuyến', 'error');
+            }
+        }
+
+        // Complete trip
+        async function completeTrip(tripId) {
+            if (!confirm('Xác nhận hoàn thành chuyến đi? Hệ thống sẽ tự động tính tiền (80% cho tài xế, 20% phí dịch vụ)')) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/trips/${tripId}/complete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification('Chuyến đi hoàn thành! Tiền đã được tính vào thu nhập của bạn.', 'success');
+                    loadMyTrips();
+                    loadStats();
+                    loadDriverStatus(); // Reload status
+                } else {
+                    showNotification(data.message || 'Không thể hoàn thành chuyến', 'error');
+                }
+            } catch (error) {
+                console.error('Complete trip error:', error);
+                showNotification('Lỗi khi hoàn thành chuyến', 'error');
+            }
+        }
+
+        // Polling for available trips
+        function startPolling() {
+            if (pollingInterval) return;
+            
+            loadAvailableTrips(); // Load immediately
+            pollingInterval = setInterval(() => {
+                loadAvailableTrips();
+            }, 10000); // Poll every 10 seconds
+        }
+
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        }
+
+        // Helper functions
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(amount);
+        }
+
+        function logout() {
+            if (confirm('Bạn có chắc muốn đăng xuất?')) {
+                stopPolling();
+                localStorage.removeItem('token');
+                window.location.href = '/index.html';
+            }
+        }
+
+        // Initialize
+        loadDriverInfo();
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            stopPolling();
+        });
+    </script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DC Car Booking - Đăng ký tài xế</title>
+    <title>DC Booking - Đăng ký tài xế</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -70,7 +70,7 @@
                     
                     <h2 class="text-center mb-3">Đăng ký tài xế</h2>
                     <p class="text-center text-muted mb-4">
-                        Trở thành đối tác tài xế của DC Car Booking
+                        Trở thành đối tác tài xế của DC Booking
                     </p>
                     
                     <!-- Single-step registration (no step indicators) -->
@@ -186,6 +186,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/notifications.js"></script>
     <script>
         // Handle simplified form submission
         document.getElementById('driverRegistrationForm').addEventListener('submit', async function(e) {
@@ -198,16 +199,18 @@
             const required = ['cccd', 'so_bang_lai', 'bang_lai', 'bien_so_xe', 'loai_xe'];
             for (const key of required) {
                 if (!data[key] || String(data[key]).trim() === '') {
-                    alert('Vui lòng điền đầy đủ thông tin bắt buộc');
+                    showError('Vui lòng điền đầy đủ thông tin bắt buộc');
                     return;
                 }
             }
 
             const agree = document.getElementById('agreeTerms');
             if (!agree || !agree.checked) {
-                alert('Bạn cần đồng ý với điều khoản để tiếp tục');
+                showWarning('Bạn cần đồng ý với điều khoản để tiếp tục');
                 return;
             }
+
+            const loadingNotif = showLoading('Đang xử lý đăng ký...');
 
             try {
                 const response = await fetch('/api/auth/register-driver', {
@@ -218,8 +221,13 @@
                     body: JSON.stringify(data)
                 });
 
+                hideNotification(loadingNotif);
+
                 if (response.ok) {
-                    new bootstrap.Modal(document.getElementById('successModal')).show();
+                    showSuccess('Đăng ký tài xế thành công! Vui lòng đăng nhập để tiếp tục.');
+                    setTimeout(() => {
+                        new bootstrap.Modal(document.getElementById('successModal')).show();
+                    }, 500);
                 } else {
                     const error = await response.json();
                     const message = error.message || 'Đăng ký thất bại';
@@ -233,11 +241,12 @@
                             setTimeout(() => el.classList.remove('is-invalid'), 3000);
                         }
                     }
-                    alert('Lỗi: ' + message);
+                    showError(message);
                 }
             } catch (error) {
+                hideNotification(loadingNotif);
                 console.error('Registration error:', error);
-                alert('Có lỗi xảy ra. Vui lòng thử lại!');
+                showError('Có lỗi xảy ra. Vui lòng thử lại!');
             }
         });
     </script>
@@ -249,8 +258,10 @@
                 if (userJson) {
                     const user = JSON.parse(userJson);
                     if (user && user.loai_tai_khoan === 'tai_xe') {
-                        alert('Bạn đã là tài xế, không được truy cập trang đăng ký tài xế.');
-                        window.location.href = 'index.html';
+                        showWarning('Bạn đã là tài xế, không được truy cập trang đăng ký tài xế.');
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 2000);
                     }
                 }
             } catch (err) {

@@ -236,10 +236,14 @@ class Trip {
   static async getAvailableTrips(lat = null, lng = null, radius = 10) {
     try {
       let query = `
-        SELECT cd.*, kh.ten as ten_khach_hang, kh.so_dien_thoai as sdt_khach_hang
+        SELECT cd.*, 
+               kh.ten as ten_khach_hang, 
+               kh.so_dien_thoai as sdt_khach_hang,
+               cd.diem_don as diem_di
         FROM chuyen_di cd
         LEFT JOIN nguoi_dung kh ON cd.khach_hang_id = kh.id
-        WHERE cd.trang_thai = 'cho_tai_xe'
+        WHERE cd.trang_thai = 'cho_tai_xe' 
+          AND cd.tai_xe_id IS NULL
       `;
       
       const params = [];
@@ -256,11 +260,18 @@ class Trip {
         params.push(lat, lng, lat, radius);
       }
       
-      query += ' ORDER BY cd.created_at ASC';
+      query += ' ORDER BY cd.thoi_gian_dat DESC LIMIT 20';
+      
+      console.log('getAvailableTrips query:', query);
+      console.log('getAvailableTrips params:', params);
       
       const [rows] = await pool.execute(query, params);
+      
+      console.log('getAvailableTrips results:', rows.length, 'trips');
+      
       return rows;
     } catch (error) {
+      console.error('getAvailableTrips error:', error);
       throw error;
     }
   }
@@ -291,6 +302,54 @@ class Trip {
       return {
         trang_thai: rows,
         tong_doanh_thu: revenueResult[0].tong_doanh_thu || 0
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Thống kê cho tài xế (dashboard)
+  static async getDriverStatistics(driverId) {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      // Số chuyến hoàn thành hôm nay
+      const [todayTrips] = await pool.execute(`
+        SELECT COUNT(*) as count 
+        FROM chuyen_di 
+        WHERE tai_xe_id = ? 
+          AND DATE(thoi_gian_ket_thuc) = ?
+          AND trang_thai = 'hoan_thanh'
+      `, [driverId, today]);
+
+      // Tổng số chuyến hoàn thành
+      const [totalTrips] = await pool.execute(`
+        SELECT COUNT(*) as count 
+        FROM chuyen_di 
+        WHERE tai_xe_id = ?
+          AND trang_thai = 'hoan_thanh'
+      `, [driverId]);
+
+      // Thu nhập hôm nay từ bảng doanh_thu (80% cho tài xế)
+      const [todayIncome] = await pool.execute(`
+        SELECT COALESCE(SUM(tien_tai_xe), 0) as income
+        FROM doanh_thu 
+        WHERE tai_xe_id = ? 
+          AND DATE(created_at) = ?
+      `, [driverId, today]);
+
+      // Lấy rating từ bảng tai_xe
+      const [driverInfo] = await pool.execute(`
+        SELECT danh_gia_trung_binh 
+        FROM tai_xe 
+        WHERE id = ?
+      `, [driverId]);
+
+      return {
+        today_trips: todayTrips[0].count || 0,
+        total_trips: totalTrips[0].count || 0,
+        today_income: todayIncome[0].income || 0,
+        rating: driverInfo[0]?.danh_gia_trung_binh || 0
       };
     } catch (error) {
       throw error;

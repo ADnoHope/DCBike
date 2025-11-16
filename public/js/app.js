@@ -94,7 +94,7 @@ class DCCarBooking {
                     const userRole = window.dcApp.user && window.dcApp.user.loai_tai_khoan;
                     if (!allowedRoles.includes(userRole)) {
                         e.preventDefault();
-                        showAlert('warning', 'Bạn không có quyền truy cập chức năng này');
+                        showWarning('Bạn không có quyền truy cập chức năng này');
                         return;
                     }
                 }
@@ -154,7 +154,7 @@ class DCCarBooking {
         try { this.updateUI(); } catch (e) {}
         // Redirect everyone to home after logout
         try {
-            showAlert('info', 'Đăng xuất thành công!');
+            showInfo('Đăng xuất thành công!');
         } catch (e) {}
         // Small delay to allow alert paint, then navigate
         setTimeout(() => {
@@ -165,7 +165,7 @@ class DCCarBooking {
     // Trip Management
     async bookTrip() {
         if (!this.token || !this.user) {
-            showAlert('warning', 'Vui lòng đăng nhập để đặt xe');
+            showWarning('Vui lòng đăng nhập để đặt xe');
             showAuthModal();
             return;
         }
@@ -177,7 +177,7 @@ class DCCarBooking {
         const notes = document.getElementById('notes').value;
 
         if (!pickupLocation || !destination || !pickupTime || !vehicleType) {
-            showAlert('warning', 'Vui lòng điền đầy đủ thông tin');
+            showWarning('Vui lòng điền đầy đủ thông tin');
             return;
         }
 
@@ -208,7 +208,7 @@ class DCCarBooking {
                 try { promotionService.loadPromotions(); } catch (e) { console.debug('Reload promotions failed', e); }
             }
 
-            showAlert('success', 'Đặt xe thành công! Đang tìm tài xế...');
+            showSuccess('Đặt xe thành công! Đang tìm tài xế...');
             
             // Reset form
             document.getElementById('booking-form').reset();
@@ -221,7 +221,7 @@ class DCCarBooking {
 
         } catch (error) {
             console.error('Book trip error:', error);
-            showAlert('error', error.message || 'Đặt xe thất bại');
+            showError(error.message || 'Đặt xe thất bại');
         }
     }
 
@@ -338,9 +338,9 @@ class DCCarBooking {
             // Nếu lỗi 403, hiển thị thông điệp theo yêu cầu: chỉ khi đã nhận chuyến mới xem chi tiết
             const msg = (error && error.message) ? error.message : '';
             if (/403|không có quyền/i.test(msg)) {
-                showAlert('warning', 'Chỉ khi tài xế đã nhận chuyến đi mới có quyền xem chi tiết.');
+                showWarning('Chỉ khi tài xế đã nhận chuyến đi mới có quyền xem chi tiết.');
             } else {
-                showAlert('error', 'Không thể tải thông tin chi tiết chuyến đi');
+                showError('Không thể tải thông tin chi tiết chuyến đi');
             }
         }
     }
@@ -414,6 +414,7 @@ class DCCarBooking {
         const driversNav = document.getElementById('drivers-nav');
         const promosNav = document.getElementById('promos-nav');
         const driverRegNav = document.getElementById('driverreg-nav');
+        const driverStatsNav = document.getElementById('driver-stats-nav');
 
         if (this.user) {
             console.log('User is logged in, updating UI'); // Debug log
@@ -428,13 +429,30 @@ class DCCarBooking {
             if (userName) userName.textContent = this.user.ten || this.user.ho_ten;
 
             // Show main nav items for logged-in users
-            if (bookingNav) {
-                bookingNav.classList.remove('d-none');
-                try { bookingNav.style.display = ''; } catch(e) {}
-            }
             if (tripsNav) tripsNav.classList.remove('d-none');
             if (driversNav) driversNav.classList.remove('d-none');
             if (promosNav) promosNav.classList.remove('d-none');
+            
+            // Show booking only for customers, hide for drivers
+            if (bookingNav) {
+                if (this.user.loai_tai_khoan === 'khach_hang') {
+                    bookingNav.classList.remove('d-none');
+                    try { bookingNav.style.display = ''; } catch(e) {}
+                } else {
+                    bookingNav.classList.add('d-none');
+                    try { bookingNav.style.display = 'none'; } catch(e) {}
+                }
+            }
+            
+            // Show driver stats only for drivers
+            if (driverStatsNav) {
+                if (this.user.loai_tai_khoan === 'tai_xe') {
+                    driverStatsNav.classList.remove('d-none');
+                } else {
+                    driverStatsNav.classList.add('d-none');
+                }
+            }
+            
             // Hide driver registration link for users who are already drivers
             if (driverRegNav) {
                 if (this.user.loai_tai_khoan === 'tai_xe') {
@@ -482,6 +500,7 @@ class DCCarBooking {
             if (driversNav) driversNav.classList.add('d-none');
             if (promosNav) promosNav.classList.add('d-none');
             if (driverRegNav) driverRegNav.classList.add('d-none');
+            if (driverStatsNav) driverStatsNav.classList.add('d-none');
             
             // Remove admin link if exists
             const adminLink = document.querySelector('.admin-link');
@@ -517,7 +536,7 @@ class DCCarBooking {
                 // If current page is booking page, block access and redirect to home after showing message
                 const path = window.location.pathname.toLowerCase();
                 if (path.includes('booking.html')) {
-                    showAlert('warning', 'Tài khoản tài xế không được phép sử dụng chức năng đặt xe.');
+                    showWarning('Tài khoản tài xế không được phép sử dụng chức năng đặt xe.');
                     setTimeout(() => {
                         window.location.href = '/index.html';
                     }, 1200);
@@ -569,7 +588,7 @@ async function login() {
     const password = document.getElementById('login-password').value;
 
     if (!identifier || !password) {
-        showAlert('warning', 'Vui lòng điền đầy đủ thông tin');
+        showWarning('Vui lòng điền đầy đủ thông tin');
         return;
     }
 
@@ -598,19 +617,19 @@ async function login() {
             
             // Điều hướng đến trang admin nếu user có role admin
             if (result.data.user.loai_tai_khoan === 'admin') {
-                showAlert('success', 'Đăng nhập thành công! Đang chuyển đến trang quản trị...');
+                showSuccess('Đăng nhập thành công! Đang chuyển đến trang quản trị...');
                 setTimeout(() => {
                     window.location.href = 'admin.html';
                 }, 1500);
             } else {
-                showAlert('success', 'Đăng nhập thành công!');
+                showSuccess('Đăng nhập thành công!');
             }
         } else {
-            showAlert('error', result.message || 'Đăng nhập thất bại');
+            showError(result.message || 'Đăng nhập thất bại');
         }
     } catch (error) {
         console.error('Login error:', error);
-        showAlert('error', 'Lỗi khi đăng nhập');
+        showError('Lỗi khi đăng nhập');
     }
 }
 
@@ -624,12 +643,12 @@ async function register() {
     const confirmPassword = document.getElementById('register-confirm-password').value;
 
     if (!name || !email || !phone || !password || !confirmPassword) {
-        showAlert('warning', 'Vui lòng điền đầy đủ thông tin');
+        showWarning('Vui lòng điền đầy đủ thông tin');
         return;
     }
 
     if (password !== confirmPassword) {
-        showAlert('warning', 'Mật khẩu xác nhận không khớp');
+        showWarning('Mật khẩu xác nhận không khớp');
         return;
     }
 
@@ -659,18 +678,18 @@ async function register() {
                 dcApp.token = result.data.token;
                 dcApp.user = result.data.user;
                 dcApp.updateUI();
-                showAlert('success', 'Tài khoản tạo thành công! Vui lòng hoàn thiện hồ sơ tài xế.');
+                showSuccess('Tài khoản tạo thành công! Vui lòng hoàn thiện hồ sơ tài xế.');
                 setTimeout(() => window.location.href = '/driver-info.html', 800);
             } else {
-                showAlert('success', 'Đăng ký thành công! Vui lòng đăng nhập.');
+                showSuccess('Đăng ký thành công! Vui lòng đăng nhập.');
                 toggleAuthForm(); // Switch to login form
             }
         } else {
-            showAlert('error', result.message || 'Đăng ký thất bại');
+            showError(result.message || 'Đăng ký thất bại');
         }
     } catch (error) {
         console.error('Register error:', error);
-        showAlert('error', 'Lỗi khi đăng ký');
+        showError('Lỗi khi đăng ký');
     }
 }
 
@@ -709,16 +728,16 @@ function logout() {
 }
 
 function showProfile() {
-    showAlert('info', 'Chức năng đang được phát triển');
+    showInfo('Chức năng đang được phát triển');
 }
 
 function showMyTrips() {
     if (dcApp.user) {
         dcApp.loadUserTrips();
         scrollToSection('my-trips');
-        showAlert('info', 'Đã tải danh sách chuyến đi của bạn');
+        showInfo('Đã tải danh sách chuyến đi của bạn');
     } else {
-        showAlert('warning', 'Vui lòng đăng nhập để xem chuyến đi');
+        showWarning('Vui lòng đăng nhập để xem chuyến đi');
         showAuthModal();
     }
 }
@@ -738,36 +757,9 @@ function scrollToBooking() {
     }
 }
 
-function showAlert(type, message) {
-    // Remove existing alerts
-    const existingAlerts = document.querySelectorAll('.alert-toast');
-    existingAlerts.forEach(alert => alert.remove());
-
-    const alertClass = {
-        'success': 'alert-success',
-        'error': 'alert-danger',
-        'warning': 'alert-warning',
-        'info': 'alert-info'
-    }[type] || 'alert-info';
-
-    const alertHtml = `
-        <div class="alert ${alertClass} alert-dismissible fade show alert-toast position-fixed" 
-             style="top: 20px; right: 20px; z-index: 9999; max-width: 400px;">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', alertHtml);
-
-    // Auto dismiss after 5 seconds
-    setTimeout(() => {
-        const alert = document.querySelector('.alert-toast');
-        if (alert) {
-            alert.remove();
-        }
-    }, 5000);
-}
+// Use new notification system from notifications.js
+// The showNotification, showSuccess, showError, showWarning, showInfo functions
+// are now available globally from notifications.js
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {

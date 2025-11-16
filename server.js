@@ -159,6 +159,8 @@ app.use('/api/drivers/notifications', require('./routes/notifications'));
 app.use('/api/promotions', require('./routes/promotions'));
 // Reviews (protected): customers rate trips
 app.use('/api/reviews', authenticate, require('./routes/reviews'));
+// Revenue tracking (protected)
+app.use('/api/revenue', authenticate, require('./routes/revenue'));
 app.use('/api/admin', authenticate, require('./routes/admin'));
 
 // Serve static HTML pages

@@ -80,6 +80,34 @@ router.post('/location', authenticate, requireDriver, validateLocationUpdate, as
   }
 });
 
+// Lấy trạng thái hiện tại của tài xế
+router.get('/my-status', authenticate, requireDriver, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const driver = await Driver.findByUserId(userId);
+    
+    if (!driver) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không phải là tài xế'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        trang_thai_tai_xe: driver.trang_thai_tai_xe
+      }
+    });
+  } catch (error) {
+    console.error('Get status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi hệ thống'
+    });
+  }
+});
+
 // Cập nhật trạng thái tài xế
 router.post('/status', authenticate, requireDriver, async (req, res) => {
   try {
@@ -122,6 +150,35 @@ router.post('/status', authenticate, requireDriver, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Lỗi hệ thống khi cập nhật trạng thái'
+    });
+  }
+});
+
+// Lấy thống kê của tài xế (cho dashboard)
+router.get('/statistics', authenticate, requireDriver, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const driver = await Driver.findByUserId(userId);
+    
+    if (!driver) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không phải là tài xế'
+      });
+    }
+
+    const Trip = require('../models/Trip');
+    const stats = await Trip.getDriverStatistics(driver.id);
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Get driver statistics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi hệ thống'
     });
   }
 });
