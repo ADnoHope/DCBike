@@ -372,12 +372,17 @@
                 });
                 const data = await response.json();
 
+                console.log('Statistics response:', data); // Debug log
+
                 if (data.success && data.data) {
                     const stats = data.data;
+                    console.log('Stats data:', stats); // Debug log
                     document.getElementById('today-trips').textContent = stats.today_trips || 0;
                     document.getElementById('total-trips').textContent = stats.total_trips || 0;
                     document.getElementById('rating').textContent = `${stats.rating || 0} ★`;
                     document.getElementById('today-income').textContent = formatCurrency(stats.today_income || 0);
+                } else {
+                    console.error('Statistics API failed:', data);
                 }
             } catch (error) {
                 console.error('Load stats error:', error);
@@ -544,7 +549,7 @@
                     <div class="mb-3">
                         <div class="mb-2">
                             <i class="fas fa-map-marker-alt text-success me-2"></i>
-                            <strong>Điểm đón:</strong> ${trip.diem_di}
+                            <strong>Điểm đón:</strong> ${trip.diem_don}
                         </div>
                         <div class="mb-2">
                             <i class="fas fa-map-marker-alt text-danger me-2"></i>
@@ -602,7 +607,7 @@
                         <div class="mb-2">
                             <small class="text-success">
                                 <i class="fas fa-map-marker-alt me-1"></i>
-                                ${trip.diem_di}
+                                ${trip.diem_don}
                             </small>
                         </div>
                         <div class="mb-3">

@@ -31,18 +31,23 @@ class AdminController {
         promoSummary.tong += row.so_luong;
       });
 
-      // Tính doanh thu tháng hiện tại (từ ngày 1 đến hiện tại)
-      const start = new Date();
-      start.setDate(1);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date();
-      end.setHours(23, 59, 59, 999);
+      // Tính doanh thu tháng hiện tại (từ ngày 1 đến cuối tháng)
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0); // Ngày 1 tháng này
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59); // Ngày cuối tháng này
 
       const toMySQLDateTime = (d) => {
-        // YYYY-MM-DD HH:MM:SS
-        const iso = d.toISOString();
-        return iso.slice(0, 19).replace('T', ' ');
+        // Format: YYYY-MM-DD HH:MM:SS theo múi giờ local (Việt Nam)
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        const seconds = String(d.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
       };
+
+      console.log('📅 Dashboard date range:', toMySQLDateTime(start), 'to', toMySQLDateTime(end));
 
       const tripStats = await Trip.getStatistics(toMySQLDateTime(start), toMySQLDateTime(end));
       const monthlyRevenue = tripStats.tong_doanh_thu || 0;

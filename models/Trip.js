@@ -279,6 +279,8 @@ class Trip {
   // Thống kê chuyến đi
   static async getStatistics(startDate = null, endDate = null) {
     try {
+      console.log('📊 Getting statistics with date range:', startDate, 'to', endDate);
+      
       let query = 'SELECT trang_thai, COUNT(*) as so_luong FROM chuyen_di';
       const params = [];
       
@@ -290,20 +292,40 @@ class Trip {
       query += ' GROUP BY trang_thai';
       
       const [rows] = await pool.execute(query, params);
+      console.log('Status counts:', rows);
       
-      // Thống kê doanh thu
-      let revenueQuery = 'SELECT SUM(tong_tien) as tong_doanh_thu FROM chuyen_di WHERE trang_thai = "hoan_thanh"';
+      // Lấy doanh thu từ bảng doanh_thu (đã tự động tính 20% khi chuyến hoàn thành)
+      let revenueQuery = `
+        SELECT 
+          SUM(tien_web) as tong_doanh_thu,
+          COUNT(*) as so_chuyen,
+          SUM(tong_tien_chuyen) as tong_gia,
+          SUM(tien_tai_xe) as tong_tien_tai_xe
+        FROM doanh_thu
+      `;
+      
+      const revenueParams = [];
+      
       if (startDate && endDate) {
-        revenueQuery += ' AND created_at BETWEEN ? AND ?';
+        revenueQuery += ' WHERE created_at BETWEEN ? AND ?';
+        revenueParams.push(startDate, endDate);
       }
       
-      const [revenueResult] = await pool.execute(revenueQuery, params);
+      console.log('💰 Revenue query:', revenueQuery);
+      console.log('📅 Revenue params:', revenueParams);
+      
+      const [revenueResult] = await pool.execute(revenueQuery, revenueParams);
+      console.log('📊 Revenue result:', revenueResult[0]);
+      
+      const totalRevenue = revenueResult[0].tong_doanh_thu || 0;
+      console.log('✅ Total web revenue from doanh_thu table:', totalRevenue);
       
       return {
         trang_thai: rows,
-        tong_doanh_thu: revenueResult[0].tong_doanh_thu || 0
+        tong_doanh_thu: totalRevenue
       };
     } catch (error) {
+      console.error('❌ Error in getStatistics:', error);
       throw error;
     }
   }
@@ -312,47 +334,88 @@ class Trip {
   static async getDriverStatistics(driverId) {
     try {
       const today = new Date().toISOString().split('T')[0];
+      
+      console.log('Getting statistics for driver:', driverId, 'date:', today);
 
-      // Số chuyến hoàn thành hôm nay
-      const [todayTrips] = await pool.execute(`
-        SELECT COUNT(*) as count 
-        FROM chuyen_di 
-        WHERE tai_xe_id = ? 
-          AND DATE(thoi_gian_ket_thuc) = ?
-          AND trang_thai = 'hoan_thanh'
-      `, [driverId, today]);
+      // Số chuyến hoàn thành hôm nay - đơn giản hóa query
+      let todayTripsCount = 0;
+      try {
+        const [todayTrips] = await pool.execute(`
+          SELECT COUNT(*) as count 
+          FROM chuyen_di 
+          WHERE tai_xe_id = ? 
+            AND DATE(created_at) = ?
+            AND trang_thai = 'hoan_thanh'
+        `, [driverId, today]);
+        todayTripsCount = parseInt(todayTrips[0].count) || 0;
+      } catch (err) {
+        console.error('Error getting today trips:', err.message);
+      }
 
       // Tổng số chuyến hoàn thành
-      const [totalTrips] = await pool.execute(`
-        SELECT COUNT(*) as count 
-        FROM chuyen_di 
-        WHERE tai_xe_id = ?
-          AND trang_thai = 'hoan_thanh'
-      `, [driverId]);
+      let totalTripsCount = 0;
+      try {
+        const [totalTrips] = await pool.execute(`
+          SELECT COUNT(*) as count 
+          FROM chuyen_di 
+          WHERE tai_xe_id = ?
+            AND trang_thai = 'hoan_thanh'
+        `, [driverId]);
+        totalTripsCount = parseInt(totalTrips[0].count) || 0;
+      } catch (err) {
+        console.error('Error getting total trips:', err.message);
+      }
 
-      // Thu nhập hôm nay từ bảng doanh_thu (80% cho tài xế)
-      const [todayIncome] = await pool.execute(`
-        SELECT COALESCE(SUM(tien_tai_xe), 0) as income
-        FROM doanh_thu 
-        WHERE tai_xe_id = ? 
-          AND DATE(created_at) = ?
-      `, [driverId, today]);
+      // Thu nhập hôm nay - tính từ gia_cuoc * 0.8
+      let todayIncomeAmount = 0;
+      try {
+        const [todayIncome] = await pool.execute(`
+          SELECT COALESCE(SUM(gia_cuoc * 0.8), 0) as income
+          FROM chuyen_di 
+          WHERE tai_xe_id = ? 
+            AND DATE(created_at) = ?
+            AND trang_thai = 'hoan_thanh'
+        `, [driverId, today]);
+        todayIncomeAmount = parseFloat(todayIncome[0].income) || 0;
+      } catch (err) {
+        console.error('Error getting today income:', err.message);
+      }
 
-      // Lấy rating từ bảng tai_xe
-      const [driverInfo] = await pool.execute(`
-        SELECT danh_gia_trung_binh 
-        FROM tai_xe 
-        WHERE id = ?
-      `, [driverId]);
+      // Lấy rating trung bình từ bảng danh_gia
+      let rating = 0;
+      try {
+        const [ratingResult] = await pool.execute(`
+          SELECT COALESCE(AVG(dg.diem_so), 0) as avg_rating
+          FROM danh_gia dg
+          INNER JOIN chuyen_di cd ON dg.chuyen_di_id = cd.id
+          WHERE cd.tai_xe_id = ? 
+            AND dg.loai_danh_gia = 'danh_gia_tai_xe'
+        `, [driverId]);
+        rating = parseFloat(ratingResult[0]?.avg_rating) || 0;
+        rating = Math.round(rating * 10) / 10; // Round to 1 decimal
+      } catch (err) {
+        console.error('Error getting rating:', err.message);
+      }
 
-      return {
-        today_trips: todayTrips[0].count || 0,
-        total_trips: totalTrips[0].count || 0,
-        today_income: todayIncome[0].income || 0,
-        rating: driverInfo[0]?.danh_gia_trung_binh || 0
+      const result = {
+        today_trips: todayTripsCount,
+        total_trips: totalTripsCount,
+        today_income: todayIncomeAmount,
+        rating: rating
       };
+      
+      console.log('Statistics result:', result);
+      return result;
+
     } catch (error) {
-      throw error;
+      console.error('Get driver statistics error:', error);
+      // Return default values
+      return {
+        today_trips: 0,
+        total_trips: 0,
+        today_income: 0,
+        rating: 0
+      };
     }
   }
 }

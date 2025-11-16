@@ -221,6 +221,36 @@ class AuthController {
         additionalInfo.driverInfo = driverInfo;
       }
 
+      // Đếm số chuyến đi của người dùng
+      const { pool } = require('../config/database');
+      let tripCountQuery, tripCountParams;
+      
+      if (user.loai_tai_khoan === 'tai_xe') {
+        // Nếu là tài xế, đếm chuyến đi mà họ đã nhận
+        // Join với bảng tai_xe vì tai_xe_id trong chuyen_di là ID của bảng tai_xe
+        tripCountQuery = `
+          SELECT COUNT(*) as total 
+          FROM chuyen_di cd
+          INNER JOIN tai_xe tx ON cd.tai_xe_id = tx.id
+          WHERE tx.nguoi_dung_id = ?
+        `;
+        tripCountParams = [user.id];
+      } else {
+        // Nếu là khách hàng, đếm chuyến đi mà họ đã đặt
+        tripCountQuery = 'SELECT COUNT(*) as total FROM chuyen_di WHERE khach_hang_id = ?';
+        tripCountParams = [user.id];
+      }
+      
+      const [tripCountResult] = await pool.execute(tripCountQuery, tripCountParams);
+      const totalTrips = tripCountResult[0].total;
+
+      // Đếm số đánh giá của người dùng
+      const [reviewCountResult] = await pool.execute(
+        'SELECT COUNT(*) as total FROM danh_gia WHERE nguoi_danh_gia_id = ?',
+        [user.id]
+      );
+      const totalReviews = reviewCountResult[0].total;
+
       res.json({
         success: true,
         data: {
@@ -231,6 +261,8 @@ class AuthController {
           dia_chi: user.dia_chi,
           loai_tai_khoan: user.loai_tai_khoan,
           created_at: user.created_at,
+          totalTrips: totalTrips,
+          totalReviews: totalReviews,
           ...additionalInfo
         }
       });

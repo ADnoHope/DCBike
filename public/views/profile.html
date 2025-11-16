@@ -409,9 +409,9 @@
                 document.getElementById('quick-booking').style.display = 'block';
             }
             
-            // Update stats (mock data)
-            document.getElementById('total-trips').textContent = Math.floor(Math.random() * 50) + 5;
-            document.getElementById('total-reviews').textContent = Math.floor(Math.random() * 20) + 2;
+            // Update stats from database
+            document.getElementById('total-trips').textContent = profile.totalTrips || 0;
+            document.getElementById('total-reviews').textContent = profile.totalReviews || 0;
             
             if (profile.created_at) {
                 const year = new Date(profile.created_at).getFullYear();

@@ -114,13 +114,6 @@
         </div>
     </nav>
 
-    <!-- Local OSM Notice -->
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="fas fa-map me-2"></i>
-        <strong>Bản đồ địa phương:</strong> Trang này sử dụng dữ liệu OpenStreetMap đã tải về, có thể hoạt động offline với vùng đã chọn.
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-
     <!-- Main Content -->
     <div class="container my-5">
         <div class="row">
@@ -316,22 +309,9 @@
                 <div class="modal-body">
                     <!-- Map Info -->
                     <div class="mb-3">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Bản đồ OSM Local:</strong> Vùng: <span id="map-bounds-info">Đang tải...</span>
-                            <button class="btn btn-sm btn-outline-primary ms-2" onclick="loadLocalOSM()">
-                                <i class="fas fa-refresh"></i> Tải lại OSM
-                            </button>
-                            <button class="btn btn-sm btn-outline-success ms-1" onclick="initMap()">
-                                <i class="fas fa-map"></i> Khởi tạo lại map
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Debug Status Panel -->
-                    <div class="mb-3">
-                        <div class="alert alert-secondary" id="map-debug-status">
-                            <strong>Status:</strong> <span id="map-status-text">Chưa khởi tạo</span>
+                        <div class="alert alert-success">
+                            <i class="fas fa-map me-2"></i>
+                            <strong id="map-status-text">Bản đồ OpenStreetMap sẵn sàng</strong>
                         </div>
                     </div>
                     
@@ -347,6 +327,18 @@
                     </div>
                     
                     <!-- Current Location Button -->
+                    <!-- Search Box -->
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="location-search-input" 
+                                   placeholder="Tìm kiếm địa điểm (VD: Bến Thành, Phạm Ngũ Lão...)">
+                            <button class="btn btn-primary" type="button" id="search-location-btn">
+                                <i class="fas fa-search"></i> Tìm
+                            </button>
+                        </div>
+                        <div id="search-results" class="list-group mt-2" style="display: none; max-height: 200px; overflow-y: auto;"></div>
+                    </div>
+                    
                     <div class="mb-3">
                         <button class="btn btn-success btn-sm" id="current-location-map-btn">
                             <i class="fas fa-location-arrow me-2"></i>Vị trí hiện tại
@@ -439,14 +431,15 @@
         // Status update function like test page
         function updateMapStatus(message, type = 'info') {
             const statusElement = document.getElementById('map-status-text');
-            const statusPanel = document.getElementById('map-debug-status');
             
             if (statusElement) {
                 statusElement.textContent = message;
-            }
-            
-            if (statusPanel) {
-                statusPanel.className = 'alert alert-' + (type === 'error' ? 'danger' : type === 'success' ? 'success' : 'secondary');
+                const alertDiv = statusElement.closest('.alert');
+                if (alertDiv) {
+                    alertDiv.className = 'alert mb-3 alert-' + 
+                        (type === 'error' ? 'danger' : type === 'success' ? 'success' : 
+                         type === 'warning' ? 'warning' : 'info');
+                }
             }
             
             console.log(`[MAP] ${message}`);
@@ -476,6 +469,9 @@
             updateMapStatus('Đang khởi tạo bản đồ...');
             console.log('=== INITIALIZING MAP ===');
             console.log('Leaflet available:', typeof L !== 'undefined');
+            
+            // Show notification about local map feature
+            showInfo('Trang này sử dụng dữ liệu OpenStreetMap, có thể hoạt động offline với vùng đã chọn', 4000);
             
             try {
                 // Clear any existing map content
@@ -512,12 +508,25 @@
 
                 // Add OpenStreetMap tiles as base layer
                 updateMapStatus('Đang thêm tile layer...');
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '© OpenStreetMap contributors',
                     maxZoom: 18,
                     tileSize: 256,
-                    zoomOffset: 0
-                }).addTo(map);
+                    zoomOffset: 0,
+                    crossOrigin: true
+                });
+                
+                tileLayer.on('tileerror', function(error) {
+                    console.error('Tile loading error:', error);
+                    updateMapStatus('⚠️ Lỗi tải tile từ OpenStreetMap', 'warning');
+                });
+                
+                tileLayer.on('tileload', function() {
+                    console.log('✅ Tile loaded successfully');
+                });
+                
+                tileLayer.addTo(map);
+                console.log('Tile layer added to map');
 
                 // Create marker
                 updateMapStatus('Đang tạo marker...');
@@ -550,10 +559,9 @@
                     console.warn('Could not fit bounds to HCMC:', e.message);
                 }
 
-                // Load local OSM data after map is ready
-                setTimeout(() => {
-                    loadLocalOSM();
-                }, 1000);
+                // Skip loading large OSM file - use online tiles instead
+                console.log('Using OpenStreetMap online tiles');
+                updateMapStatus('🗺️ Bản đồ sẵn sàng! Click để chọn địa điểm', 'success');
                 
             } catch (error) {
                 console.error('Map initialization error:', error);
@@ -577,7 +585,7 @@
         // Retry function
         function retryInitMap() {
             console.log('Retrying map initialization...');
-            showAlert('info', 'Đang thử lại khởi tạo bản đồ...');
+            showNotification('info', 'Đang thử lại khởi tạo bản đồ...');
             setTimeout(() => {
                 initMap();
             }, 500);
@@ -586,7 +594,7 @@
         async function loadLocalOSM() {
             try {
                 updateMapStatus('📂 Đang tải file OSM local...');
-                showAlert('info', 'Đang tải dữ liệu bản đồ địa phương...');
+                showNotification('info', 'Đang tải dữ liệu bản đồ địa phương...');
                 
                 const response = await fetch('../assets/map.osm');
                 if (!response.ok) {
@@ -686,18 +694,103 @@
                         }
                     }).addTo(map);
                     
-                    showAlert('success', `Đã tải thành công ${osmData.features.length} features từ bản đồ địa phương!`);
+                    showNotification('success', `Đã tải thành công ${osmData.features.length} features từ bản đồ địa phương!`);
                 } else {
-                    showAlert('warning', 'File OSM không chứa features hiển thị được');
+                    showNotification('warning', 'File OSM không chứa features hiển thị được');
                 }
                 
             } catch (error) {
                 console.error('Error loading local OSM:', error);
-                showAlert('error', 'Lỗi khi tải dữ liệu bản đồ: ' + error.message);
+                showNotification('error', 'Lỗi khi tải dữ liệu bản đồ: ' + error.message);
                 document.getElementById('map-bounds-info').textContent = 'Lỗi: ' + error.message;
                 
                 // Fallback: show basic info without OSM features
-                showAlert('info', 'Sử dụng bản đồ cơ bản thay thế');
+                showNotification('info', 'Sử dụng bản đồ cơ bản thay thế');
+            }
+        }
+
+        // Search location using Nominatim API
+        async function searchLocation() {
+            const query = document.getElementById('location-search-input').value.trim();
+            if (!query) {
+                showNotification('warning', 'Vui lòng nhập địa điểm cần tìm');
+                return;
+            }
+
+            try {
+                updateMapStatus('🔍 Đang tìm kiếm...');
+                const searchResults = document.getElementById('search-results');
+                searchResults.innerHTML = '<div class="p-2 text-center"><i class="fas fa-spinner fa-spin"></i> Đang tìm...</div>';
+                searchResults.style.display = 'block';
+
+                // Search with Nominatim - bias to Vietnam
+                const response = await fetch(
+                    `https://nominatim.openstreetmap.org/search?` +
+                    `format=json&q=${encodeURIComponent(query)}&` +
+                    `countrycodes=vn&` +
+                    `viewbox=106.3,10.3,107.0,11.2&bounded=1&` +
+                    `limit=5&addressdetails=1`
+                );
+
+                if (!response.ok) {
+                    throw new Error('Search failed');
+                }
+
+                const results = await response.json();
+                
+                if (results.length === 0) {
+                    searchResults.innerHTML = '<div class="p-2 text-muted">Không tìm thấy kết quả</div>';
+                    updateMapStatus('❌ Không tìm thấy địa điểm', 'error');
+                    return;
+                }
+
+                // Display results
+                searchResults.innerHTML = '';
+                results.forEach(result => {
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'list-group-item list-group-item-action text-start';
+                    item.innerHTML = `
+                        <div class="fw-bold">${result.display_name.split(',')[0]}</div>
+                        <small class="text-muted">${result.display_name}</small>
+                    `;
+                    item.addEventListener('click', () => {
+                        const lat = parseFloat(result.lat);
+                        const lng = parseFloat(result.lon);
+                        map.setView([lat, lng], 16);
+                        
+                        // Set marker position
+                        marker.setLatLng([lat, lng]);
+                        marker.setOpacity(1);
+                        
+                        // Set selected location with address from search result
+                        selectedLocation = {
+                            address: result.display_name,
+                            lat: lat,
+                            lng: lng
+                        };
+                        
+                        // Update UI
+                        document.getElementById('selected-address').textContent = selectedLocation.address;
+                        document.getElementById('selected-coords').textContent = 
+                            `${selectedLocation.lat.toFixed(6)}, ${selectedLocation.lng.toFixed(6)}`;
+                        document.getElementById('selected-location-info').style.display = 'block';
+                        document.getElementById('confirm-location-btn').disabled = false;
+                        
+                        searchResults.style.display = 'none';
+                        document.getElementById('location-search-input').value = '';
+                        updateMapStatus('✅ Đã chọn địa điểm', 'success');
+                    });
+                    searchResults.appendChild(item);
+                });
+
+                updateMapStatus(`✅ Tìm thấy ${results.length} kết quả`, 'success');
+
+            } catch (error) {
+                console.error('Search error:', error);
+                document.getElementById('search-results').innerHTML = 
+                    '<div class="p-2 text-danger">Lỗi tìm kiếm. Vui lòng thử lại.</div>';
+                updateMapStatus('❌ Lỗi tìm kiếm', 'error');
             }
         }
 
@@ -726,7 +819,7 @@
             });
 
             if (!found) {
-                showAlert('warning', 'Không tìm thấy địa điểm trong vùng bản đồ đã tải');
+                showNotification('warning', 'Không tìm thấy địa điểm trong vùng bản đồ đã tải');
             }
         }
 
@@ -828,7 +921,7 @@
                 const modal = bootstrap.Modal.getInstance(document.getElementById('mapModal'));
                 modal.hide();
                 
-                showAlert('success', `Đã chọn ${currentMapMode === 'pickup' ? 'điểm đón' : 'điểm đến'}: ${selectedLocation.address}`);
+                showNotification('success', `Đã chọn ${currentMapMode === 'pickup' ? 'điểm đón' : 'điểm đến'}: ${selectedLocation.address}`);
                 
                 // Auto calculate price if both locations are set
                 if (document.getElementById('pickup-location').value && document.getElementById('destination').value) {
@@ -836,21 +929,116 @@
                 }
             } else {
                 console.log('❌ No selected location');
-                showAlert('warning', 'Vui lòng chọn một địa điểm trên bản đồ');
+                showNotification('warning', 'Vui lòng chọn một địa điểm trên bản đồ');
             }
         }
 
         function getCurrentLocationOnMap() {
             if (navigator.geolocation) {
+                updateMapStatus('📍 Đang lấy vị trí hiện tại...');
                 navigator.geolocation.getCurrentPosition(
-                    function(position) {
-                        const userLocation = [position.coords.latitude, position.coords.longitude];
+                    async function(position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        const userLocation = [lat, lng];
+                        
+                        // Set marker
+                        marker.setLatLng(userLocation);
+                        marker.setOpacity(1);
                         map.setView(userLocation, 18);
-                        placeMarker(L.latLng(userLocation[0], userLocation[1]));
-                        showAlert('success', 'Đã lấy vị trí hiện tại của bạn');
+                        
+                        // Get address from Nominatim with better error handling
+                        try {
+                            updateMapStatus('🔍 Đang tìm địa chỉ...');
+                            console.log('Fetching address for:', lat, lng);
+                            
+                            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&accept-language=vi`;
+                            console.log('Nominatim URL:', url);
+                            
+                            const response = await fetch(url, {
+                                headers: {
+                                    'Accept': 'application/json'
+                                }
+                            });
+                            
+                            console.log('Response status:', response.status);
+                            
+                            if (!response.ok) {
+                                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                            }
+                            
+                            const data = await response.json();
+                            console.log('Nominatim response:', data);
+                            
+                            if (data.error) {
+                                throw new Error(data.error);
+                            }
+                            
+                            // Build Vietnamese address from components
+                            let address = '';
+                            if (data.address) {
+                                const parts = [];
+                                if (data.address.road) parts.push(data.address.road);
+                                else if (data.address.street) parts.push(data.address.street);
+                                
+                                if (data.address.suburb) parts.push(data.address.suburb);
+                                else if (data.address.quarter) parts.push(data.address.quarter);
+                                
+                                if (data.address.city_district) parts.push(data.address.city_district);
+                                else if (data.address.district) parts.push(data.address.district);
+                                
+                                if (data.address.city) parts.push(data.address.city);
+                                
+                                address = parts.length > 0 ? parts.join(', ') : data.display_name;
+                            } else {
+                                address = data.display_name;
+                            }
+                            
+                            if (!address) {
+                                throw new Error('Không có địa chỉ trong kết quả');
+                            }
+                            
+                            selectedLocation = {
+                                address: address,
+                                lat: lat,
+                                lng: lng
+                            };
+                            
+                            console.log('Selected location:', selectedLocation);
+                            
+                            document.getElementById('selected-address').textContent = selectedLocation.address;
+                            document.getElementById('selected-coords').textContent = 
+                                `${selectedLocation.lat.toFixed(6)}, ${selectedLocation.lng.toFixed(6)}`;
+                            document.getElementById('selected-location-info').style.display = 'block';
+                            document.getElementById('confirm-location-btn').disabled = false;
+                            
+                            updateMapStatus('✅ Đã lấy vị trí hiện tại', 'success');
+                            showNotification('success', 'Đã lấy vị trí hiện tại của bạn');
+                            
+                        } catch (error) {
+                            console.error('Geocoding error:', error);
+                            console.error('Error details:', error.message);
+                            
+                            selectedLocation = {
+                                address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+                                lat: lat,
+                                lng: lng
+                            };
+                            
+                            document.getElementById('selected-address').textContent = selectedLocation.address;
+                            document.getElementById('selected-coords').textContent = 
+                                `Tọa độ: ${selectedLocation.lat.toFixed(6)}, ${selectedLocation.lng.toFixed(6)}`;
+                            document.getElementById('selected-location-info').style.display = 'block';
+                            document.getElementById('confirm-location-btn').disabled = false;
+                            
+                            updateMapStatus('⚠️ Đã lấy vị trí (không có địa chỉ)', 'warning');
+                            showNotification('warning', `Không thể lấy địa chỉ: ${error.message}`);
+                        }
                     },
-                    function() {
-                        showAlert('error', 'Không thể lấy vị trí hiện tại');
+                    function(error) {
+                        console.error('Geolocation error:', error);
+                        updateMapStatus('❌ Không thể lấy vị trí', 'error');
+                        showNotification('error', 'Không thể lấy vị trí hiện tại. Vui lòng kiểm tra quyền truy cập vị trí.');
                     },
                     {
                         enableHighAccuracy: true,
@@ -859,7 +1047,8 @@
                     }
                 );
             } else {
-                showAlert('error', 'Trình duyệt không hỗ trợ định vị');
+                showNotification('error', 'Trình duyệt không hỗ trợ định vị');
+                updateMapStatus('❌ Không hỗ trợ định vị', 'error');
             }
         }
 
@@ -897,7 +1086,7 @@
                             document.getElementById('pickup-location').value = addressFromOSM;
                             document.getElementById('pickup-location').setAttribute('data-lat', lat);
                             document.getElementById('pickup-location').setAttribute('data-lng', lng);
-                            showAlert('success', 'Đã lấy vị trí từ bản đồ địa phương');
+                            showNotification('success', 'Đã lấy vị trí từ bản đồ địa phương');
                             
                             button.innerHTML = '<i class="fas fa-location-arrow"></i>';
                             button.disabled = false;
@@ -910,14 +1099,14 @@
                                     document.getElementById('pickup-location').value = address;
                                     document.getElementById('pickup-location').setAttribute('data-lat', lat);
                                     document.getElementById('pickup-location').setAttribute('data-lng', lng);
-                                    showAlert('success', 'Đã lấy vị trí hiện tại của bạn');
+                                    showNotification('success', 'Đã lấy vị trí hiện tại của bạn');
                                 })
                                 .catch(error => {
                                     console.error('Geocoding error:', error);
                                     document.getElementById('pickup-location').value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
                                     document.getElementById('pickup-location').setAttribute('data-lat', lat);
                                     document.getElementById('pickup-location').setAttribute('data-lng', lng);
-                                    showAlert('success', 'Đã lấy vị trí hiện tại của bạn');
+                                    showNotification('success', 'Đã lấy vị trí hiện tại của bạn');
                                 })
                                 .finally(() => {
                                     button.innerHTML = '<i class="fas fa-location-arrow"></i>';
@@ -938,7 +1127,7 @@
                                 errorMsg = 'Yêu cầu lấy vị trí đã hết thời gian';
                                 break;
                         }
-                        showAlert('error', errorMsg);
+                        showNotification('error', errorMsg);
                         
                         button.innerHTML = '<i class="fas fa-location-arrow"></i>';
                         button.disabled = false;
@@ -950,7 +1139,7 @@
                     }
                 );
             } else {
-                showAlert('error', 'Trình duyệt không hỗ trợ định vị');
+                showNotification('error', 'Trình duyệt không hỗ trợ định vị');
             }
         }
 
@@ -1455,7 +1644,12 @@
             }
 
             // Add event listeners for modal buttons
-            document.getElementById('search-osm-btn').addEventListener('click', searchInLocalOSM);
+            document.getElementById('search-location-btn').addEventListener('click', searchLocation);
+            document.getElementById('location-search-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchLocation();
+                }
+            });
             document.getElementById('current-location-map-btn').addEventListener('click', getCurrentLocationOnMap);
             document.getElementById('confirm-location-btn').addEventListener('click', confirmLocation);
 
@@ -1653,7 +1847,7 @@
             try {
                 const res = await fetch(`/api/trips/${tripId}`, { headers: { 'Authorization': `Bearer ${dcApp.token}` } });
                 const result = await res.json();
-                if (!result.success) return showAlert('error', result.message || 'Không thể tải chi tiết');
+                if (!result.success) return showNotification('error', result.message || 'Không thể tải chi tiết');
 
                 const trip = result.data;
                 const content = `
@@ -1662,7 +1856,7 @@
                 alert(content);
             } catch (e) {
                 console.error('View booking detail error', e);
-                showAlert('error', 'Lỗi khi lấy chi tiết đơn');
+                showNotification('error', 'Lỗi khi lấy chi tiết đơn');
             }
         }
 
@@ -1672,21 +1866,21 @@
                 const res = await fetch(`/api/trips/${tripId}/cancel`, { method: 'POST', headers: { 'Authorization': `Bearer ${dcApp.token}`, 'Content-Type': 'application/json' } });
                 const result = await res.json();
                 if (result.success) {
-                    showAlert('success', 'Đã hủy đơn thành công');
+                    showNotification('success', 'Đã hủy đơn thành công');
                     loadCustomerBookings();
                 } else {
-                    showAlert('error', result.message || 'Không thể hủy đơn');
+                    showNotification('error', result.message || 'Không thể hủy đơn');
                 }
             } catch (e) {
                 console.error('Cancel booking error', e);
-                showAlert('error', 'Lỗi khi hủy đơn');
+                showNotification('error', 'Lỗi khi hủy đơn');
             }
         }
 
         async function submitBooking() {
             // Check if user is logged in
             if (typeof dcApp === 'undefined' || !dcApp.token) {
-                showAlert('warning', 'Vui lòng đăng nhập để đặt xe');
+                showNotification('warning', 'Vui lòng đăng nhập để đặt xe');
                 return;
             }
 
@@ -1732,19 +1926,19 @@
 
             // Basic client-side validation to avoid server-side 'Dữ liệu không hợp lệ'
             if (!formData.diem_don || formData.diem_don.length < 5) {
-                showAlert('warning', 'Vui lòng nhập địa chỉ điểm đón hợp lệ (ít nhất 5 ký tự)');
+                showNotification('warning', 'Vui lòng nhập địa chỉ điểm đón hợp lệ (ít nhất 5 ký tự)');
                 return;
             }
             if (!formData.diem_den || formData.diem_den.length < 5) {
-                showAlert('warning', 'Vui lòng nhập địa chỉ điểm đến hợp lệ (ít nhất 5 ký tự)');
+                showNotification('warning', 'Vui lòng nhập địa chỉ điểm đến hợp lệ (ít nhất 5 ký tự)');
                 return;
             }
             if (!formData.khoang_cach || formData.khoang_cach <= 0) {
-                showAlert('warning', 'Vui lòng tính giá để xác định khoảng cách trước khi đặt xe');
+                showNotification('warning', 'Vui lòng tính giá để xác định khoảng cách trước khi đặt xe');
                 return;
             }
             if (!formData.gia_cuoc || formData.gia_cuoc < 1000) {
-                showAlert('warning', 'Giá cước không hợp lệ. Vui lòng tính giá và thử lại');
+                showNotification('warning', 'Giá cước không hợp lệ. Vui lòng tính giá và thử lại');
                 return;
             }
 
@@ -1761,7 +1955,7 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showAlert('success', 'Đặt xe thành công! Chuyến đi của bạn đang được xử lý.');
+                    showNotification('success', 'Đặt xe thành công! Chuyến đi của bạn đang được xử lý.');
                     document.getElementById('booking-form').reset();
                     
                     // Redirect to trips page after 2 seconds
@@ -1769,16 +1963,16 @@
                         window.location.href = 'trips.html';
                     }, 2000);
                 } else {
-                    showAlert('error', result.message || 'Đặt xe thất bại');
+                    showNotification('error', result.message || 'Đặt xe thất bại');
                 }
             } catch (error) {
                 console.error('Booking error:', error);
-                showAlert('error', 'Lỗi khi đặt xe');
+                showNotification('error', 'Lỗi khi đặt xe');
             }
         }
 
         function selectDriver(driverId) {
-            showAlert('info', 'Tính năng chọn tài xế cụ thể sẽ được cập nhật trong phiên bản tiếp theo');
+            showNotification('info', 'Tính năng chọn tài xế cụ thể sẽ được cập nhật trong phiên bản tiếp theo');
         }
 
         function viewPromotions() {
@@ -1786,7 +1980,7 @@
         }
 
         function callSupport() {
-            showAlert('info', 'Đang chuyển đến ứng dụng gọi điện...');
+            showNotification('info', 'Đang chuyển đến ứng dụng gọi điện...');
             window.open('tel:19001234');
         }
 
@@ -1799,7 +1993,7 @@
             console.log('osmtogeojson available:', typeof osmtogeojson !== 'undefined');
             console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
             
-            showAlert('info', 'Kiểm tra console để xem thông tin debug');
+            showNotification('info', 'Kiểm tra console để xem thông tin debug');
             
             // Force open modal and init map
             try {
@@ -1822,7 +2016,7 @@
                 }
             } catch (error) {
                 console.error('Modal open error:', error);
-                showAlert('error', 'Lỗi mở modal: ' + error.message);
+                showNotification('error', 'Lỗi mở modal: ' + error.message);
             }
         }
 
@@ -1874,7 +2068,7 @@
                 console.error('❌ Destination button not found in DOM!');
             }
             
-            showAlert('info', 'Kiểm tra Console để xem kết quả test');
+            showNotification('info', 'Kiểm tra Console để xem kết quả test');
         }
     </script>
 </body>
