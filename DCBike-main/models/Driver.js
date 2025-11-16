@@ -90,44 +90,41 @@ class Driver {
       const [rows] = await pool.execute(`
         SELECT 
           tx.*, 
-          nd.ten, 
-          nd.email, 
-          nd.so_dien_thoai, 
-          nd.dia_chi, 
-          nd.trang_thai,
+          nd.ten, nd.email, nd.so_dien_thoai, nd.dia_chi, nd.trang_thai,
           (
             SELECT COUNT(*) 
             FROM chuyen_di cd 
-            WHERE cd.tai_xe_id = tx.id AND cd.trang_thai = 'hoan_thanh'
+            WHERE cd.tai_xe_id = tx.id
           ) AS so_chuyen_di
         FROM tai_xe tx
         LEFT JOIN nguoi_dung nd ON tx.nguoi_dung_id = nd.id
         WHERE tx.id = ? AND nd.trang_thai = 'hoat_dong'
       `, [id]);
       
-      if (rows.length === 0) return null;
-      
-      const driver = rows[0];
-      return {
-        id: driver.id,
-        nguoi_dung_id: driver.nguoi_dung_id,
-        ten: driver.ten,
-        email: driver.email,
-        so_dien_thoai: driver.so_dien_thoai || 'N/A',
-        dia_chi: driver.dia_chi || 'Chưa cập nhật',
-        so_bang_lai: driver.so_bang_lai || 'N/A',
-        loai_bang_lai: driver.loai_bang_lai || 'N/A',
-        kinh_nghiem_lien_tuc: driver.kinh_nghiem_lien_tuc || 0,
-        bien_so_xe: driver.bien_so_xe,
-        loai_xe: driver.loai_xe || 'N/A',
-        mau_xe: driver.mau_xe || '',
-        hang_xe: driver.hang_xe || 'N/A',
-        so_cho_ngoi: driver.so_cho_ngoi || 4,
-        trang_thai_tai_xe: driver.trang_thai_tai_xe,
-        diem_danh_gia: driver.diem_danh_gia || 0,
-        so_luot_danh_gia: driver.so_luot_danh_gia || 0,
-        so_chuyen_di: driver.so_chuyen_di || 0
-      };
+      return rows.length > 0 ? rows[0] : null;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Tìm tài xế theo ID (không kiểm tra trạng thái người dùng) - dùng làm fallback
+  static async findByIdIncludeInactive(id) {
+    try {
+      const [rows] = await pool.execute(`
+        SELECT 
+          tx.*, 
+          nd.ten, nd.email, nd.so_dien_thoai, nd.dia_chi, nd.trang_thai,
+          (
+            SELECT COUNT(*) 
+            FROM chuyen_di cd 
+            WHERE cd.tai_xe_id = tx.id
+          ) AS so_chuyen_di
+        FROM tai_xe tx
+        LEFT JOIN nguoi_dung nd ON tx.nguoi_dung_id = nd.id
+        WHERE tx.id = ?
+      `, [id]);
+
+      return rows.length > 0 ? rows[0] : null;
     } catch (error) {
       throw error;
     }
@@ -331,9 +328,6 @@ class Driver {
         SELECT 
           tx.id,
           nd.ten,
-          nd.so_dien_thoai,
-          tx.so_bang_lai,
-          tx.loai_bang_lai,
           tx.bien_so_xe,
           tx.loai_xe,
           tx.hang_xe,
@@ -359,14 +353,11 @@ class Driver {
       return rows.map(row => ({
         id: row.id,
         ten: row.ten,
-        so_dien_thoai: row.so_dien_thoai || 'N/A',
-        so_bang_lai: row.so_bang_lai || 'N/A',
-        loai_bang_lai: row.loai_bang_lai || 'N/A',
         bien_so_xe: row.bien_so_xe,
-        loai_xe: row.loai_xe || 'N/A',
-        hang_xe: row.hang_xe || 'N/A',
-        mau_xe: row.mau_xe || '',
-        so_cho_ngoi: row.so_cho_ngoi || 4,
+        loai_xe: row.loai_xe,
+        hang_xe: row.hang_xe,
+        mau_xe: row.mau_xe,
+        so_cho_ngoi: row.so_cho_ngoi,
         trang_thai_tai_xe: row.trang_thai_tai_xe,
         diem_danh_gia: row.diem_danh_gia || 0,
         so_luot_danh_gia: row.so_luot_danh_gia || 0,

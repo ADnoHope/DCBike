@@ -122,10 +122,7 @@ app.get('/*.html', (req, res, next) => {
               }
 
               // If profile is ok, reload the original page with allow=1
-              // Preserve existing query parameters
-              const params = new URLSearchParams(location.search);
-              params.set('allow', '1');
-              const nextUrl = location.pathname + '?' + params.toString() + (location.hash || '');
+              const nextUrl = location.pathname + '?allow=1' + (location.hash || '');
               window.location.href = nextUrl;
             } catch (e) {
               console.error('Gatekeeper error', e);

@@ -195,22 +195,6 @@ router.get('/public/:id', async (req, res) => {
   }
 });
 
-// Lấy thông tin tài xế kèm đánh giá
-router.get('/public/:id/reviews', async (req, res) => {
-  try {
-    const driverId = req.params.id;
-    const Review = require('../models/Review');
-    
-    // Lấy danh sách đánh giá của tài xế
-    const reviews = await Review.getByDriverId(driverId);
-
-    return res.json({ success: true, data: reviews });
-  } catch (error) {
-    console.error('Get driver reviews error:', error);
-    return res.status(500).json({ success: false, message: 'Lỗi hệ thống khi lấy đánh giá' });
-  }
-});
-
 // Lấy danh sách tài xế (admin)
 router.get('/', authenticate, requireAdmin, async (req, res) => {
   try {

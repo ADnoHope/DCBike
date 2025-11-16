@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đánh giá tài xế - DC Bike</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/index.html">
+                <i class="fas fa-motorcycle me-2"></i>DC Bike
+            </a>
+            <button class="btn btn-outline-light" onclick="goBack()">
+                <i class="fas fa-arrow-left me-2"></i>Quay lại
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4 mb-5">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <!-- Driver Info Card -->
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-3 text-center">
+                                <i class="fas fa-user-circle fa-5x text-primary"></i>
+                            </div>
+                            <div class="col-md-9">
+                                <h3 class="mb-1" id="driver-name">Đang tải...</h3>
+                                <div class="d-flex align-items-center mb-2">
+                                    <div id="driver-rating" class="me-3"></div>
+                                    <span class="text-muted" id="driver-stats"></span>
+                                </div>
+                                <div class="driver-info-details" id="driver-details">
+                                    <p class="mb-1"><i class="fas fa-car text-primary me-2"></i><span id="driver-vehicle"></span></p>
+                                    <p class="mb-1"><i class="fas fa-hashtag text-primary me-2"></i><span id="driver-plate"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reviews Section -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-star text-warning me-2"></i>
+                                Tất cả đánh giá (<span id="total-reviews">0</span>)
+                            </h5>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-primary active" data-filter="all">
+                                    Tất cả
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-filter="5">
+                                    5 <i class="fas fa-star"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-filter="4">
+                                    4 <i class="fas fa-star"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-filter="3">
+                                    3 <i class="fas fa-star"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-filter="2">
+                                    2 <i class="fas fa-star"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary" data-filter="1">
+                                    1 <i class="fas fa-star"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Loading -->
+                        <div id="reviews-loading" class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Đang tải...</span>
+                            </div>
+                            <p class="mt-3 text-muted">Đang tải đánh giá...</p>
+                        </div>
+
+                        <!-- Reviews List -->
+                        <div id="reviews-list" style="display: none;"></div>
+
+                        <!-- No Reviews -->
+                        <div id="no-reviews" class="text-center py-5" style="display: none;">
+                            <i class="fas fa-comment-slash fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Chưa có đánh giá nào</h5>
+                            <p class="text-muted">Tài xế này chưa nhận được đánh giá từ khách hàng.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE_URL = 'http://localhost:3000/api';
+        let allReviews = [];
+        let currentFilter = 'all';
+        let driverId = null;
+
+        // Function to get URL parameter
+        function getUrlParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // Get driver ID from URL
+        function initDriverId() {
+            driverId = getUrlParameter('id');
+            console.log('Driver ID from URL:', driverId);
+            
+            if (!driverId) {
+                alert('Không tìm thấy thông tin tài xế');
+                window.location.href = '/views/drivers.html';
+                return false;
+            }
+            return true;
+        }
+
+        // Go back function
+        function goBack() {
+            window.location.href = '/views/drivers.html';
+        }
+
+        // Load driver info and reviews
+        async function loadDriverInfo() {
+            if (!driverId) return;
+            
+            try {
+                console.log('Loading driver info for ID:', driverId);
+                const response = await fetch(`${API_BASE_URL}/drivers/public/${driverId}`);
+                const data = await response.json();
+
+                console.log('Driver info response:', data);
+
+                if (data.success && data.data) {
+                    const driver = data.data;
+                    document.getElementById('driver-name').textContent = driver.ten || 'Tài xế';
+                    document.getElementById('driver-rating').innerHTML = generateStars(driver.diem_danh_gia || 0);
+                    document.getElementById('driver-stats').textContent = `${driver.diem_danh_gia || 0} ★ (${driver.so_luot_danh_gia || 0} lượt) • ${driver.so_chuyen_di || 0} chuyến`;
+                    document.getElementById('driver-vehicle').textContent = `${driver.hang_xe || ''} ${driver.mau_xe || ''} - ${driver.loai_xe || ''} ${driver.so_cho_ngoi || 4} chỗ`;
+                    document.getElementById('driver-plate').textContent = `Biển số: ${driver.bien_so_xe || 'N/A'}`;
+                } else {
+                    console.error('Driver not found or invalid response');
+                    alert('Không tìm thấy thông tin tài xế');
+                    window.location.href = '/views/drivers.html';
+                }
+            } catch (error) {
+                console.error('Load driver info error:', error);
+                alert('Lỗi khi tải thông tin tài xế');
+            }
+        }
+
+        async function loadReviews() {
+            if (!driverId) return;
+            
+            try {
+                console.log('Loading reviews for driver ID:', driverId);
+                const response = await fetch(`${API_BASE_URL}/drivers/public/${driverId}/reviews`);
+                const data = await response.json();
+
+                document.getElementById('reviews-loading').style.display = 'none';
+
+                if (data.success && data.data && data.data.length > 0) {
+                    allReviews = data.data;
+                    displayReviews(allReviews);
+                    document.getElementById('total-reviews').textContent = allReviews.length;
+                    document.getElementById('reviews-list').style.display = 'block';
+                } else {
+                    document.getElementById('no-reviews').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Load reviews error:', error);
+                document.getElementById('reviews-loading').style.display = 'none';
+                document.getElementById('no-reviews').style.display = 'block';
+            }
+        }
+
+        function displayReviews(reviews) {
+            const container = document.getElementById('reviews-list');
+            
+            if (reviews.length === 0) {
+                container.innerHTML = '<p class="text-center text-muted">Không có đánh giá phù hợp với bộ lọc.</p>';
+                return;
+            }
+
+            container.innerHTML = reviews.map(review => {
+                const date = new Date(review.created_at);
+                const formattedDate = date.toLocaleDateString('vi-VN', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                return `
+                    <div class="review-item mb-3 p-3 border rounded">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <strong class="text-primary">
+                                    <i class="fas fa-user-circle me-1"></i>
+                                    ${review.ten_nguoi_danh_gia || 'Khách hàng'}
+                                </strong>
+                                <div class="mt-1">
+                                    ${generateStars(review.diem_so)}
+                                </div>
+                            </div>
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>
+                                ${formattedDate}
+                            </small>
+                        </div>
+                        ${review.binh_luan ? `
+                            <p class="mb-0 text-muted">
+                                <i class="fas fa-comment me-2"></i>
+                                ${review.binh_luan}
+                            </p>
+                        ` : '<p class="mb-0 text-muted fst-italic">Không có bình luận</p>'}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function generateStars(rating) {
+            const fullStars = Math.floor(rating);
+            const hasHalfStar = rating % 1 >= 0.5;
+            const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+
+            let stars = '<span class="text-warning">';
+            for (let i = 0; i < fullStars; i++) {
+                stars += '<i class="fas fa-star"></i>';
+            }
+            if (hasHalfStar) {
+                stars += '<i class="fas fa-star-half-alt"></i>';
+            }
+            for (let i = 0; i < emptyStars; i++) {
+                stars += '<i class="far fa-star"></i>';
+            }
+            stars += '</span>';
+            return stars;
+        }
+
+        // Filter functionality
+        document.querySelectorAll('[data-filter]').forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active state
+                document.querySelectorAll('[data-filter]').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+
+                // Filter reviews
+                const filter = this.getAttribute('data-filter');
+                currentFilter = filter;
+
+                if (filter === 'all') {
+                    displayReviews(allReviews);
+                } else {
+                    const filtered = allReviews.filter(review => review.diem_so === parseInt(filter));
+                    displayReviews(filtered);
+                }
+            });
+        });
+
+        // Initialize - Check for driver ID first, then load data
+        if (initDriverId()) {
+            loadDriverInfo();
+            loadReviews();
+        }
+    </script>
+
+    <style>
+        .review-item {
+            transition: all 0.2s;
+        }
+        
+        .review-item:hover {
+            background-color: #f8f9fa;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .btn-group .btn {
+            font-size: 0.875rem;
+        }
+
+        .driver-info-details p {
+            font-size: 0.95rem;
+        }
+    </style>
+</body>
+</html>
