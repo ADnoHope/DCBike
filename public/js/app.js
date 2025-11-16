@@ -719,6 +719,7 @@ function toggleAuthForm() {
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
     const authModalTitle = document.getElementById('authModalTitle');
+    const authModalSubtitle = document.getElementById('authModalSubtitle');
     const authSwitchText = document.getElementById('auth-switch-text');
     const authSwitchLink = document.getElementById('auth-switch-link');
 
@@ -727,6 +728,7 @@ function toggleAuthForm() {
         loginForm.classList.remove('d-none');
         registerForm.classList.add('d-none');
         authModalTitle.textContent = 'Đăng nhập';
+        authModalSubtitle.textContent = 'Chào mừng bạn quay trở lại';
         authSwitchText.textContent = 'Chưa có tài khoản?';
         authSwitchLink.textContent = 'Đăng ký ngay';
     } else {
@@ -734,6 +736,7 @@ function toggleAuthForm() {
         loginForm.classList.add('d-none');
         registerForm.classList.remove('d-none');
         authModalTitle.textContent = 'Đăng ký';
+        authModalSubtitle.textContent = 'Tạo tài khoản mới để bắt đầu';
         authSwitchText.textContent = 'Đã có tài khoản?';
         authSwitchLink.textContent = 'Đăng nhập ngay';
     }
