@@ -1,6 +1,7 @@
 const express = require('express');
 const AuthController = require('../controllers/AuthController');
 const { authenticate } = require('../middleware/auth');
+const upload = require('../middleware/upload');
 const {
   validateUserRegistration,
   validateDriverRegistration,
@@ -29,5 +30,11 @@ router.put('/profile', authenticate, AuthController.updateProfile);
 
 // Đổi mật khẩu (yêu cầu xác thực)
 router.post('/change-password', authenticate, AuthController.changePassword);
+
+// Upload avatar (yêu cầu xác thực)
+router.post('/upload-avatar', authenticate, upload.single('avatar'), AuthController.uploadAvatar);
+
+// Xóa avatar (yêu cầu xác thực)
+router.delete('/delete-avatar', authenticate, AuthController.deleteAvatar);
 
 module.exports = router;

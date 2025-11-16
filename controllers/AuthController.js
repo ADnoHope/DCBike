@@ -3,6 +3,8 @@ const { generateToken } = require('../config/jwt');
 const User = require('../models/User');
 const Driver = require('../models/Driver');
 const DriverRegistration = require('../models/DriverRegistration');
+const path = require('path');
+const fs = require('fs');
 
 class AuthController {
   // Đăng ký khách hàng
@@ -259,6 +261,7 @@ class AuthController {
           email: user.email,
           so_dien_thoai: user.so_dien_thoai,
           dia_chi: user.dia_chi,
+          avatar: user.avatar,
           loai_tai_khoan: user.loai_tai_khoan,
           created_at: user.created_at,
           totalTrips: totalTrips,
@@ -481,6 +484,114 @@ class AuthController {
       res.status(500).json({
         success: false,
         message: 'Lỗi hệ thống khi gửi đăng ký'
+      });
+    }
+  }
+
+  // Upload avatar
+  static async uploadAvatar(req, res) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vui lòng chọn file ảnh'
+        });
+      }
+
+      const userId = req.user.id;
+      const avatarPath = `/uploads/avatars/${req.file.filename}`;
+
+      // Lấy avatar cũ để xóa
+      const user = await User.findById(userId);
+      const oldAvatar = user?.avatar;
+
+      // Cập nhật avatar mới vào database
+      const updateData = { avatar: avatarPath };
+      const updated = await User.update(userId, updateData);
+
+      if (!updated) {
+        // Xóa file vừa upload nếu update thất bại
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({
+          success: false,
+          message: 'Không thể cập nhật avatar'
+        });
+      }
+
+      // Xóa avatar cũ nếu có
+      if (oldAvatar && oldAvatar !== '/uploads/avatars/default-avatar.svg') {
+        const oldAvatarPath = path.join(__dirname, '../public', oldAvatar);
+        if (fs.existsSync(oldAvatarPath)) {
+          try {
+            fs.unlinkSync(oldAvatarPath);
+          } catch (err) {
+            console.error('Error deleting old avatar:', err);
+          }
+        }
+      }
+
+      res.json({
+        success: true,
+        message: 'Cập nhật avatar thành công',
+        data: {
+          avatar: avatarPath
+        }
+      });
+    } catch (error) {
+      // Xóa file đã upload nếu có lỗi
+      if (req.file) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (err) {
+          console.error('Error deleting uploaded file:', err);
+        }
+      }
+
+      console.error('Upload avatar error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Lỗi khi upload avatar'
+      });
+    }
+  }
+
+  // Xóa avatar
+  static async deleteAvatar(req, res) {
+    try {
+      const userId = req.user.id;
+      const user = await User.findById(userId);
+
+      if (!user || !user.avatar) {
+        return res.status(400).json({
+          success: false,
+          message: 'Không có avatar để xóa'
+        });
+      }
+
+      // Xóa file avatar
+      if (user.avatar !== '/uploads/avatars/default-avatar.svg') {
+        const avatarPath = path.join(__dirname, '../public', user.avatar);
+        if (fs.existsSync(avatarPath)) {
+          try {
+            fs.unlinkSync(avatarPath);
+          } catch (err) {
+            console.error('Error deleting avatar file:', err);
+          }
+        }
+      }
+
+      // Cập nhật database
+      await User.update(userId, { avatar: null });
+
+      res.json({
+        success: true,
+        message: 'Đã xóa avatar'
+      });
+    } catch (error) {
+      console.error('Delete avatar error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi xóa avatar'
       });
     }
   }

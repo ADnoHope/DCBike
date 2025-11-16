@@ -67,8 +67,17 @@
             <div class="col-lg-3">
                 <div class="card shadow-sm">
                     <div class="card-body text-center">
-                        <div class="profile-avatar mb-3">
-                            <i class="fas fa-user-circle fa-5x text-primary"></i>
+                        <div class="profile-avatar mb-3 position-relative">
+                            <img id="avatar-img" src="/uploads/avatars/default-avatar.svg" 
+                                 class="rounded-circle" 
+                                 style="width: 120px; height: 120px; object-fit: cover; border: 3px solid #667eea;"
+                                 onerror="this.src='/uploads/avatars/default-avatar.svg'; this.onerror=null;">
+                            <div class="avatar-overlay">
+                                <button class="btn btn-sm btn-light rounded-circle" onclick="document.getElementById('avatar-input').click()">
+                                    <i class="fas fa-camera"></i>
+                                </button>
+                            </div>
+                            <input type="file" id="avatar-input" accept="image/*" style="display: none;" onchange="uploadAvatar()">
                         </div>
                         <h5 id="profile-name">---</h5>
                         <p class="text-muted mb-3" id="profile-email">---</p>
@@ -380,8 +389,10 @@
                 });
 
                 const result = await response.json();
+                console.log('Profile API response:', result); // Debug log
 
                 if (result.success) {
+                    console.log('Profile data:', result.data); // Debug log
                     displayProfile(result.data);
                     originalProfileData = { ...result.data };
                 } else {
@@ -394,6 +405,16 @@
         }
 
         function displayProfile(profile) {
+            console.log('Displaying profile:', profile); // Debug log
+            
+            // Update avatar
+            const avatarImg = document.getElementById('avatar-img');
+            if (profile.avatar) {
+                avatarImg.src = profile.avatar;
+            } else {
+                avatarImg.src = '/uploads/avatars/default-avatar.svg';
+            }
+
             // Update sidebar
             document.getElementById('profile-name').textContent = profile.ten || '---';
             document.getElementById('profile-email').textContent = profile.email || '---';
@@ -629,15 +650,108 @@
                 }
             }
         }
+
+        // Upload avatar
+        async function uploadAvatar() {
+            const fileInput = document.getElementById('avatar-input');
+            const file = fileInput.files[0];
+            
+            if (!file) return;
+
+            // Kiểm tra kích thước file (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showAlert('error', 'Kích thước file không được vượt quá 5MB');
+                fileInput.value = '';
+                return;
+            }
+
+            // Kiểm tra loại file
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                showAlert('error', 'Chỉ chấp nhận file ảnh (JPEG, PNG, GIF, WEBP)');
+                fileInput.value = '';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('avatar', file);
+
+            try {
+                showAlert('info', 'Đang upload avatar...');
+
+                const response = await fetch(`${API_BASE_URL}/auth/upload-avatar`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${dcApp.token}`
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Cập nhật avatar hiển thị
+                    document.getElementById('avatar-img').src = result.data.avatar + '?t=' + Date.now();
+                    showAlert('success', 'Cập nhật avatar thành công');
+                } else {
+                    showAlert('error', result.message || 'Không thể upload avatar');
+                }
+            } catch (error) {
+                console.error('Upload avatar error:', error);
+                showAlert('error', 'Lỗi khi upload avatar');
+            } finally {
+                fileInput.value = '';
+            }
+        }
+
+        // Delete avatar
+        async function deleteAvatar() {
+            if (!confirm('Bạn có chắc muốn xóa ảnh đại diện?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/delete-avatar`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${dcApp.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('avatar-img').src = '/uploads/avatars/default-avatar.svg?t=' + Date.now();
+                    showAlert('success', 'Đã xóa avatar');
+                } else {
+                    showAlert('error', result.message || 'Không thể xóa avatar');
+                }
+            } catch (error) {
+                console.error('Delete avatar error:', error);
+                showAlert('error', 'Lỗi khi xóa avatar');
+            }
+        }
     </script>
 
     <style>
-        .profile-avatar i {
-            transition: color 0.3s;
+        .profile-avatar {
+            position: relative;
+            display: inline-block;
         }
-        
-        .profile-avatar:hover i {
-            color: var(--primary) !important;
+
+        .profile-avatar:hover .avatar-overlay {
+            opacity: 1;
+        }
+
+        .avatar-overlay {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .avatar-overlay button {
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
         
         .profile-stats {

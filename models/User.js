@@ -8,6 +8,7 @@ class User {
     this.so_dien_thoai = data.so_dien_thoai;
     this.mat_khau = data.mat_khau;
     this.dia_chi = data.dia_chi;
+    this.avatar = data.avatar;
     this.loai_tai_khoan = data.loai_tai_khoan;
     this.trang_thai = data.trang_thai;
     this.created_at = data.created_at;

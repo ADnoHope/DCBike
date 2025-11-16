@@ -175,3 +175,8 @@ function hideNotification(notification) {
 function clearAllNotifications() {
     notificationSystem.clearAll();
 }
+
+// Alias for backward compatibility
+function showAlert(type, message, duration) {
+    return notificationSystem.show(message, type, duration);
+}
