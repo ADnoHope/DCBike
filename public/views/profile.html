@@ -21,22 +21,22 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="../index.html">Trang chủ</a>
+                        <a class="nav-link" href="../index.html" data-i18n="nav.home">Trang chủ</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="booking.html">Đặt xe</a>
+                        <a class="nav-link" href="booking.html" data-i18n="nav.booking">Đặt xe</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="trips.html">Chuyến đi</a>
+                        <a class="nav-link" href="trips.html" data-i18n="nav.trips">Chuyến đi</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="drivers.html">Tài xế</a>
+                        <a class="nav-link" href="drivers.html" data-i18n="nav.drivers">Tài xế</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="promotions.html">Khuyến mãi</a>
+                        <a class="nav-link" href="promotions.html" data-i18n="nav.promotions">Khuyến mãi</a>
                     </li>
                     <li class="nav-item d-none" id="driver-stats-nav">
-                        <a class="nav-link" href="driver-dashboard.html">Thống kê</a>
+                        <a class="nav-link" href="driver-dashboard.html" data-i18n="nav.statistics">Thống kê</a>
                     </li>
                 </ul>
                 <ul class="navbar-nav">
@@ -45,9 +45,9 @@
                             <i class="fas fa-user"></i> <span id="user-name"></span>
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item active" href="profile.html">Hồ sơ</a></li>
+                            <li><a class="dropdown-item active" href="profile.html" data-i18n="nav.profile">Hồ sơ</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" onclick="logout()">Đăng xuất</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="logout()" data-i18n="nav.logout">Đăng xuất</a></li>
                         </ul>
                     </li>
                     <li class="nav-item" id="auth-btn">
@@ -87,15 +87,15 @@
                             <div class="row text-center">
                                 <div class="col-4">
                                     <h6 class="mb-0" id="total-trips">0</h6>
-                                    <small class="text-muted">Chuyến đi</small>
+                                    <small class="text-muted" data-i18n="profile.trips">Chuyến đi</small>
                                 </div>
                                 <div class="col-4">
                                     <h6 class="mb-0" id="total-reviews">0</h6>
-                                    <small class="text-muted">Đánh giá</small>
+                                    <small class="text-muted" data-i18n="profile.reviews">Đánh giá</small>
                                 </div>
                                 <div class="col-4">
                                     <h6 class="mb-0" id="member-since">2024</h6>
-                                    <small class="text-muted">Năm tham gia</small>
+                                    <small class="text-muted" data-i18n="profile.member_since">Năm tham gia</small>
                                 </div>
                             </div>
                         </div>
@@ -105,21 +105,21 @@
                 <!-- Quick Actions -->
                 <div class="card shadow-sm mt-3">
                     <div class="card-header">
-                        <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Thao tác nhanh</h6>
+                        <h6 class="mb-0"><i class="fas fa-bolt me-2"></i><span data-i18n="profile.quick_actions">Thao tác nhanh</span></h6>
                     </div>
                     <div class="card-body">
                         <div class="d-grid gap-2">
                             <a href="booking.html" class="btn btn-primary btn-sm" id="quick-booking">
-                                <i class="fas fa-car me-2"></i>Đặt xe ngay
+                                <i class="fas fa-car me-2"></i><span data-i18n="profile.book_now">Đặt xe ngay</span>
                             </a>
                             <a href="trips.html" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-history me-2"></i>Lịch sử chuyến đi
+                                <i class="fas fa-history me-2"></i><span data-i18n="profile.trip_history">Lịch sử chuyến đi</span>
                             </a>
                             <a href="promotions.html" class="btn btn-outline-success btn-sm">
-                                <i class="fas fa-tags me-2"></i>Xem khuyến mãi
+                                <i class="fas fa-tags me-2"></i><span data-i18n="profile.view_promotions">Xem khuyến mãi</span>
                             </a>
                             <a href="driver-dashboard.html" class="btn btn-outline-info btn-sm" id="driver-dashboard-btn" style="display: none;">
-                                <i class="fas fa-tachometer-alt me-2"></i>Dashboard tài xế
+                                <i class="fas fa-tachometer-alt me-2"></i><span data-i18n="profile.driver_dashboard">Dashboard tài xế</span>
                             </a>
                         </div>
                     </div>
@@ -134,22 +134,22 @@
                         <ul class="nav nav-tabs card-header-tabs" id="profileTabs" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">
-                                    <i class="fas fa-user me-2"></i>Thông tin cá nhân
+                                    <i class="fas fa-user me-2"></i><span data-i18n="profile.tab.info">Thông tin cá nhân</span>
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab">
-                                    <i class="fas fa-shield-alt me-2"></i>Bảo mật
+                                    <i class="fas fa-shield-alt me-2"></i><span data-i18n="profile.tab.security">Bảo mật</span>
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="trips-history-tab" data-bs-toggle="tab" data-bs-target="#trips-history" type="button" role="tab">
-                                    <i class="fas fa-history me-2"></i>Lịch sử
+                                    <i class="fas fa-history me-2"></i><span data-i18n="profile.tab.history">Lịch sử</span>
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab">
-                                    <i class="fas fa-cog me-2"></i>Cài đặt
+                                    <i class="fas fa-cog me-2"></i><span data-i18n="profile.tab.settings">Cài đặt</span>
                                 </button>
                             </li>
                         </ul>
@@ -161,61 +161,61 @@
                                 <form id="profile-form">
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label">Họ và tên *</label>
+                                            <label class="form-label"><span data-i18n="profile.full_name">Họ và tên</span> *</label>
                                             <input type="text" class="form-control" id="edit-name" required>
                                         </div>
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label">Email</label>
+                                            <label class="form-label" data-i18n="profile.email">Email</label>
                                             <input type="email" class="form-control" id="edit-email" readonly>
-                                            <small class="text-muted">Email không thể thay đổi</small>
+                                            <small class="text-muted" data-i18n="profile.email_readonly">Email không thể thay đổi</small>
                                         </div>
                                     </div>
                                     
                                     <div class="row">
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label">Số điện thoại *</label>
+                                            <label class="form-label"><span data-i18n="profile.phone">Số điện thoại</span> *</label>
                                             <input type="tel" class="form-control" id="edit-phone" required>
                                         </div>
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label">Loại tài khoản</label>
+                                            <label class="form-label" data-i18n="profile.account_type">Loại tài khoản</label>
                                             <input type="text" class="form-control" id="edit-account-type" readonly>
                                         </div>
                                     </div>
                                     
                                     <div class="mb-3">
-                                        <label class="form-label">Địa chỉ</label>
+                                        <label class="form-label" data-i18n="profile.address">Địa chỉ</label>
                                         <textarea class="form-control" id="edit-address" rows="3"></textarea>
                                     </div>
 
                                     <!-- Driver Additional Info -->
                                     <div id="driver-info" style="display: none;">
-                                        <h6 class="mt-4 mb-3"><i class="fas fa-car me-2"></i>Thông tin tài xế</h6>
+                                        <h6 class="mt-4 mb-3"><i class="fas fa-car me-2"></i><span data-i18n="profile.driver_info">Thông tin tài xế</span></h6>
                                         <div class="row">
                                             <div class="col-md-6 mb-3">
-                                                <label class="form-label">Số bằng lái</label>
+                                                <label class="form-label" data-i18n="profile.license_number">Số bằng lái</label>
                                                 <input type="text" class="form-control" id="edit-license-number" readonly>
                                             </div>
                                             <div class="col-md-6 mb-3">
-                                                <label class="form-label">Loại bằng lái</label>
+                                                <label class="form-label" data-i18n="profile.license_type">Loại bằng lái</label>
                                                 <input type="text" class="form-control" id="edit-license-type" readonly>
                                             </div>
                                         </div>
                                         <div class="row">
                                             <div class="col-md-6 mb-3">
-                                                <label class="form-label">Biển số xe</label>
+                                                <label class="form-label" data-i18n="profile.car_plate">Biển số xe</label>
                                                 <input type="text" class="form-control" id="edit-car-plate">
                                             </div>
                                             <div class="col-md-6 mb-3">
-                                                <label class="form-label">Loại xe</label>
+                                                <label class="form-label" data-i18n="profile.car_type">Loại xe</label>
                                                 <input type="text" class="form-control" id="edit-car-type">
                                             </div>
                                         </div>
                                     </div>
                                     
                                     <div class="text-end">
-                                        <button type="button" class="btn btn-secondary me-2" onclick="cancelEdit()">Hủy</button>
+                                        <button type="button" class="btn btn-secondary me-2" onclick="cancelEdit()" data-i18n="profile.cancel">Hủy</button>
                                         <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-save me-2"></i>Cập nhật thông tin
+                                            <i class="fas fa-save me-2"></i><span data-i18n="profile.update_info">Cập nhật thông tin</span>
                                         </button>
                                     </div>
                                 </form>
@@ -223,29 +223,29 @@
 
                             <!-- Security Tab -->
                             <div class="tab-pane fade" id="security" role="tabpanel">
-                                <h5 class="mb-4">Đổi mật khẩu</h5>
+                                <h5 class="mb-4" data-i18n="profile.change_password">Đổi mật khẩu</h5>
                                 <form id="password-form">
                                     <div class="mb-3">
-                                        <label class="form-label">Mật khẩu hiện tại *</label>
+                                        <label class="form-label"><span data-i18n="profile.current_password">Mật khẩu hiện tại</span> *</label>
                                         <input type="password" class="form-control" id="current-password" required>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">Mật khẩu mới *</label>
+                                        <label class="form-label"><span data-i18n="profile.new_password">Mật khẩu mới</span> *</label>
                                         <input type="password" class="form-control" id="new-password" required>
-                                        <small class="text-muted">Mật khẩu phải có ít nhất 6 ký tự</small>
+                                        <small class="text-muted" data-i18n="profile.password_hint">Mật khẩu phải có ít nhất 6 ký tự</small>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">Xác nhận mật khẩu mới *</label>
+                                        <label class="form-label"><span data-i18n="profile.confirm_password">Xác nhận mật khẩu mới</span> *</label>
                                         <input type="password" class="form-control" id="confirm-new-password" required>
                                     </div>
                                     <button type="submit" class="btn btn-warning">
-                                        <i class="fas fa-key me-2"></i>Đổi mật khẩu
+                                        <i class="fas fa-key me-2"></i><span data-i18n="profile.change_password">Đổi mật khẩu</span>
                                     </button>
                                 </form>
 
                                 <hr class="my-4">
 
-                                <h5 class="mb-4">Bảo mật tài khoản</h5>
+                                <h5 class="mb-4" data-i18n="profile.account_security">Bảo mật tài khoản</h5>
                                 <div class="security-options">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <div>
@@ -290,34 +290,34 @@
 
                             <!-- Settings Tab -->
                             <div class="tab-pane fade" id="settings" role="tabpanel">
-                                <h5 class="mb-4">Cài đặt ứng dụng</h5>
+                                <h5 class="mb-4" data-i18n="profile.app_settings">Cài đặt ứng dụng</h5>
                                 
                                 <div class="settings-section mb-4">
-                                    <h6>Thông báo</h6>
+                                    <h6 data-i18n="profile.notifications">Thông báo</h6>
                                     <div class="form-check mb-2">
                                         <input class="form-check-input" type="checkbox" id="email-notifications" checked>
-                                        <label class="form-check-label" for="email-notifications">
+                                        <label class="form-check-label" for="email-notifications" data-i18n="profile.email_notifications">
                                             Nhận thông báo qua email
                                         </label>
                                     </div>
                                     <div class="form-check mb-2">
                                         <input class="form-check-input" type="checkbox" id="sms-notifications" checked>
-                                        <label class="form-check-label" for="sms-notifications">
+                                        <label class="form-check-label" for="sms-notifications" data-i18n="profile.sms_notifications">
                                             Nhận thông báo qua SMS
                                         </label>
                                     </div>
                                     <div class="form-check mb-2">
                                         <input class="form-check-input" type="checkbox" id="promotion-notifications" checked>
-                                        <label class="form-check-label" for="promotion-notifications">
+                                        <label class="form-check-label" for="promotion-notifications" data-i18n="profile.promotion_notifications">
                                             Nhận thông báo khuyến mãi
                                         </label>
                                     </div>
                                 </div>
 
                                 <div class="settings-section mb-4">
-                                    <h6>Hiển thị</h6>
+                                    <h6 data-i18n="profile.display">Hiển thị</h6>
                                     <div class="mb-3">
-                                        <label class="form-label">Ngôn ngữ</label>
+                                        <label class="form-label" data-i18n="profile.language">Ngôn ngữ</label>
                                         <select class="form-select" id="language-setting">
                                             <option value="vi">Tiếng Việt</option>
                                             <option value="en">English</option>
@@ -325,17 +325,17 @@
                                     </div>
                                     <div class="form-check mb-2">
                                         <input class="form-check-input" type="checkbox" id="dark-mode">
-                                        <label class="form-check-label" for="dark-mode">
+                                        <label class="form-check-label" for="dark-mode" data-i18n="profile.dark_mode">
                                             Chế độ tối
                                         </label>
                                     </div>
                                 </div>
 
                                 <div class="settings-section">
-                                    <h6 class="text-danger">Vùng nguy hiểm</h6>
-                                    <p class="text-muted">Các hành động này không thể hoàn tác</p>
+                                    <h6 class="text-danger" data-i18n="profile.danger_zone">Vùng nguy hiểm</h6>
+                                    <p class="text-muted" data-i18n="profile.danger_zone_desc">Các hành động này không thể hoàn tác</p>
                                     <button class="btn btn-outline-danger" onclick="deleteAccount()">
-                                        <i class="fas fa-trash me-2"></i>Xóa tài khoản
+                                        <i class="fas fa-trash me-2"></i><span data-i18n="profile.delete_account">Xóa tài khoản</span>
                                     </button>
                                 </div>
                             </div>
@@ -352,6 +352,7 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/notifications.js"></script>
+    <script src="/js/i18n.js"></script>
     <script src="../js/app.js"></script>
     <script>
         let originalProfileData = {};
@@ -418,8 +419,7 @@
             // Update sidebar
             document.getElementById('profile-name').textContent = profile.ten || '---';
             document.getElementById('profile-email').textContent = profile.email || '---';
-            document.getElementById('profile-type').textContent = 
-                profile.loai_tai_khoan === 'khach_hang' ? 'Khách hàng' : 'Tài xế';
+            document.getElementById('profile-type').textContent = i18n.getAccountType(profile.loai_tai_khoan);
             
             // Show/hide buttons based on account type
             if (profile.loai_tai_khoan === 'tai_xe') {
@@ -444,8 +444,7 @@
             document.getElementById('edit-email').value = profile.email || '';
             document.getElementById('edit-phone').value = profile.so_dien_thoai || '';
             document.getElementById('edit-address').value = profile.dia_chi || '';
-            document.getElementById('edit-account-type').value = 
-                profile.loai_tai_khoan === 'khach_hang' ? 'Khách hàng' : 'Tài xế';
+            document.getElementById('edit-account-type').value = i18n.getAccountType(profile.loai_tai_khoan);
 
             // Show driver info if applicable
             if (profile.loai_tai_khoan === 'tai_xe' && profile.driverInfo) {
@@ -466,7 +465,7 @@
 
             // Basic validation
             if (!formData.ten || !formData.so_dien_thoai) {
-                showAlert('error', 'Vui lòng điền đầy đủ thông tin bắt buộc');
+                showAlert('error', i18n.t('msg.fill_required'));
                 return;
             }
 
@@ -483,7 +482,7 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showAlert('success', 'Cập nhật thông tin thành công');
+                    showAlert('success', i18n.t('msg.update_success'));
                     
                     // Update dcApp.user
                     if (dcApp.user) {
@@ -496,11 +495,11 @@
                     // Update sidebar display
                     document.getElementById('profile-name').textContent = formData.ten;
                 } else {
-                    showAlert('error', result.message || 'Không thể cập nhật thông tin');
+                    showAlert('error', result.message || i18n.t('msg.update_error'));
                 }
             } catch (error) {
                 console.error('Update profile error:', error);
-                showAlert('error', 'Lỗi khi cập nhật thông tin');
+                showAlert('error', i18n.t('msg.update_error'));
             }
         }
 
@@ -511,17 +510,17 @@
 
             // Validation
             if (!currentPassword || !newPassword || !confirmPassword) {
-                showAlert('error', 'Vui lòng điền đầy đủ thông tin');
+                showAlert('error', i18n.t('msg.fill_required'));
                 return;
             }
 
             if (newPassword.length < 6) {
-                showAlert('error', 'Mật khẩu mới phải có ít nhất 6 ký tự');
+                showAlert('error', i18n.t('msg.password_too_short'));
                 return;
             }
 
             if (newPassword !== confirmPassword) {
-                showAlert('error', 'Mật khẩu xác nhận không khớp');
+                showAlert('error', i18n.t('msg.password_mismatch'));
                 return;
             }
 
@@ -541,14 +540,14 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    showAlert('success', 'Đổi mật khẩu thành công');
+                    showAlert('success', i18n.t('msg.password_changed'));
                     document.getElementById('password-form').reset();
                 } else {
-                    showAlert('error', result.message || 'Không thể đổi mật khẩu');
+                    showAlert('error', result.message || i18n.t('msg.password_error'));
                 }
             } catch (error) {
                 console.error('Change password error:', error);
-                showAlert('error', 'Lỗi khi đổi mật khẩu');
+                showAlert('error', i18n.t('msg.password_error'));
             }
         }
 
@@ -644,8 +643,8 @@
         }
 
         function deleteAccount() {
-            if (confirm('Bạn có chắc chắn muốn xóa tài khoản? Hành động này không thể hoàn tác.')) {
-                if (confirm('Tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn. Bạn có chắc chắn?')) {
+            if (confirm(i18n.t('msg.delete_confirm'))) {
+                if (confirm(i18n.t('msg.delete_confirm2'))) {
                     showAlert('info', 'Tính năng xóa tài khoản sẽ được cập nhật trong phiên bản tiếp theo');
                 }
             }
@@ -660,7 +659,7 @@
 
             // Kiểm tra kích thước file (max 5MB)
             if (file.size > 5 * 1024 * 1024) {
-                showAlert('error', 'Kích thước file không được vượt quá 5MB');
+                showAlert('error', i18n.t('msg.avatar_size_error'));
                 fileInput.value = '';
                 return;
             }
@@ -668,7 +667,7 @@
             // Kiểm tra loại file
             const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
             if (!allowedTypes.includes(file.type)) {
-                showAlert('error', 'Chỉ chấp nhận file ảnh (JPEG, PNG, GIF, WEBP)');
+                showAlert('error', i18n.t('msg.avatar_type_error'));
                 fileInput.value = '';
                 return;
             }
@@ -677,7 +676,7 @@
             formData.append('avatar', file);
 
             try {
-                showAlert('info', 'Đang upload avatar...');
+                showAlert('info', i18n.t('msg.avatar_uploading'));
 
                 const response = await fetch(`${API_BASE_URL}/auth/upload-avatar`, {
                     method: 'POST',
@@ -692,13 +691,13 @@
                 if (result.success) {
                     // Cập nhật avatar hiển thị
                     document.getElementById('avatar-img').src = result.data.avatar + '?t=' + Date.now();
-                    showAlert('success', 'Cập nhật avatar thành công');
+                    showAlert('success', i18n.t('msg.avatar_success'));
                 } else {
-                    showAlert('error', result.message || 'Không thể upload avatar');
+                    showAlert('error', result.message || i18n.t('msg.avatar_error'));
                 }
             } catch (error) {
                 console.error('Upload avatar error:', error);
-                showAlert('error', 'Lỗi khi upload avatar');
+                showAlert('error', i18n.t('msg.avatar_error'));
             } finally {
                 fileInput.value = '';
             }

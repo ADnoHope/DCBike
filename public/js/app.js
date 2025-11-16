@@ -11,6 +11,10 @@ class DCCarBooking {
 
     async init() {
         console.log('Initializing app with token:', this.token); // Debug log
+        
+        // Load i18n system if available
+        this.initI18n();
+        
         // Check if user is logged in
         if (this.token) {
             try {
@@ -45,6 +49,18 @@ class DCCarBooking {
             }
         } catch (e) {
             console.debug('No page loading overlay found or failed to remove it', e);
+        }
+    }
+
+    initI18n() {
+        // Initialize i18n if it's loaded
+        if (window.i18n) {
+            // Translate page on load
+            setTimeout(() => {
+                if (typeof i18n.translatePage === 'function') {
+                    i18n.translatePage();
+                }
+            }, 100);
         }
     }
 

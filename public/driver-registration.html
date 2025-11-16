@@ -222,7 +222,7 @@
                 if (!token) {
                     showError('Bạn cần đăng nhập trước khi đăng ký tài xế');
                     setTimeout(() => {
-                        window.location.href = 'login.html';
+                        window.location.href = 'index.html';
                     }, 2000);
                     return;
                 }
@@ -276,7 +276,7 @@
                 if (!token || !userJson) {
                     showError('Bạn cần đăng nhập trước khi đăng ký tài xế');
                     setTimeout(() => {
-                        window.location.href = 'login.html';
+                        window.location.href = 'index.html';
                     }, 2000);
                     return;
                 }
@@ -301,7 +301,7 @@
                 console.error('Error checking user role on driver registration page', err);
                 showError('Có lỗi xảy ra, vui lòng đăng nhập lại');
                 setTimeout(() => {
-                    window.location.href = 'login.html';
+                    window.location.href = 'index.html';
                 }, 2000);
             }
         });
