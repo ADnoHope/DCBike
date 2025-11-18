@@ -162,6 +162,8 @@ app.use('/api/reviews', authenticate, require('./routes/reviews'));
 // Revenue tracking (protected)
 app.use('/api/revenue', authenticate, require('./routes/revenue'));
 app.use('/api/admin', authenticate, require('./routes/admin'));
+// Chat routes (realtime simple polling)
+app.use('/api/chat', require('./routes/chat'));
 
 // Serve static HTML pages
 app.use(express.static(path.join(__dirname, 'public')));

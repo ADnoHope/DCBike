@@ -497,6 +497,10 @@ class DCCarBooking {
             
             // Load user's trips
             this.loadUserTrips();
+            // Load chat widget script so chat bubble appears on all pages for logged-in users
+            try {
+                this.loadChatWidget();
+            } catch (e) { console.debug('loadChatWidget failed', e); }
         } else {
             console.log('User not logged in, showing auth buttons'); // Debug log
             // User is not logged in - show auth buttons
@@ -592,6 +596,28 @@ class DCCarBooking {
         }
     }
 
+    // Dynamically load chat widget script once when user is logged in
+    loadChatWidget() {
+        try {
+            // If widget already present on the page, skip injecting to avoid duplicates
+            if (document.getElementById('chat-widget') || document.querySelector('script[src$="/js/chat.js"]')) {
+                console.debug('Chat widget already present, skipping injection');
+                return;
+            }
+
+            if (document.getElementById('chat-widget-script-loaded')) return; // already injected by us
+            const script = document.createElement('script');
+            script.src = '/js/chat.js';
+            script.id = 'chat-widget-script-loaded';
+            script.defer = true;
+            script.onload = () => console.log('Chat widget script loaded');
+            script.onerror = (e) => console.warn('Failed to load chat widget script', e);
+            document.head.appendChild(script);
+        } catch (e) {
+            console.error('Error injecting chat script', e);
+        }
+    }
+
     // Utility Methods
     formatPrice(price) {
         return new Intl.NumberFormat('vi-VN').format(price);
@@ -624,6 +650,10 @@ async function login() {
 
         if (result.success) {
             localStorage.setItem('token', result.data.token);
+            // persist user so other injected scripts (chat) can read current user id
+            if (result.data.user) {
+                localStorage.setItem('user', JSON.stringify(result.data.user));
+            }
             dcApp.token = result.data.token;
             dcApp.user = result.data.user;
             dcApp.updateUI();
@@ -691,6 +721,9 @@ async function register() {
             if (role === 'tai_xe') {
                 // Save token and go to driver info page to complete driver profile
                 localStorage.setItem('token', result.data.token);
+                if (result.data.user) {
+                    localStorage.setItem('user', JSON.stringify(result.data.user));
+                }
                 dcApp.token = result.data.token;
                 dcApp.user = result.data.user;
                 dcApp.updateUI();

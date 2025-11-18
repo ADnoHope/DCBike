@@ -240,6 +240,41 @@ class TripController {
       await Trip.updateStatus(tripId, 'da_nhan', { tai_xe_id: driver.id });
       await Driver.updateStatus(driver.id, 'dang_di');
 
+      // Tự động tạo cuộc trò chuyện và gửi tin nhắn thông báo
+      try {
+        const Conversation = require('../models/Conversation');
+        const Message = require('../models/Message');
+        const { pool } = require('../config/database');
+        
+        // Lấy thông tin tài xế để có tên
+        const [driverInfo] = await pool.execute(
+          'SELECT nd.ten FROM nguoi_dung nd JOIN tai_xe tx ON nd.id = tx.nguoi_dung_id WHERE tx.id = ?',
+          [driver.id]
+        );
+        const driverName = driverInfo.length ? driverInfo[0].ten : 'Tài xế';
+        
+        // Tạo hoặc lấy cuộc trò chuyện
+        const convo = await Conversation.createForTrip({
+          chuyen_di_id: tripId,
+          khach_hang_id: trip.khach_hang_id,
+          tai_xe_id: driver.id
+        });
+        
+        // Gửi tin nhắn thông báo tự động
+        const notificationMessage = `Xin chào! Tài xế ${driverName} đã nhận chuyến đi của bạn. Tôi sẽ đến đón bạn sớm nhất có thể.`;
+        
+        await Message.send({
+          cuoc_tro_chuyen_id: convo.id,
+          nguoi_gui_id: req.user.id, // Driver's user ID
+          noi_dung: notificationMessage
+        });
+        
+        console.log('Auto message sent to customer after accepting trip');
+      } catch (chatError) {
+        console.error('Auto chat message error:', chatError);
+        // Không fail request nếu gửi tin nhắn lỗi
+      }
+
       res.json({
         success: true,
         message: 'Đã nhận chuyến đi thành công'
@@ -332,6 +367,30 @@ class TripController {
 
       await Trip.updateStatus(tripId, 'hoan_thanh');
       await Driver.updateStatus(driver.id, 'san_sang');
+
+      // Xóa TẤT CẢ cuộc trò chuyện giữa khách hàng và tài xế (bao gồm cả conversation của trip và conversation từ contact button)
+      try {
+        const { pool } = require('../config/database');
+        console.log('Attempting to delete all conversations between:', { 
+          khach_hang_id: trip.khach_hang_id, 
+          tai_xe_id: driver.id 
+        });
+        
+        // Xóa tất cả conversation giữa customer và driver (không quan tâm có chuyen_di_id hay không)
+        const [result] = await pool.execute(
+          'DELETE FROM cuoc_tro_chuyen WHERE khach_hang_id = ? AND tai_xe_id = ?',
+          [trip.khach_hang_id, driver.id]
+        );
+        
+        console.log('Deleted conversations:', result.affectedRows);
+        
+        if (result.affectedRows === 0) {
+          console.warn('No conversations found to delete');
+        }
+      } catch (chatDeleteError) {
+        console.error('Delete conversation error:', chatDeleteError);
+        // Không fail request nếu xóa chat lỗi
+      }
 
       // Tạo bản ghi doanh thu - chiết khấu 20% cho web, 80% cho tài xế
       try {

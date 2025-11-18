@@ -133,10 +133,10 @@
                                     <div class="input-group">
                                         <input type="text" class="form-control" id="pickup-location" 
                                                placeholder="Nhập địa chỉ đón hoặc chọn trên bản đồ" required>
-                                        <button class="btn btn-outline-success" type="button" id="get-current-location" title="Lấy vị trí hiện tại">
+                                        <button class="btn btn-outline-success" type="button" id="get-current-location" title="Lấy vị trí hiện tại" onclick="getCurrentLocation()">
                                             <i class="fas fa-location-arrow"></i>
                                         </button>
-                                        <button class="btn btn-outline-primary" type="button" id="pickup-map-btn" title="Chọn trên bản đồ">
+                                        <button class="btn btn-outline-primary" type="button" id="pickup-map-btn" title="Chọn trên bản đồ" onclick="(function(){ try{ setMapMode('pickup'); new bootstrap.Modal(document.getElementById('mapModal')).show(); }catch(e){ console.error('Inline pickup onclick error', e); } })()">
                                             <i class="fas fa-map"></i>
                                         </button>
                                     </div>
@@ -149,7 +149,7 @@
                                     <div class="input-group">
                                         <input type="text" class="form-control" id="destination" 
                                                placeholder="Nhập địa chỉ đến hoặc chọn trên bản đồ" required>
-                                        <button class="btn btn-outline-primary" type="button" id="destination-map-btn" title="Chọn trên bản đồ">
+                                        <button class="btn btn-outline-primary" type="button" id="destination-map-btn" title="Chọn trên bản đồ" onclick="(function(){ try{ setMapMode('destination'); new bootstrap.Modal(document.getElementById('mapModal')).show(); }catch(e){ console.error('Inline destination onclick error', e); } })()">
                                             <i class="fas fa-map"></i>
                                         </button>
                                     </div>
@@ -447,7 +447,8 @@
             }
             document.getElementById('selected-location-info').style.display = 'none';
             document.getElementById('confirm-location-btn').disabled = true;
-            document.getElementById('map-search').value = '';
+            const searchInputEl = document.getElementById('location-search-input');
+            if (searchInputEl) searchInputEl.value = '';
             
             console.log('Map mode set to:', currentMapMode);
         }
@@ -869,7 +870,8 @@
                             `${selectedLocation.lat.toFixed(6)}, ${selectedLocation.lng.toFixed(6)}`;
                         
                         document.getElementById('selected-location-info').style.display = 'block';
-                        document.getElementById('confirm-location').disabled = false;
+                        const confirmBtn = document.getElementById('confirm-location-btn');
+                        if (confirmBtn) confirmBtn.disabled = false;
                     })
                     .catch(error => {
                         console.error('Geocoding error:', error);
@@ -884,7 +886,8 @@
                             `${selectedLocation.lat.toFixed(6)}, ${selectedLocation.lng.toFixed(6)}`;
                         
                         document.getElementById('selected-location-info').style.display = 'block';
-                        document.getElementById('confirm-location').disabled = false;
+                        const confirmBtn2 = document.getElementById('confirm-location-btn');
+                        if (confirmBtn2) confirmBtn2.disabled = false;
                     });
             }
         }
@@ -905,9 +908,25 @@
                 targetInput.setAttribute('data-lat', selectedLocation.lat);
                 targetInput.setAttribute('data-lng', selectedLocation.lng);
                 
-                // Close modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('mapModal'));
-                modal.hide();
+                // Close modal (use getOrCreateInstance to ensure instance exists)
+                try {
+                    const modalEl = document.getElementById('mapModal');
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.hide();
+
+                    // Extra cleanup: remove any leftover backdrop and body class if bootstrap failed to remove
+                    setTimeout(() => {
+                        try {
+                            document.body.classList.remove('modal-open');
+                            const backdrops = document.querySelectorAll('.modal-backdrop');
+                            backdrops.forEach(b => b.parentElement && b.parentElement.removeChild(b));
+                        } catch (e) {
+                            console.debug('Backdrop cleanup error', e);
+                        }
+                    }, 50);
+                } catch (e) {
+                    console.warn('Could not hide map modal cleanly:', e);
+                }
                 
                 showNotification('success', `Đã chọn ${currentMapMode === 'pickup' ? 'điểm đón' : 'điểm đến'}: ${selectedLocation.address}`);
                 
@@ -1689,6 +1708,59 @@
                         }
                     }, 500); // Increase timeout
             });
+
+            // Ensure modal hide/hidden always perform cleanup to avoid lingering backdrop or modal-open state
+            try {
+                const mapModalEl = document.getElementById('mapModal');
+
+                mapModalEl.addEventListener('hide.bs.modal', function () {
+                    // brief cleanup attempt right before hide to minimize flicker
+                    try {
+                        const backdrops = document.querySelectorAll('.modal-backdrop');
+                        backdrops.forEach(b => b.parentElement && b.parentElement.removeChild(b));
+                        document.body.classList.remove('modal-open');
+                        document.body.style.paddingRight = '';
+                    } catch (e) {
+                        console.debug('Pre-hide backdrop cleanup failed', e);
+                    }
+                });
+
+                mapModalEl.addEventListener('hidden.bs.modal', function () {
+                    // Final cleanup after modal is fully hidden
+                    try {
+                        // Remove any leftover backdrops
+                        const backdrops = document.querySelectorAll('.modal-backdrop');
+                        backdrops.forEach(b => b.parentElement && b.parentElement.removeChild(b));
+
+                        // Restore body state
+                        document.body.classList.remove('modal-open');
+                        document.body.style.paddingRight = '';
+
+                        // Re-enable confirm button to default state
+                        const confirmBtn = document.getElementById('confirm-location-btn');
+                        if (confirmBtn) confirmBtn.disabled = true;
+
+                        // Focus the relevant input on page so user can continue typing
+                        try {
+                            const focusTarget = currentMapMode === 'pickup' ? document.getElementById('pickup-location') : document.getElementById('destination');
+                            if (focusTarget) {
+                                focusTarget.focus();
+                            }
+                        } catch (e) { console.debug('Refocus after modal hide failed', e); }
+
+                        // Slight delay to allow Bootstrap internals to finish removing inline styles
+                        setTimeout(() => {
+                            try {
+                                document.body.style.overflow = '';
+                            } catch (e) { /* ignore */ }
+                        }, 100);
+                    } catch (e) {
+                        console.debug('Post-hidden backdrop cleanup failed', e);
+                    }
+                });
+            } catch (e) {
+                console.debug('Could not attach modal hide handlers', e);
+            }
 
             // Make sure all functions are available before DOM loads
             window.setMapMode = setMapMode;

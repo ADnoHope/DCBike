@@ -164,6 +164,9 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-success" id="contact-driver-btn" data-auth data-auth-roles="khach_hang">
+                        <i class="fas fa-comments me-2"></i>Liên lạc với tài xế
+                    </button>
                     <button type="button" class="btn btn-primary" id="book-driver-btn" data-auth data-auth-roles="khach_hang">
                         <i class="fas fa-car me-2"></i>Đặt xe với tài xế này
                     </button>
@@ -709,7 +712,21 @@
             `;
 
             document.getElementById('driver-detail-content').innerHTML = content;
-            document.getElementById('book-driver-btn').onclick = () => bookWithDriver(driver.id);
+            
+            // Hide buttons for drivers (they can't book rides)
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const isDriver = user.loai_tai_khoan === 'tai_xe';
+            
+            const bookBtn = document.getElementById('book-driver-btn');
+            const contactBtn = document.getElementById('contact-driver-btn');
+            
+            if (isDriver) {
+                if (bookBtn) bookBtn.style.display = 'none';
+                if (contactBtn) contactBtn.style.display = 'none';
+            } else {
+                if (bookBtn) bookBtn.onclick = () => bookWithDriver(driver.id);
+                if (contactBtn) contactBtn.onclick = () => contactDriver(driver.id);
+            }
             
             // Tải đánh giá từ database
             loadDriverReviews(driver.id);
@@ -757,6 +774,69 @@
             
             // Redirect to booking page with driver pre-selected
             window.location.href = `booking.html?driver=${driverId}`;
+        }
+
+        async function contactDriver(driverId) {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    showWarning('Vui lòng đăng nhập để liên lạc với tài xế');
+                    return;
+                }
+
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('driverDetailModal'));
+                if (modal) modal.hide();
+
+                // Request conversation with driver
+                const res = await fetch(`${API_BASE_URL}/chat/request`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ tai_xe_id: driverId })
+                });
+
+                const result = await res.json();
+                
+                if (result.success && result.data && result.data.id) {
+                    const conversationId = result.data.id;
+                    
+                    // Send automatic greeting message
+                    const greetingMessage = "Xin chào! Hiện tại bạn có đang nhận chuyến không ạ?";
+                    
+                    try {
+                        await fetch(`${API_BASE_URL}/chat/send/${conversationId}`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ message: greetingMessage })
+                        });
+                    } catch (e) {
+                        console.debug('Auto message error:', e);
+                    }
+                    
+                    // Open chat widget if it exists
+                    const chatToggle = document.getElementById('chatToggle');
+                    if (chatToggle && window.dcApp) {
+                        // Reload conversations to show the new one
+                        setTimeout(() => {
+                            chatToggle.click();
+                        }, 500);
+                        showSuccess('Đã gửi tin nhắn đến tài xế!');
+                    } else {
+                        showSuccess('Đã gửi yêu cầu trò chuyện! Vui lòng kiểm tra mục chat.');
+                    }
+                } else {
+                    showError(result.message || 'Không thể gửi yêu cầu trò chuyện');
+                }
+            } catch (error) {
+                console.error('Contact driver error:', error);
+                showError('Lỗi khi liên lạc với tài xế');
+            }
         }
 
         // ----------------------- Driver Trips (assigned to this driver) -----------------------

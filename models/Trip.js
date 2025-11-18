@@ -226,6 +226,24 @@ class Trip {
       values.push(id);
       
       const [result] = await pool.execute(query, values);
+      // Sau khi tài xế nhận chuyến, tự động tạo cuộc trò chuyện active giữa khách và tài xế
+      if (trang_thai === 'da_nhan') {
+        try {
+          const [tripRows] = await pool.execute('SELECT khach_hang_id, tai_xe_id FROM chuyen_di WHERE id=?', [id]);
+          if (tripRows.length) {
+            const t = tripRows[0];
+            if (t.tai_xe_id) {
+              // Lấy hoặc tạo conversation
+              const [exists] = await pool.execute('SELECT id FROM cuoc_tro_chuyen WHERE chuyen_di_id=?', [id]);
+              if (!exists.length) {
+                await pool.execute('INSERT INTO cuoc_tro_chuyen (chuyen_di_id, khach_hang_id, tai_xe_id, trang_thai) VALUES (?,?,?,"active")', [id, t.khach_hang_id, t.tai_xe_id]);
+              }
+            }
+          }
+        } catch (convErr) {
+          console.error('Không thể tạo cuộc trò chuyện tự động cho chuyến', id, convErr.message);
+        }
+      }
       return result.affectedRows > 0;
     } catch (error) {
       throw error;
