@@ -368,23 +368,40 @@ class TripController {
       await Trip.updateStatus(tripId, 'hoan_thanh');
       await Driver.updateStatus(driver.id, 'san_sang');
 
-      // Xóa TẤT CẢ cuộc trò chuyện giữa khách hàng và tài xế (bao gồm cả conversation của trip và conversation từ contact button)
+      // Xóa TẤT CẢ tin nhắn và cuộc trò chuyện giữa khách hàng và tài xế
       try {
         const { pool } = require('../config/database');
-        console.log('Attempting to delete all conversations between:', { 
+        console.log('Attempting to delete all conversations and messages between:', { 
           khach_hang_id: trip.khach_hang_id, 
           tai_xe_id: driver.id 
         });
         
-        // Xóa tất cả conversation giữa customer và driver (không quan tâm có chuyen_di_id hay không)
-        const [result] = await pool.execute(
-          'DELETE FROM cuoc_tro_chuyen WHERE khach_hang_id = ? AND tai_xe_id = ?',
+        // Bước 1: Lấy danh sách ID của tất cả conversation giữa customer và driver
+        const [conversations] = await pool.execute(
+          'SELECT id FROM cuoc_tro_chuyen WHERE khach_hang_id = ? AND tai_xe_id = ?',
           [trip.khach_hang_id, driver.id]
         );
         
-        console.log('Deleted conversations:', result.affectedRows);
+        console.log('Found conversations to delete:', conversations.length);
         
-        if (result.affectedRows === 0) {
+        if (conversations.length > 0) {
+          const conversationIds = conversations.map(c => c.id);
+          
+          // Bước 2: Xóa tất cả tin nhắn trong các conversation này
+          const placeholders = conversationIds.map(() => '?').join(',');
+          const [messageResult] = await pool.execute(
+            `DELETE FROM tin_nhan WHERE cuoc_tro_chuyen_id IN (${placeholders})`,
+            conversationIds
+          );
+          console.log('Deleted messages:', messageResult.affectedRows);
+          
+          // Bước 3: Xóa tất cả conversation
+          const [conversationResult] = await pool.execute(
+            `DELETE FROM cuoc_tro_chuyen WHERE id IN (${placeholders})`,
+            conversationIds
+          );
+          console.log('Deleted conversations:', conversationResult.affectedRows);
+        } else {
           console.warn('No conversations found to delete');
         }
       } catch (chatDeleteError) {
