@@ -64,33 +64,82 @@
         </div>
     </div>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="../index.html">
-                <i class="fas fa-car me-2"></i>DC Booking
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container-fluid">
+            <button class="btn btn-link text-white p-0 me-3" id="sidebar-toggle" type="button">
+                <i class="fas fa-bars fa-lg"></i>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="../index.html">Trang chủ</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="booking.html">Đặt xe</a>
+            <a class="navbar-brand fw-bold" href="../index.html">
+                <i class="fas fa-car"></i> DC Booking
+            </a>
+            <div class="ms-auto" id="auth-nav">
+                <a class="btn btn-link text-white text-decoration-none" href="#" onclick="showAuthModal()">Đăng nhập</a>
+            </div>
+            <div class="ms-auto d-none" id="user-nav">
+                <div class="dropdown">
+                    <a class="btn btn-link text-white text-decoration-none dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <span id="user-name"></span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="profile.html"><i class="fas fa-user me-2"></i>Hồ sơ cá nhân</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i>Đăng xuất</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar Menu -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <div class="sidebar-menu" id="sidebar-menu">
+        <div class="sidebar-header">
+            <h5 class="mb-0"><i class="fas fa-car"></i> Menu</h5>
+            <button class="btn-close btn-close-white" id="sidebar-close"></button>
+        </div>
+        <div class="sidebar-body">
+            <ul class="nav flex-column">
+                <li class="nav-item d-none" id="home-nav-sidebar">
+                    <a class="nav-link" href="../index.html"><i class="fas fa-home me-2"></i>Trang chủ</a>
+                </li>
+                <li class="nav-item d-none" id="booking-nav-sidebar">
+                    <a class="nav-link" href="booking.html" data-auth><i class="fas fa-calendar-check me-2"></i>Đặt xe</a>
+                </li>
+                <li class="nav-item d-none" id="trips-nav-sidebar">
+                    <a class="nav-link" href="trips.html" data-auth><i class="fas fa-route me-2"></i>Chuyến đi</a>
+                </li>
+                <li class="nav-item d-none" id="drivers-nav-sidebar">
+                    <a class="nav-link" href="drivers.html"><i class="fas fa-user-tie me-2"></i>Tài xế</a>
+                </li>
+                <li class="nav-item d-none" id="stats-menu-item-sidebar">
+                    <a class="nav-link" href="driver-dashboard.html"><i class="fas fa-chart-bar me-2"></i>Thống kê</a>
+                </li>
+                <li class="nav-item d-none" id="promotions-nav-sidebar">
+                    <a class="nav-link" href="promotions.html"><i class="fas fa-gift me-2"></i>Khuyến mãi</a>
+                </li>
+                <li class="nav-item d-none" id="driverreg-nav-sidebar">
+                    <a class="nav-link" href="../driver-registration.html"><i class="fas fa-user-plus me-2"></i>Đăng ký tài xế</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Trang chủ active marker -->
+    <li class="nav-item">
+        <a class="nav-link active" href="booking.html">Đặt xe</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="trips.html">Chuyến đi</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="drivers.html">Tài xế</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="promotions.html">Khuyến mãi</a>
-                    </li>
-                    <li class="nav-item d-none" id="driver-stats-nav">
-                        <a class="nav-link" href="driver-dashboard.html">Thống kê</a>
+                    <li class="nav-item dropdown d-none" id="category-nav" data-auth>
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            Danh mục
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="drivers.html">Tài xế</a></li>
+                            <li><a class="dropdown-item d-none" id="stats-menu-item" href="driver-dashboard.html">Thống kê</a></li>
+                            <li><a class="dropdown-item" href="promotions.html">Khuyến mãi</a></li>
+                        </ul>
                     </li>
                 </ul>
                 <ul class="navbar-nav">
@@ -1885,17 +1934,50 @@
 
             let html = '<div class="list-group">';
             trips.forEach(trip => {
-                const price = trip.gia_cuoc ? new Intl.NumberFormat('vi-VN').format(trip.gia_cuoc) + ' VND' : 'Chưa xác định';
+                const price = trip.gia_cuoc ? new Intl.NumberFormat('vi-VN').format(trip.gia_cuoc) + 'đ' : 'Chưa xác định';
+                const statusBadge = {
+                    'cho_xac_nhan': '<span class="badge bg-warning text-dark">Chờ xác nhận</span>',
+                    'da_xac_nhan': '<span class="badge bg-info">Đã xác nhận</span>',
+                    'dang_di': '<span class="badge bg-primary">Đang đi</span>',
+                    'hoan_thanh': '<span class="badge bg-success">Hoàn thành</span>',
+                    'huy_bo': '<span class="badge bg-danger">Đã hủy</span>'
+                }[trip.trang_thai] || '<span class="badge bg-secondary">Không xác định</span>';
+                
+                // Rút ngắn địa chỉ
+                const shortenAddress = (addr) => {
+                    if (!addr) return '';
+                    const parts = addr.split(',');
+                    if (parts.length > 3) {
+                        return parts[0] + ', ' + parts[parts.length - 2].trim();
+                    }
+                    return parts[0];
+                };
+                
+                const shortPickup = shortenAddress(trip.diem_don);
+                const shortDest = shortenAddress(trip.diem_den);
+                
                 html += `
-                    <div class="list-group-item d-flex justify-content-between align-items-start">
-                        <div>
-                            <div class="fw-bold">#${trip.id} — ${trip.diem_don} → ${trip.diem_den}</div>
-                            <small class="text-muted">${price}</small>
+                    <div class="list-group-item list-group-item-action" style="cursor: pointer;" onclick="viewBookingDetail(${trip.id})">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="flex-grow-1" style="max-width: 70%;">
+                                <div class="fw-bold mb-1">#${trip.id}</div>
+                                <div class="small text-truncate" title="${trip.diem_don}">
+                                    <i class="fas fa-circle text-success" style="font-size: 8px;"></i> ${shortPickup}
+                                </div>
+                                <div class="small text-truncate" title="${trip.diem_den}">
+                                    <i class="fas fa-circle text-danger" style="font-size: 8px;"></i> ${shortDest}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                ${statusBadge}
+                                <div class="fw-bold text-success mt-1">${price}</div>
+                            </div>
                         </div>
+                        ${trip.trang_thai === 'cho_xac_nhan' || trip.trang_thai === 'da_xac_nhan' ? `
                         <div class="text-end">
-                            <button class="btn btn-sm btn-link" onclick="viewBookingDetail(${trip.id})">Chi tiết</button>
-                            ${trip.trang_thai === 'cho_xac_nhan' || trip.trang_thai === 'da_xac_nhan' ? `<button class="btn btn-sm btn-outline-danger" onclick="cancelBooking(${trip.id})">Hủy</button>` : ''}
+                            <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); cancelBooking(${trip.id});"><i class="fas fa-times me-1"></i>Hủy</button>
                         </div>
+                        ` : ''}
                     </div>
                 `;
             });
@@ -1905,18 +1987,92 @@
 
         async function viewBookingDetail(tripId) {
             try {
+                // Show modal immediately
+                const modal = new bootstrap.Modal(document.getElementById('tripDetailModal'));
+                modal.show();
+                
+                // Fetch trip details
                 const res = await fetch(`/api/trips/${tripId}`, { headers: { 'Authorization': `Bearer ${dcApp.token}` } });
                 const result = await res.json();
-                if (!result.success) return showNotification('error', result.message || 'Không thể tải chi tiết');
+                
+                if (!result.success) {
+                    document.getElementById('tripDetailContent').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>${result.message || 'Không thể tải chi tiết'}
+                        </div>
+                    `;
+                    return;
+                }
 
                 const trip = result.data;
-                const content = `
-                    Mã: #${trip.id}\nĐiểm đón: ${trip.diem_don}\nĐiểm đến: ${trip.diem_den}\nThời gian: ${trip.thoi_gian_du_kien || trip.thoi_gian_dat}\nGiá: ${trip.gia_cuoc || trip.tong_tien}\nTrạng thái: ${trip.trang_thai}\nGhi chú: ${trip.ghi_chu || '-'}
+                const statusText = {
+                    'cho_xac_nhan': 'Chờ xác nhận',
+                    'da_xac_nhan': 'Đã xác nhận',
+                    'dang_di': 'Đang đi',
+                    'hoan_thanh': 'Hoàn thành',
+                    'huy_bo': 'Đã hủy'
+                }[trip.trang_thai] || trip.trang_thai;
+                
+                const statusClass = {
+                    'cho_xac_nhan': 'warning',
+                    'da_xac_nhan': 'info',
+                    'dang_di': 'primary',
+                    'hoan_thanh': 'success',
+                    'huy_bo': 'danger'
+                }[trip.trang_thai] || 'secondary';
+                
+                const price = trip.gia_cuoc ? new Intl.NumberFormat('vi-VN').format(trip.gia_cuoc) + ' VND' : 'Chưa xác định';
+                const time = trip.thoi_gian_du_kien || trip.thoi_gian_dat || 'Chưa xác định';
+                
+                document.getElementById('tripDetailContent').innerHTML = `
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">Mã chuyến đi</h6>
+                        <p class="fw-bold">#${trip.id}</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2"><i class="fas fa-map-marker-alt text-success me-2"></i>Điểm đón</h6>
+                        <p>${trip.diem_don}</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2"><i class="fas fa-map-marker-alt text-danger me-2"></i>Điểm đến</h6>
+                        <p>${trip.diem_den}</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2"><i class="fas fa-clock me-2"></i>Thời gian</h6>
+                        <p>${time}</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2"><i class="fas fa-road me-2"></i>Khoảng cách</h6>
+                        <p>${trip.khoang_cach ? trip.khoang_cach + ' km' : 'Chưa xác định'}</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2"><i class="fas fa-money-bill-wave me-2"></i>Giá cước</h6>
+                        <p class="text-success fw-bold fs-5">${price}</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2"><i class="fas fa-info-circle me-2"></i>Trạng thái</h6>
+                        <p><span class="badge bg-${statusClass}">${statusText}</span></p>
+                    </div>
+                    ${trip.ghi_chu ? `
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2"><i class="fas fa-sticky-note me-2"></i>Ghi chú</h6>
+                        <p>${trip.ghi_chu}</p>
+                    </div>
+                    ` : ''}
+                    ${trip.ten_tai_xe ? `
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2"><i class="fas fa-user me-2"></i>Tài xế</h6>
+                        <p>${trip.ten_tai_xe}${trip.sdt_tai_xe ? ' - ' + trip.sdt_tai_xe : ''}</p>
+                    </div>
+                    ` : ''}
                 `;
-                alert(content);
             } catch (e) {
                 console.error('View booking detail error', e);
-                showNotification('error', 'Lỗi khi lấy chi tiết đơn');
+                document.getElementById('tripDetailContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Lỗi khi lấy chi tiết đơn
+                    </div>
+                `;
             }
         }
 
@@ -2131,5 +2287,31 @@
             showNotification('info', 'Kiểm tra Console để xem kết quả test');
         }
     </script>
+
+    <!-- Modal Chi tiết chuyến đi -->
+    <div class="modal fade" id="tripDetailModal" tabindex="-1" aria-labelledby="tripDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="tripDetailModalLabel">
+                        <i class="fas fa-info-circle me-2"></i>Chi tiết chuyến đi
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="tripDetailContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Đang tải...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Đóng
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

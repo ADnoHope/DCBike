@@ -399,6 +399,20 @@ class Trip {
         console.error('Error getting today income:', err.message);
       }
 
+      // Tổng doanh thu - tính từ tất cả chuyến hoàn thành * 0.8
+      let totalRevenueAmount = 0;
+      try {
+        const [totalRevenue] = await pool.execute(`
+          SELECT COALESCE(SUM(gia_cuoc * 0.8), 0) as revenue
+          FROM chuyen_di 
+          WHERE tai_xe_id = ?
+            AND trang_thai = 'hoan_thanh'
+        `, [driverId]);
+        totalRevenueAmount = parseFloat(totalRevenue[0].revenue) || 0;
+      } catch (err) {
+        console.error('Error getting total revenue:', err.message);
+      }
+
       // Lấy rating trung bình từ bảng danh_gia
       let rating = 0;
       try {
@@ -419,6 +433,7 @@ class Trip {
         today_trips: todayTripsCount,
         total_trips: totalTripsCount,
         today_income: todayIncomeAmount,
+        total_revenue: totalRevenueAmount,
         rating: rating
       };
       

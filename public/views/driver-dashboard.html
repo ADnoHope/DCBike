@@ -9,14 +9,17 @@
     <link rel="stylesheet" href="/css/style.css">
     <style>
         .status-toggle-container {
-            position: sticky;
-            top: 70px;
-            z-index: 100;
+            position: relative;
+            z-index: 10;
             background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-bottom: 2px solid #e9ecef;
             margin-bottom: 20px;
+        }
+        
+        .content-wrapper {
+            margin-top: 0;
         }
 
         .status-toggle {
@@ -26,6 +29,8 @@
             padding: 15px;
             border-radius: 10px;
             transition: all 0.3s;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         .status-toggle.active {
@@ -111,16 +116,90 @@
 </head>
 <body>
     <!-- Header -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="/index.html">
-                <i class="fas fa-car me-2"></i>DC Booking
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container-fluid">
+            <button class="btn btn-link text-white p-0 me-3" id="sidebar-toggle" type="button">
+                <i class="fas fa-bars fa-lg"></i>
+            </button>
+            <a class="navbar-brand fw-bold" href="/index.html">
+                <i class="fas fa-car"></i> DC Booking
             </a>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3" id="driver-name">Tài xế</span>
-                <button class="btn btn-outline-light btn-sm" onclick="logout()">
-                    <i class="fas fa-sign-out-alt me-1"></i>Đăng xuất
-                </button>
+            <div class="ms-auto" id="auth-nav">
+                <a class="btn btn-link text-white text-decoration-none" href="#" onclick="showAuthModal()">Đăng nhập</a>
+            </div>
+            <div class="ms-auto d-none" id="user-nav">
+                <div class="dropdown">
+                    <a class="btn btn-link text-white text-decoration-none dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <span id="user-name"></span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="profile.html"><i class="fas fa-user me-2"></i>Hồ sơ cá nhân</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i>Đăng xuất</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar Menu -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <div class="sidebar-menu" id="sidebar-menu">
+        <div class="sidebar-header">
+            <h5 class="mb-0"><i class="fas fa-car"></i> Menu</h5>
+            <button class="btn-close btn-close-white" id="sidebar-close"></button>
+        </div>
+        <div class="sidebar-body">
+            <ul class="nav flex-column">
+                <li class="nav-item d-none" id="home-nav-sidebar">
+                    <a class="nav-link" href="/index.html"><i class="fas fa-home me-2"></i>Trang chủ</a>
+                </li>
+                <li class="nav-item d-none" id="booking-nav-sidebar">
+                    <a class="nav-link" href="booking.html" data-auth><i class="fas fa-calendar-check me-2"></i>Đặt xe</a>
+                </li>
+                <li class="nav-item d-none" id="trips-nav-sidebar">
+                    <a class="nav-link" href="trips.html" data-auth><i class="fas fa-route me-2"></i>Chuyến đi</a>
+                </li>
+                <li class="nav-item d-none" id="drivers-nav-sidebar">
+                    <a class="nav-link" href="drivers.html"><i class="fas fa-user-tie me-2"></i>Tài xế</a>
+                </li>
+                <li class="nav-item d-none" id="stats-menu-item-sidebar">
+                    <a class="nav-link" href="driver-dashboard.html"><i class="fas fa-chart-bar me-2"></i>Thống kê</a>
+                </li>
+                <li class="nav-item d-none" id="promotions-nav-sidebar">
+                    <a class="nav-link" href="promotions.html"><i class="fas fa-gift me-2"></i>Khuyến mãi</a>
+                </li>
+                <li class="nav-item d-none" id="driverreg-nav-sidebar">
+                    <a class="nav-link" href="/driver-registration.html"><i class="fas fa-user-plus me-2"></i>Đăng ký tài xế</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            Danh mục
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="drivers.html">Tài xế</a></li>
+                            <li><a class="dropdown-item" href="driver-dashboard.html">Thống kê</a></li>
+                            <li><a class="dropdown-item" href="promotions.html">Khuyến mãi</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <div class="dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <span id="driver-name">Tài xế</span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="profile.html">Hồ sơ cá nhân</a></li>
+                                <li><a class="dropdown-item" href="trips.html">Chuyến đi của tôi</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="logout()">Đăng xuất</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
@@ -147,8 +226,9 @@
         </div>
 
         <!-- Stats Section -->
+        <div class="content-wrapper">
         <div class="row mb-4">
-            <div class="col-md-3">
+            <div class="col-md">
                 <div class="stats-card bg-primary text-white">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -159,7 +239,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md">
                 <div class="stats-card bg-success text-white">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -170,7 +250,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md">
                 <div class="stats-card bg-warning text-white">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -181,7 +261,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md">
                 <div class="stats-card bg-info text-white">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -189,6 +269,17 @@
                             <h3 class="mb-0" id="today-income">0đ</h3>
                         </div>
                         <i class="fas fa-wallet fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md">
+                <div class="stats-card bg-danger text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Tổng doanh thu</h6>
+                            <h3 class="mb-0" id="total-revenue">0đ</h3>
+                        </div>
+                        <i class="fas fa-money-bill-wave fa-2x opacity-50"></i>
                     </div>
                 </div>
             </div>
@@ -240,12 +331,14 @@
                 </div>
             </div>
         </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/notifications.js"></script>
     <script>
-        const API_BASE_URL = 'http://localhost:3000/api';
+        window.API_BASE_URL = window.API_BASE_URL || 'http://localhost:3000/api';
+        const API_BASE_URL = window.API_BASE_URL;
         let currentDriverStatus = null;
         let pollingInterval = null;
 
@@ -266,6 +359,17 @@
                 if (data.success && data.data) {
                     const user = data.data;
                     document.getElementById('driver-name').textContent = user.ten || 'Tài xế';
+                    
+                    // Show category menu immediately for authenticated users
+                    const categoryNav = document.getElementById('category-nav');
+                    const statsMenuItem = document.getElementById('stats-menu-item');
+                    if (categoryNav) {
+                        categoryNav.classList.remove('d-none');
+                    }
+                    // Show stats menu item for drivers
+                    if (statsMenuItem && user.loai_tai_khoan === 'tai_xe') {
+                        statsMenuItem.classList.remove('d-none');
+                    }
                     
                     // Get driver status
                     await loadDriverStatus();
@@ -381,6 +485,7 @@
                     document.getElementById('total-trips').textContent = stats.total_trips || 0;
                     document.getElementById('rating').textContent = `${stats.rating || 0} ★`;
                     document.getElementById('today-income').textContent = formatCurrency(stats.today_income || 0);
+                    document.getElementById('total-revenue').textContent = formatCurrency(stats.total_revenue || 0);
                 } else {
                     console.error('Statistics API failed:', data);
                 }

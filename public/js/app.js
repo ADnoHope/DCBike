@@ -65,6 +65,49 @@ class DCCarBooking {
     }
 
     bindEvents() {
+        // Sidebar toggle functionality
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const sidebarClose = document.getElementById('sidebar-close');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const sidebarMenu = document.getElementById('sidebar-menu');
+
+        if (sidebarToggle && sidebarOverlay && sidebarMenu) {
+            // Open sidebar
+            sidebarToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                sidebarOverlay.classList.add('active');
+                sidebarMenu.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            });
+
+            // Close sidebar via close button
+            if (sidebarClose) {
+                sidebarClose.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    sidebarOverlay.classList.remove('active');
+                    sidebarMenu.classList.remove('active');
+                    document.body.style.overflow = '';
+                });
+            }
+
+            // Close sidebar via overlay click
+            sidebarOverlay.addEventListener('click', () => {
+                sidebarOverlay.classList.remove('active');
+                sidebarMenu.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+
+            // Close sidebar when clicking navigation links
+            const sidebarLinks = sidebarMenu.querySelectorAll('.nav-link');
+            sidebarLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    sidebarOverlay.classList.remove('active');
+                    sidebarMenu.classList.remove('active');
+                    document.body.style.overflow = '';
+                });
+            });
+        }
+        
         // Booking form
         const bookingForm = document.getElementById('booking-form');
         if (bookingForm) {
@@ -260,52 +303,79 @@ class DCCarBooking {
         const tripsContainer = document.getElementById('trips-list');
         if (!tripsContainer) return;
 
+        const prevBtn = document.querySelector('.carousel-prev');
+        const nextBtn = document.querySelector('.carousel-next');
+
         let html = '';
         
         if (trips.length === 0) {
-            html = '<div class="col-12 text-center"><p>Chưa có chuyến đi nào.</p></div>';
+            html = '<div class="text-center w-100"><p>Chưa có chuyến đi nào.</p></div>';
+            if (prevBtn) prevBtn.style.display = 'none';
+            if (nextBtn) nextBtn.style.display = 'none';
         } else {
+            // Show navigation buttons if there are more than 3 trips
+            if (trips.length > 3) {
+                if (prevBtn) prevBtn.style.display = 'flex';
+                if (nextBtn) nextBtn.style.display = 'flex';
+            }
+
             trips.forEach(trip => {
                 const status = this.getStatusText(trip.trang_thai);
                 const statusClass = this.getStatusClass(trip.trang_thai);
                 
                 html += `
-                    <div class="col-md-6 col-lg-4 mb-4">
-                        <div class="card">
+                    <div class="trip-card-item">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header ${statusClass} text-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">Chuyến đi #${trip.id}</h6>
+                                    <span class="badge bg-white text-dark">${status}</span>
+                                </div>
+                            </div>
                             <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6 class="card-title">Chuyến đi #${trip.id}</h6>
-                                    <span class="badge ${statusClass}">${status}</span>
+                                <div class="trip-route mb-3">
+                                    <div class="d-flex align-items-start mb-2">
+                                        <i class="fas fa-map-marker-alt text-success me-2 mt-1"></i>
+                                        <div class="flex-grow-1">
+                                            <strong class="d-block">Từ:</strong>
+                                            <small class="text-muted">${trip.diem_don}</small>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex align-items-start">
+                                        <i class="fas fa-map-marker-alt text-danger me-2 mt-1"></i>
+                                        <div class="flex-grow-1">
+                                            <strong class="d-block">Đến:</strong>
+                                            <small class="text-muted">${trip.diem_den}</small>
+                                        </div>
+                                    </div>
                                 </div>
                                 
-                                <p class="card-text">
-                                    <i class="fas fa-map-marker-alt text-success me-2"></i>
-                                    <strong>Từ:</strong> ${trip.diem_don}<br>
-                                    <i class="fas fa-map-marker-alt text-danger me-2"></i>
-                                    <strong>Đến:</strong> ${trip.diem_den}
-                                </p>
-                                
-                                <p class="card-text">
-                                    <i class="fas fa-clock me-2"></i>
-                                    ${new Date(trip.thoi_gian_don).toLocaleString('vi-VN')}
-                                </p>
+                                <div class="trip-info mb-3">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-clock text-muted me-2"></i>
+                                        <small>${new Date(trip.thoi_gian_don).toLocaleString('vi-VN')}</small>
+                                    </div>
+                                </div>
                                 
                                 ${trip.gia_cuoc ? `
-                                    <p class="card-text">
-                                        <i class="fas fa-money-bill-wave me-2"></i>
-                                        <strong>${this.formatPrice(trip.gia_cuoc)} VND</strong>
-                                    </p>
+                                    <div class="price-section mb-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-muted">Giá cước:</span>
+                                            <h5 class="text-primary mb-0">${this.formatPrice(trip.gia_cuoc)} VND</h5>
+                                        </div>
+                                    </div>
                                 ` : ''}
-
-                                <div class="btn-group w-100" role="group">
-                                    <button class="btn btn-sm btn-outline-primary" 
+                            </div>
+                            <div class="card-footer bg-white border-top">
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-primary btn-sm" 
                                             onclick="dcApp.viewTripDetails(${trip.id})">
-                                        Chi tiết
+                                        <i class="fas fa-eye me-1"></i>Chi tiết
                                     </button>
                                     ${trip.trang_thai === 'hoan_thanh' ? `
-                                        <button class="btn btn-sm btn-outline-warning" 
+                                        <button class="btn btn-outline-warning btn-sm" 
                                                 onclick="if(typeof showReviewModal !== 'undefined') showReviewModal({chuyen_di_id: ${trip.id}})">
-                                            Đánh giá
+                                            <i class="fas fa-star me-1"></i>Đánh giá
                                         </button>
                                     ` : ''}
                                 </div>
@@ -383,11 +453,13 @@ class DCCarBooking {
                                     ${trip.gia_cuoc ? `<p><strong>Giá cước:</strong> ${this.formatPrice(trip.gia_cuoc)} VND</p>` : ''}
                                 </div>
                                 <div class="col-md-6">
-                                    ${trip.tai_xe_ten ? `
+                                    ${trip.ten_tai_xe ? `
                                         <h6>Thông tin tài xế</h6>
-                                        <p><strong>Tên:</strong> ${trip.tai_xe_ten}</p>
-                                        <p><strong>SĐT:</strong> ${trip.tai_xe_sdt}</p>
-                                        <p><strong>Biển số:</strong> ${trip.bien_so_xe}</p>
+                                        <p><strong>Tên:</strong> ${trip.ten_tai_xe}</p>
+                                        ${trip.sdt_tai_xe ? `<p><strong>SĐT:</strong> ${trip.sdt_tai_xe}</p>` : ''}
+                                        ${trip.bien_so_xe ? `<p><strong>Biển số:</strong> ${trip.bien_so_xe}</p>` : ''}
+                                        ${trip.loai_xe ? `<p><strong>Loại xe:</strong> ${trip.loai_xe}</p>` : ''}
+                                        ${trip.mau_xe && trip.hang_xe ? `<p><strong>Xe:</strong> ${trip.hang_xe} - ${trip.mau_xe}</p>` : ''}
                                     ` : '<p>Chưa có tài xế nhận chuyến</p>'}
                                 </div>
                             </div>
@@ -425,12 +497,24 @@ class DCCarBooking {
         const userInfo = document.getElementById('user-info'); // Alternative user nav
         const userName = document.getElementById('user-name');
         // Nav items that should be hidden for guests (keep only 'Trang chủ' + 'Đăng nhập')
+        const homeNav = document.getElementById('home-nav');
         const bookingNav = document.getElementById('booking-nav');
         const tripsNav = document.getElementById('trips-nav');
         const driversNav = document.getElementById('drivers-nav');
         const promosNav = document.getElementById('promos-nav');
+        const categoryNav = document.getElementById('category-nav');
         const driverRegNav = document.getElementById('driverreg-nav');
         const driverStatsNav = document.getElementById('driver-stats-nav');
+        const statsMenuItem = document.getElementById('stats-menu-item');
+        
+        // Sidebar navigation items
+        const homeNavSidebar = document.getElementById('home-nav-sidebar');
+        const bookingNavSidebar = document.getElementById('booking-nav-sidebar');
+        const tripsNavSidebar = document.getElementById('trips-nav-sidebar');
+        const driversNavSidebar = document.getElementById('drivers-nav-sidebar');
+        const promotionsNavSidebar = document.getElementById('promotions-nav-sidebar');
+        const driverregNavSidebar = document.getElementById('driverreg-nav-sidebar');
+        const statsMenuItemSidebar = document.getElementById('stats-menu-item-sidebar');
 
         if (this.user) {
             console.log('User is logged in, updating UI'); // Debug log
@@ -445,9 +529,35 @@ class DCCarBooking {
             if (userName) userName.textContent = this.user.ten || this.user.ho_ten;
 
             // Show main nav items for logged-in users
+            if (homeNav) homeNav.classList.remove('d-none');
             if (tripsNav) tripsNav.classList.remove('d-none');
             if (driversNav) driversNav.classList.remove('d-none');
             if (promosNav) promosNav.classList.remove('d-none');
+            if (categoryNav) categoryNav.classList.remove('d-none');
+            
+            // Show sidebar nav items for logged-in users
+            if (homeNavSidebar) homeNavSidebar.classList.remove('d-none');
+            if (tripsNavSidebar) tripsNavSidebar.classList.remove('d-none');
+            if (driversNavSidebar) driversNavSidebar.classList.remove('d-none');
+            if (promotionsNavSidebar) promotionsNavSidebar.classList.remove('d-none');
+            
+            // Show "Thống kê" menu item only for drivers
+            if (statsMenuItem) {
+                if (this.user.loai_tai_khoan === 'tai_xe') {
+                    statsMenuItem.classList.remove('d-none');
+                } else {
+                    statsMenuItem.classList.add('d-none');
+                }
+            }
+            
+            // Show "Thống kê" in sidebar only for drivers
+            if (statsMenuItemSidebar) {
+                if (this.user.loai_tai_khoan === 'tai_xe') {
+                    statsMenuItemSidebar.classList.remove('d-none');
+                } else {
+                    statsMenuItemSidebar.classList.add('d-none');
+                }
+            }
             
             // Show booking only for customers, hide for drivers
             if (bookingNav) {
@@ -457,6 +567,15 @@ class DCCarBooking {
                 } else {
                     bookingNav.classList.add('d-none');
                     try { bookingNav.style.display = 'none'; } catch(e) {}
+                }
+            }
+            
+            // Show booking in sidebar only for customers
+            if (bookingNavSidebar) {
+                if (this.user.loai_tai_khoan === 'khach_hang') {
+                    bookingNavSidebar.classList.remove('d-none');
+                } else {
+                    bookingNavSidebar.classList.add('d-none');
                 }
             }
             
@@ -475,6 +594,15 @@ class DCCarBooking {
                     driverRegNav.classList.add('d-none');
                 } else {
                     driverRegNav.classList.remove('d-none');
+                }
+            }
+            
+            // Hide driver registration in sidebar for drivers
+            if (driverregNavSidebar) {
+                if (this.user.loai_tai_khoan === 'tai_xe') {
+                    driverregNavSidebar.classList.add('d-none');
+                } else {
+                    driverregNavSidebar.classList.remove('d-none');
                 }
             }
             
@@ -519,8 +647,18 @@ class DCCarBooking {
             if (tripsNav) tripsNav.classList.add('d-none');
             if (driversNav) driversNav.classList.add('d-none');
             if (promosNav) promosNav.classList.add('d-none');
+            if (categoryNav) categoryNav.classList.add('d-none');
             if (driverRegNav) driverRegNav.classList.add('d-none');
             if (driverStatsNav) driverStatsNav.classList.add('d-none');
+            
+            // Hide sidebar nav items for guests
+            if (homeNavSidebar) homeNavSidebar.classList.add('d-none');
+            if (bookingNavSidebar) bookingNavSidebar.classList.add('d-none');
+            if (tripsNavSidebar) tripsNavSidebar.classList.add('d-none');
+            if (driversNavSidebar) driversNavSidebar.classList.add('d-none');
+            if (promotionsNavSidebar) promotionsNavSidebar.classList.add('d-none');
+            if (driverregNavSidebar) driverregNavSidebar.classList.add('d-none');
+            if (statsMenuItemSidebar) statsMenuItemSidebar.classList.add('d-none');
             
             // Remove admin link if exists
             const adminLink = document.querySelector('.admin-link');
@@ -806,6 +944,19 @@ function scrollToBooking() {
     if (bookingForm) {
         bookingForm.style.display = 'block';
         bookingForm.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Scroll function for home page trips carousel
+function scrollHomeTrips(direction) {
+    const container = document.getElementById('trips-list');
+    if (!container) return;
+    
+    const scrollAmount = 400;
+    if (direction === 'left') {
+        container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    } else {
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
 }
 
