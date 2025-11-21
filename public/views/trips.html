@@ -350,6 +350,13 @@
                                                 <i class="fas fa-star me-1"></i>Đánh giá
                                              </button>` : ''
                                         }
+                                        ${trip.trang_thai === 'hoan_thanh' 
+                                           && trip.da_danh_gia 
+                                           && window.dcApp 
+                                           && window.dcApp.user 
+                                           && window.dcApp.user.loai_tai_khoan === 'khach_hang'
+                                           ? `<span class="badge bg-success"><i class="fas fa-check me-1"></i>Đã đánh giá</span>` : ''
+                                        }
                                     </div>
                                 </div>
                             </div>

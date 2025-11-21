@@ -95,6 +95,7 @@ class Driver {
           nd.so_dien_thoai, 
           nd.dia_chi, 
           nd.trang_thai,
+          nd.avatar,
           (
             SELECT COUNT(*) 
             FROM chuyen_di cd 
@@ -115,6 +116,7 @@ class Driver {
         email: driver.email,
         so_dien_thoai: driver.so_dien_thoai || 'N/A',
         dia_chi: driver.dia_chi || 'Chưa cập nhật',
+        avatar: driver.avatar || null,
         so_bang_lai: driver.so_bang_lai || 'N/A',
         loai_bang_lai: driver.loai_bang_lai || 'N/A',
         kinh_nghiem_lien_tuc: driver.kinh_nghiem_lien_tuc || 0,
@@ -332,6 +334,7 @@ class Driver {
           tx.id,
           nd.ten,
           nd.so_dien_thoai,
+          nd.avatar,
           tx.so_bang_lai,
           tx.loai_bang_lai,
           tx.bien_so_xe,
@@ -360,6 +363,7 @@ class Driver {
         id: row.id,
         ten: row.ten,
         so_dien_thoai: row.so_dien_thoai || 'N/A',
+        avatar: row.avatar || null,
         so_bang_lai: row.so_bang_lai || 'N/A',
         loai_bang_lai: row.loai_bang_lai || 'N/A',
         bien_so_xe: row.bien_so_xe,

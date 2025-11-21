@@ -75,8 +75,8 @@
         <!-- Page Header -->
         <div class="row mb-4">
             <div class="col-md-8">
-                <h2><i class="fas fa-users me-2"></i>Danh sách tài xế</h2>
-                <p class="text-muted">Tìm kiếm và lựa chọn tài xế phù hợp</p>
+                <h2 class="text-dark fw-bold"><i class="fas fa-users me-2"></i>Danh sách tài xế</h2>
+                <p class="text-secondary">Tìm kiếm và lựa chọn tài xế phù hợp</p>
             </div>
             <div class="col-md-4 text-end">
                 <a id="driver-register-btn" href="../driver-registration.html" class="btn btn-success">
@@ -90,7 +90,7 @@
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-3">
-                        <label class="form-label">Loại xe</label>
+                        <label class="form-label text-dark fw-semibold">Loại xe</label>
                         <select class="form-select" id="car-type-filter">
                             <option value="">Tất cả loại xe</option>
                             <option value="4-cho">Xe 4 chỗ</option>
@@ -100,7 +100,7 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Kinh nghiệm</label>
+                        <label class="form-label text-dark fw-semibold">Kinh nghiệm</label>
                         <select class="form-select" id="experience-filter">
                             <option value="">Tất cả</option>
                             <option value="1">Từ 1 năm</option>
@@ -110,7 +110,7 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Đánh giá</label>
+                        <label class="form-label text-dark fw-semibold">Đánh giá</label>
                         <select class="form-select" id="rating-filter">
                             <option value="">Tất cả đánh giá</option>
                             <option value="4">Từ 4 sao trở lên</option>
@@ -188,38 +188,168 @@
     <!-- Alert Container -->
     <div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1055;"></div>
 
+    <!-- Auth Modal -->
+    <div class="modal fade" id="authModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content auth-modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body px-4 pb-4">
+                    <!-- Auth Header -->
+                    <div class="text-center mb-4">
+                        <div class="auth-icon-wrapper mb-3">
+                            <i class="fas fa-user-circle fa-4x text-primary"></i>
+                        </div>
+                        <h4 class="fw-bold mb-1" id="authModalTitle">Đăng nhập</h4>
+                        <p class="text-muted small" id="authModalSubtitle">Chào mừng bạn quay trở lại</p>
+                    </div>
+
+                    <!-- Login Form -->
+                    <form id="login-form" class="auth-form">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-dark">Email hoặc Số điện thoại</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-user text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control border-start-0 ps-0" id="login-identifier" 
+                                       placeholder="Nhập email hoặc số điện thoại" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-dark">Mật khẩu</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-lock text-muted"></i>
+                                </span>
+                                <input type="password" class="form-control border-start-0 ps-0" id="login-password" 
+                                       placeholder="Nhập mật khẩu" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mb-2">
+                            <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
+                        </button>
+                    </form>
+
+                    <!-- Register Form -->
+                    <form id="register-form" class="auth-form d-none">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-dark">Họ và tên</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-id-card text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control border-start-0 ps-0" id="register-name" 
+                                       placeholder="Nhập họ và tên" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-dark">Vai trò</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-user-tag text-muted"></i>
+                                </span>
+                                <select class="form-select border-start-0 ps-0" id="register-role" required>
+                                    <option value="khach_hang">Người dùng</option>
+                                    <option value="tai_xe">Tài xế</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-dark">Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-envelope text-muted"></i>
+                                </span>
+                                <input type="email" class="form-control border-start-0 ps-0" id="register-email" 
+                                       placeholder="Nhập địa chỉ email" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-dark">Số điện thoại</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-phone text-muted"></i>
+                                </span>
+                                <input type="tel" class="form-control border-start-0 ps-0" id="register-phone" 
+                                       placeholder="Nhập số điện thoại" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-dark">Mật khẩu</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-lock text-muted"></i>
+                                </span>
+                                <input type="password" class="form-control border-start-0 ps-0" id="register-password" 
+                                       placeholder="Nhập mật khẩu" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-dark">Xác nhận mật khẩu</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-lock text-muted"></i>
+                                </span>
+                                <input type="password" class="form-control border-start-0 ps-0" id="register-confirm-password" 
+                                       placeholder="Nhập lại mật khẩu" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mb-2">
+                            <i class="fas fa-user-plus me-2"></i>Đăng ký
+                        </button>
+                    </form>
+
+                    <!-- Divider -->
+                    <div class="text-center my-3">
+                        <hr class="my-3">
+                    </div>
+
+                    <!-- Switch Form Link -->
+                    <div class="text-center">
+                        <p class="mb-0 text-muted small">
+                            <span id="auth-switch-text">Chưa có tài khoản?</span>
+                            <a href="#" id="auth-switch-link" onclick="toggleAuthForm()" class="text-primary fw-semibold text-decoration-none">Đăng ký ngay</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/notifications.js"></script>
+    <script src="/js/app.js"></script>
     <script>
-        // Check if API_BASE_URL is already defined
-        window.API_BASE_URL = window.API_BASE_URL || 'http://localhost:3000/api';
-        const API_BASE_URL = window.API_BASE_URL;
+        console.log('drivers.html script started');
         
+        // Global variables - NO API_BASE_URL declaration, use window.API_BASE_URL directly
         let currentPage = 1;
         let totalPages = 1;
         let currentFilters = {};
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize user authentication
-            checkAuth();
-            loadDrivers();
-            // If the logged-in user is a driver, start polling for notifications
+            console.log('[DRIVERS] DOMContentLoaded fired');
+            console.log('[DRIVERS] window.API_BASE_URL:', window.API_BASE_URL);
+            
+            // Check if container exists
+            const container = document.getElementById('drivers-container');
+            console.log('[DRIVERS] Container found:', !!container);
+            
+            // Simple approach - just call loadDrivers after a short delay
             setTimeout(() => {
-                try {
-                    const token = localStorage.getItem('token');
-                    if (token) {
-                        // Try fetch profile to detect driver role
-                        fetch(`${API_BASE_URL}/auth/profile`, { headers: { 'Authorization': `Bearer ${token}` } })
-                            .then(r => r.json())
-                            .then(data => {
-                                const user = data && (data.data || data.user || data);
-                                if (user && user.loai_tai_khoan === 'tai_xe') {
-                                    startNotificationPolling();
-                                }
-                            }).catch(() => {});
-                    }
-                } catch (e) { console.debug('Notification poll init failed', e); }
+                console.log('[DRIVERS] Calling loadDrivers()...');
+                loadDrivers();
+                
+                // Temporarily disable notification polling to avoid 403 errors during debug
+                /*
+                // If the logged-in user is a driver, start polling for notifications
+                if (window.dcApp && window.dcApp.user && window.dcApp.user.loai_tai_khoan === 'tai_xe') {
+                    startNotificationPolling();
+                }
+                */
             }, 500);
             
             // Setup search on Enter key
@@ -235,209 +365,47 @@
             }
         });
 
-        // Authentication functions
-        function checkAuth() {
-            const token = localStorage.getItem('token');
-            if (token) {
-                // Update UI for logged in user
-                fetch(`${API_BASE_URL}/auth/profile`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                })
-                .then(response => response.json())
-                .then(result => {
-                    if (result.success) {
-                        updateUIForUser(result.data);
-                    } else {
-                        // Token invalid, clear it
-                        localStorage.removeItem('token');
-                        updateUIForGuest();
-                    }
-                })
-                .catch(error => {
-                    console.error('Auth check error:', error);
-                    updateUIForGuest();
-                });
-            } else {
-                updateUIForGuest();
-            }
-        }
-
-        function updateUIForUser(user) {
-            const userMenu = document.getElementById('user-menu');
-            const authBtn = document.getElementById('auth-btn');
-            const userName = document.getElementById('user-name');
-            
-            if (userMenu && authBtn && userName) {
-                userName.textContent = user.ten;
-                userMenu.style.display = 'block';
-                authBtn.style.display = 'none';
-            }
-
-            // Show/hide menu items based on role
-            const bookingNav = document.getElementById('booking-nav');
-            const driverStatsNav = document.getElementById('driver-stats-nav');
-            
-            if (user.loai_tai_khoan === 'tai_xe') {
-                // Hide booking for drivers, show stats
-                if (bookingNav) bookingNav.style.display = 'none';
-                if (driverStatsNav) driverStatsNav.classList.remove('d-none');
-            } else if (user.loai_tai_khoan === 'khach_hang') {
-                // Show booking for customers, hide stats
-                if (bookingNav) bookingNav.style.display = 'block';
-                if (driverStatsNav) driverStatsNav.classList.add('d-none');
-            }
-
-            // Hide driver registration button on this page for users who are already drivers
-            try {
-                const driverRegisterBtn = document.getElementById('driver-register-btn');
-                if (driverRegisterBtn) {
-                    if (user.loai_tai_khoan === 'tai_xe') {
-                        driverRegisterBtn.style.display = 'none';
-                    } else {
-                        driverRegisterBtn.style.display = '';
-                    }
-                }
-            } catch (e) {
-                console.error('Error applying driver button visibility', e);
-            }
-
-            // Hide booking nav link in header for drivers
-            try {
-                const bookingNav = document.getElementById('booking-nav');
-                if (bookingNav) {
-                    if (user.loai_tai_khoan === 'tai_xe') {
-                        bookingNav.style.display = 'none';
-                    } else {
-                        bookingNav.style.display = '';
-                    }
-                }
-            } catch (e) {
-                console.error('Error applying booking nav visibility', e);
-            }
-
-            // If user is a driver, hide/disable booking buttons on this page
-            try {
-                if (user.loai_tai_khoan === 'tai_xe') {
-                    document.querySelectorAll('button').forEach(btn => {
-                        try {
-                            const txt = (btn.textContent || '').trim();
-                            if (txt.includes('Đặt xe')) {
-                                btn.style.display = 'none';
-                            }
-                        } catch (e) {}
-                    });
-                } else {
-                    // show booking buttons for non-driver users
-                    document.querySelectorAll('button').forEach(btn => {
-                        try {
-                            const txt = (btn.textContent || '').trim();
-                            if (txt.includes('Đặt xe')) {
-                                btn.style.display = '';
-                            }
-                        } catch (e) {}
-                    });
-                }
-            } catch (e) {
-                console.error('Error hiding booking buttons', e);
-            }
-        }
-
-        function updateUIForGuest() {
-            const userMenu = document.getElementById('user-menu');
-            const authBtn = document.getElementById('auth-btn');
-            
-            if (userMenu && authBtn) {
-                userMenu.style.display = 'none';
-                authBtn.style.display = 'block';
-            }
-
-            // Ensure the driver registration button is visible for guests
-            try {
-                const driverRegisterBtn = document.getElementById('driver-register-btn');
-                if (driverRegisterBtn) driverRegisterBtn.style.display = '';
-            } catch (e) {
-                console.error('Error showing driver register button for guest', e);
-            }
-        }
-
         function logout() {
-            try {
-                if (window.dcApp && typeof window.dcApp.logout === 'function') {
-                    window.dcApp.logout();
-                    return;
-                }
-            } catch(e) {}
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/index.html';
-        }
-
-        // Alert function
-        function showAlert(type, message) {
-            const alertContainer = document.getElementById('alert-container');
-            if (!alertContainer) return;
-            
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
-            alertDiv.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            
-            alertContainer.appendChild(alertDiv);
-            
-            // Auto dismiss after 5 seconds
-            setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    alertDiv.remove();
-                }
-            }, 5000);
+            if (window.dcApp && typeof window.dcApp.logout === 'function') {
+                window.dcApp.logout();
+            } else {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/index.html';
+            }
         }
 
         async function loadDrivers(page = 1) {
+            console.log('[DRIVERS] loadDrivers() called, page:', page);
+            console.log('[DRIVERS] window.API_BASE_URL:', window.API_BASE_URL);
+            
             try {
-                // Show category menu immediately if user is logged in
-                const token = localStorage.getItem('token');
-                if (token) {
-                    const categoryNav = document.getElementById('category-nav');
-                    if (categoryNav) {
-                        categoryNav.classList.remove('d-none');
-                    }
-                    // Check user role for stats menu
-                    try {
-                        const profileRes = await fetch(`${API_BASE_URL}/auth/profile`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        const profileData = await profileRes.json();
-                        if (profileData.success && profileData.data) {
-                            const statsMenuItem = document.getElementById('stats-menu-item');
-                            if (statsMenuItem && profileData.data.loai_tai_khoan === 'tai_xe') {
-                                statsMenuItem.classList.remove('d-none');
-                            }
-                        }
-                    } catch (e) {
-                        console.debug('Profile check failed', e);
-                    }
-                }
+                const apiUrl = window.API_BASE_URL || 'http://localhost:3000/api';
+                const endpoint = `${apiUrl}/drivers/available`;
                 
-                const response = await fetch(`${API_BASE_URL}/drivers/available`, {
+                console.log('[DRIVERS] Fetching from:', endpoint);
+                
+                const response = await fetch(endpoint, {
                     cache: 'no-cache',
                     headers: {
                         'Cache-Control': 'no-cache'
                     }
                 });
+                
+                console.log('[DRIVERS] Response status:', response.status);
                 const result = await response.json();
+                console.log('[DRIVERS] API Response:', result);
+                console.log('[DRIVERS] First driver full data:', result.data && result.data[0] ? JSON.stringify(result.data[0], null, 2) : 'No data');
 
                 if (result.success) {
+                    console.log('[DRIVERS] Drivers data length:', result.data.length);
                     displayDrivers(result.data);
                     setupSimplePagination(result.data.length);
                 } else {
                     throw new Error(result.message);
                 }
             } catch (error) {
-                console.error('Load drivers error:', error);
+                console.error('[DRIVERS] Load error:', error);
                 document.getElementById('drivers-container').innerHTML = `
                     <div class="text-center">
                         <div class="alert alert-danger">
@@ -450,7 +418,16 @@
         }
 
         function displayDrivers(drivers) {
+            console.log('displayDrivers called with:', drivers); // Debug log
+            console.log('Number of drivers:', drivers ? drivers.length : 0); // Debug log
+            
             const container = document.getElementById('drivers-container');
+            console.log('Container element:', container); // Debug log
+            
+            if (!container) {
+                console.error('drivers-container element not found!');
+                return;
+            }
             
             if (!drivers || drivers.length === 0) {
                 container.innerHTML = `
@@ -469,74 +446,101 @@
 
             let html = '<div class="row">';
             drivers.forEach((driver, index) => {
-                const rating = Number(driver.diem_danh_gia || 0).toFixed(1);
-                const trips = Number(driver.so_chuyen_di || 0);
-                const experience = driver.kinh_nghiem_lien_tuc || 0;
+                try {
+                    const rating = Number(driver.diem_danh_gia || 0).toFixed(1);
+                    const trips = Number(driver.so_chuyen_di || 0);
+                    const experience = driver.kinh_nghiem_lien_tuc || 0;
+                    
+                    // Debug: Log driver data to see avatar field
+                    console.log('[DRIVERS] Driver data:', {
+                        ten: driver.ten,
+                        anh_dai_dien: driver.anh_dai_dien,
+                        avatar: driver.avatar,
+                        allFields: Object.keys(driver)
+                    });
+                    
+                    // Try multiple possible avatar field names
+                    let avatarUrl = null;
+                    if (driver.anh_dai_dien) {
+                        avatarUrl = driver.anh_dai_dien.startsWith('http') ? driver.anh_dai_dien : `http://localhost:3000${driver.anh_dai_dien}`;
+                    } else if (driver.avatar) {
+                        avatarUrl = driver.avatar.startsWith('http') ? driver.avatar : `http://localhost:3000${driver.avatar}`;
+                    }
+                    
+                    console.log('[DRIVERS] Final avatar URL:', avatarUrl);
 
-                html += `
-                    <div class="col-lg-4 col-md-6 mb-4">
-                        <div class="card h-100 shadow-sm driver-card">
-                            <div class="card-body">
-                                <div class="text-center mb-3">
-                                    <div class="driver-avatar mb-2">
-                                        <i class="fas fa-user-circle fa-4x text-primary"></i>
+                    html += `
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="card h-100 shadow-sm driver-card" style="cursor: pointer;" onclick="viewDriverDetail(${driver.id || driver.tai_xe_id})">
+                                <div class="card-body">
+                                    <div class="text-center mb-3">
+                                        <div class="driver-avatar mb-2">
+                                            ${avatarUrl ? 
+                                                `<img src="${avatarUrl}" alt="${driver.ten}" class="rounded-circle" style="width: 80px; height: 80px; object-fit: cover; border: 3px solid #0d6efd;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                                                 <i class="fas fa-user-circle fa-4x text-primary" style="display: none;"></i>` 
+                                                : 
+                                                `<i class="fas fa-user-circle fa-4x text-primary"></i>`
+                                            }
+                                        </div>
+                                        <h5 class="card-title mb-1 text-dark">${driver.ten || 'N/A'}</h5>
+                                        <div class="rating mb-2">
+                                            ${generateStars(rating)} 
+                                            <span class="text-muted">(${trips} chuyến)</span>
+                                        </div>
                                     </div>
-                                    <h5 class="card-title mb-1">${driver.ten || 'N/A'}</h5>
-                                    <div class="rating mb-2">
-                                        ${generateStars(rating)} 
-                                        <span class="text-muted">(${trips} chuyến)</span>
+                                    
+                                    <div class="driver-info">
+                                        <div class="info-item mb-2">
+                                            <i class="fas fa-car text-primary me-2"></i>
+                                            <strong>${driver.loai_xe || 'N/A'}</strong> - ${driver.so_cho_ngoi || 'N/A'} chỗ
+                                        </div>
+                                        <div class="info-item mb-2">
+                                            <i class="fas fa-palette text-info me-2"></i>
+                                            ${driver.hang_xe || 'N/A'} ${driver.mau_xe || ''}
+                                        </div>
+                                        <div class="info-item mb-2">
+                                            <i class="fas fa-id-card text-success me-2"></i>
+                                            Bằng lái ${driver.loai_bang_lai || 'N/A'}
+                                        </div>
+                                        <div class="info-item mb-2">
+                                            <i class="fas fa-clock text-warning me-2"></i>
+                                            ${experience} năm kinh nghiệm
+                                        </div>
+                                        <div class="info-item mb-2">
+                                            <i class="fas fa-phone text-secondary me-2"></i>
+                                            ${driver.so_dien_thoai || 'N/A'}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="status-badges mt-3 mb-3">
+                                        ${driver.trang_thai_tai_xe === 'san_sang' ? '<span class="badge bg-success"><i class="fas fa-circle me-1"></i>Đang hoạt động</span>' : ''}
+                                        ${driver.trang_thai_tai_xe === 'nghi_lam' ? '<span class="badge bg-secondary"><i class="fas fa-moon me-1"></i>Không hoạt động</span>' : ''}
+                                        ${driver.trang_thai_tai_xe === 'dang_di' ? '<span class="badge bg-primary"><i class="fas fa-car me-1"></i>Đang trong chuyến</span>' : ''}
+                                        <span class="badge bg-info">Xe sạch sẽ</span>
+                                        ${rating >= 4.5 ? '<span class="badge bg-warning text-dark">Tài xế xuất sắc</span>' : ''}
                                     </div>
                                 </div>
                                 
-                                <div class="driver-info">
-                                    <div class="info-item mb-2">
-                                        <i class="fas fa-car text-primary me-2"></i>
-                                        <strong>${driver.loai_xe || 'N/A'}</strong> - ${driver.so_cho_ngoi || 'N/A'} chỗ
+                                <div class="card-footer bg-transparent">
+                                    <div class="d-grid">
+                                        <button class="btn btn-primary book-now-btn" data-auth data-auth-roles="khach_hang" onclick="event.stopPropagation(); bookWithDriver(${driver.id || driver.tai_xe_id})">
+                                            <i class="fas fa-car me-2"></i>Đặt xe ngay
+                                        </button>
                                     </div>
-                                    <div class="info-item mb-2">
-                                        <i class="fas fa-palette text-info me-2"></i>
-                                        ${driver.hang_xe || 'N/A'} ${driver.mau_xe || ''}
-                                    </div>
-                                    <div class="info-item mb-2">
-                                        <i class="fas fa-id-card text-success me-2"></i>
-                                        Bằng lái ${driver.loai_bang_lai || 'N/A'}
-                                    </div>
-                                    <div class="info-item mb-2">
-                                        <i class="fas fa-clock text-warning me-2"></i>
-                                        ${experience} năm kinh nghiệm
-                                    </div>
-                                    <div class="info-item mb-2">
-                                        <i class="fas fa-phone text-secondary me-2"></i>
-                                        ${driver.so_dien_thoai || 'N/A'}
-                                    </div>
-                                </div>
-                                
-                                <div class="status-badges mt-3 mb-3">
-                                    ${driver.trang_thai_tai_xe === 'san_sang' ? '<span class="badge bg-success"><i class="fas fa-circle me-1"></i>Đang hoạt động</span>' : ''}
-                                    ${driver.trang_thai_tai_xe === 'nghi_lam' ? '<span class="badge bg-secondary"><i class="fas fa-moon me-1"></i>Không hoạt động</span>' : ''}
-                                    ${driver.trang_thai_tai_xe === 'dang_di' ? '<span class="badge bg-primary"><i class="fas fa-car me-1"></i>Đang trong chuyến</span>' : ''}
-                                    <span class="badge bg-info">Xe sạch sẽ</span>
-                                    ${rating >= 4.5 ? '<span class="badge bg-warning text-dark">Tài xế xuất sắc</span>' : ''}
-                                </div>
-                            </div>
-                            
-                            <div class="card-footer bg-transparent">
-                                <div class="d-grid gap-2">
-                                    <button class="btn btn-outline-primary" onclick="viewDriverDetail(${driver.id || driver.tai_xe_id})">
-                                        <i class="fas fa-eye me-2"></i>Xem chi tiết
-                                    </button>
-                                    <button class="btn btn-primary book-now-btn" data-auth data-auth-roles="khach_hang" onclick="bookWithDriver(${driver.id || driver.tai_xe_id})">
-                                        <i class="fas fa-car me-2"></i>Đặt xe ngay
-                                    </button>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                } catch (err) {
+                    console.error('[DRIVERS] Error processing driver:', driver, err);
+                }
             });
             html += '</div>';
-
+            
+            console.log('[DRIVERS] Final HTML length:', html.length);
+            console.log('[DRIVERS] Setting innerHTML...');
             container.innerHTML = html;
+            console.log('[DRIVERS] innerHTML set successfully');
         }
 
         // rating now comes from database (diem_danh_gia)
@@ -651,8 +655,11 @@
         async function viewDriverDetail(driverId) {
             try {
                 // Use public driver info endpoint so non-admin users can view details
-                const response = await fetch(`${API_BASE_URL}/drivers/public/${driverId}`);
+                const response = await fetch(`${window.API_BASE_URL}/drivers/public/${driverId}`);
                 const result = await response.json();
+                
+                console.log('[DRIVER DETAIL] API Response:', result);
+                console.log('[DRIVER DETAIL] Full driver data:', JSON.stringify(result.data, null, 2));
 
                 if (result.success) {
                         // driver data may already include so_chuyen_di after backend update
@@ -660,11 +667,11 @@
                     const modal = new bootstrap.Modal(document.getElementById('driverDetailModal'));
                     modal.show();
                 } else {
-                    showAlert('error', 'Không thể tải thông tin tài xế');
+                    showError('Không thể tải thông tin tài xế');
                 }
             } catch (error) {
                 console.error('Load driver detail error:', error);
-                showAlert('error', 'Lỗi khi tải thông tin tài xế');
+                showError('Lỗi khi tải thông tin tài xế');
             }
         }
 
@@ -673,11 +680,36 @@
                 const trips = Number(driver.so_chuyen_di || 0);
                 const experience = driver.kinh_nghiem_lien_tuc || 0;
                 const reviewCount = Number(driver.so_luot_danh_gia || 0);
+                
+                // Debug: Log driver detail data
+                console.log('[DRIVER DETAIL] Driver data:', {
+                    ten: driver.ten,
+                    anh_dai_dien: driver.anh_dai_dien,
+                    avatar: driver.avatar,
+                    allFields: Object.keys(driver)
+                });
+                
+                // Try multiple possible avatar field names
+                let avatarUrl = null;
+                if (driver.anh_dai_dien) {
+                    avatarUrl = driver.anh_dai_dien.startsWith('http') ? driver.anh_dai_dien : `http://localhost:3000${driver.anh_dai_dien}`;
+                } else if (driver.avatar) {
+                    avatarUrl = driver.avatar.startsWith('http') ? driver.avatar : `http://localhost:3000${driver.avatar}`;
+                }
+                
+                console.log('[DRIVER DETAIL] Final avatar URL:', avatarUrl);
 
             const content = `
                 <div class="row">
                     <div class="col-md-4 text-center">
-                        <i class="fas fa-user-circle fa-5x text-primary mb-3"></i>
+                        <div class="mb-3">
+                            ${avatarUrl ? 
+                                `<img src="${avatarUrl}" alt="${driver.ten}" class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover; border: 4px solid #0d6efd;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                                 <i class="fas fa-user-circle fa-5x text-primary" style="display: none;"></i>` 
+                                : 
+                                `<i class="fas fa-user-circle fa-5x text-primary"></i>`
+                            }
+                        </div>
                         <h4>${driver.ten}</h4>
                         <div class="rating mb-1">
                             ${generateStars(rating)}
@@ -769,7 +801,7 @@
 
         async function loadDriverReviews(driverId) {
             try {
-                const res = await fetch(`${API_BASE_URL}/drivers/public/${driverId}/reviews`);
+                const res = await fetch(`${window.API_BASE_URL}/drivers/public/${driverId}/reviews`);
                 const data = await res.json();
                 
                 const reviewsContainer = document.getElementById(`driver-reviews-${driverId}`);
@@ -824,7 +856,7 @@
                 if (modal) modal.hide();
 
                 // Request conversation with driver
-                const res = await fetch(`${API_BASE_URL}/chat/request`, {
+                const res = await fetch(`${window.API_BASE_URL}/chat/request`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -842,7 +874,7 @@
                     const greetingMessage = "Xin chào! Hiện tại bạn có đang nhận chuyến không ạ?";
                     
                     try {
-                        await fetch(`${API_BASE_URL}/chat/send/${conversationId}`, {
+                        await fetch(`${window.API_BASE_URL}/chat/send/${conversationId}`, {
                             method: 'POST',
                             headers: {
                                 'Authorization': `Bearer ${token}`,
@@ -882,7 +914,7 @@
                 const token = localStorage.getItem('token');
                 if (!token) return;
 
-                const res = await fetch(`${API_BASE_URL}/drivers/notifications`, {
+                const res = await fetch(`${window.API_BASE_URL}/drivers/notifications`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -944,7 +976,7 @@
             try {
                 const token = localStorage.getItem('token');
                 if (!token) return;
-                await fetch(`${API_BASE_URL}/drivers/notifications/${notificationId}/seen`, {
+                await fetch(`${window.API_BASE_URL}/drivers/notifications/${notificationId}/seen`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -954,28 +986,28 @@
         async function acceptTripFromNotification(tripId, notificationId) {
             try {
                 const token = localStorage.getItem('token');
-                if (!token) return showAlert('warning', 'Vui lòng đăng nhập');
+                if (!token) return showWarning('Vui lòng đăng nhập');
 
-                const res = await fetch(`${API_BASE_URL}/trips/${tripId}/accept`, {
+                const res = await fetch(`${window.API_BASE_URL}/trips/${tripId}/accept`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
                 });
 
                 const result = await res.json();
                 if (result.success) {
-                    showAlert('success', 'Bạn đã nhận chuyến đi');
+                    showSuccess('Bạn đã nhận chuyến đi');
                     // Mark notification as accepted (best-effort)
-                    await fetch(`${API_BASE_URL}/drivers/notifications/${notificationId}/status`, {
+                    await fetch(`${window.API_BASE_URL}/drivers/notifications/${notificationId}/status`, {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ status: 'accepted' })
                     });
                 } else {
-                    showAlert('error', result.message || 'Không thể nhận chuyến');
+                    showError(result.message || 'Không thể nhận chuyến');
                 }
             } catch (e) {
                 console.error('Accept trip error', e);
-                showAlert('error', 'Lỗi khi nhận chuyến');
+                showError('Lỗi khi nhận chuyến');
             }
         }
     </script>

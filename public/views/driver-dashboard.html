@@ -175,34 +175,6 @@
             </ul>
         </div>
     </div>
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                            Danh mục
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="drivers.html">Tài xế</a></li>
-                            <li><a class="dropdown-item" href="driver-dashboard.html">Thống kê</a></li>
-                            <li><a class="dropdown-item" href="promotions.html">Khuyến mãi</a></li>
-                        </ul>
-                    </li>
-                </ul>
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <div class="dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                <span id="driver-name">Tài xế</span>
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="profile.html">Hồ sơ cá nhân</a></li>
-                                <li><a class="dropdown-item" href="trips.html">Chuyến đi của tôi</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="logout()">Đăng xuất</a></li>
-                            </ul>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
 
     <div class="container mt-4">
         <!-- Status Toggle Section -->
@@ -334,42 +306,99 @@
         </div>
     </div>
 
+    <!-- Auth Modal -->
+    <div class="modal fade" id="authModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content auth-modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body px-4 pb-4">
+                    <div class="text-center mb-4">
+                        <div class="auth-icon-wrapper mb-3">
+                            <i class="fas fa-user-circle fa-4x text-primary"></i>
+                        </div>
+                        <h4 class="fw-bold mb-1" id="authModalTitle">Đăng nhập</h4>
+                        <p class="text-muted small" id="authModalSubtitle">Chào mừng bạn quay trở lại</p>
+                    </div>
+                    <form id="login-form" class="auth-form">
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-dark">Email hoặc Số điện thoại</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-user text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control border-start-0 ps-0" id="login-identifier" 
+                                       placeholder="Nhập email hoặc số điện thoại" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-dark">Mật khẩu</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0">
+                                    <i class="fas fa-lock text-muted"></i>
+                                </span>
+                                <input type="password" class="form-control border-start-0 ps-0" id="login-password" 
+                                       placeholder="Nhập mật khẩu" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mb-2">
+                            <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/notifications.js"></script>
+    <script src="/js/app.js"></script>
     <script>
-        window.API_BASE_URL = window.API_BASE_URL || 'http://localhost:3000/api';
-        const API_BASE_URL = window.API_BASE_URL;
+        // Use API_BASE_URL from app.js (window.API_BASE_URL)
         let currentDriverStatus = null;
         let pollingInterval = null;
 
+        // Wait for app to initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication via dcApp
+            setTimeout(() => {
+                const token = localStorage.getItem('token');
+                if (!token || !window.dcApp || !window.dcApp.user) {
+                    window.location.href = '/index.html';
+                    return;
+                }
+                
+                // Only allow drivers to access this page
+                if (window.dcApp.user.loai_tai_khoan !== 'tai_xe') {
+                    showWarning('Chỉ tài xế mới có thể truy cập trang này');
+                    setTimeout(() => {
+                        window.location.href = '/index.html';
+                    }, 1500);
+                    return;
+                }
+                
+                loadDriverInfo();
+            }, 500);
+        });
+
         // Get token and user info
         const token = localStorage.getItem('token');
-        if (!token) {
-            window.location.href = '/index.html';
-        }
 
         // Load driver info and status
         async function loadDriverInfo() {
             try {
-                const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+                console.log('[DASHBOARD] Loading driver info...');
+                const response = await fetch(`${window.API_BASE_URL}/auth/profile`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
+                console.log('[DASHBOARD] Profile data:', data);
 
                 if (data.success && data.data) {
                     const user = data.data;
-                    document.getElementById('driver-name').textContent = user.ten || 'Tài xế';
-                    
-                    // Show category menu immediately for authenticated users
-                    const categoryNav = document.getElementById('category-nav');
-                    const statsMenuItem = document.getElementById('stats-menu-item');
-                    if (categoryNav) {
-                        categoryNav.classList.remove('d-none');
-                    }
-                    // Show stats menu item for drivers
-                    if (statsMenuItem && user.loai_tai_khoan === 'tai_xe') {
-                        statsMenuItem.classList.remove('d-none');
-                    }
+                    // app.js already handles user-name element, no need to set it here
+                    console.log('[DASHBOARD] User loaded:', user.ten);
                     
                     // Get driver status
                     await loadDriverStatus();
@@ -384,7 +413,7 @@
         // Load driver status
         async function loadDriverStatus() {
             try {
-                const response = await fetch(`${API_BASE_URL}/drivers/my-status`, {
+                const response = await fetch(`${window.API_BASE_URL}/drivers/my-status`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
@@ -438,7 +467,7 @@
             const newStatus = toggle.checked ? 'san_sang' : 'nghi_lam';
 
             try {
-                const response = await fetch(`${API_BASE_URL}/drivers/status`, {
+                const response = await fetch(`${window.API_BASE_URL}/drivers/status`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -471,7 +500,7 @@
         // Load statistics
         async function loadStats() {
             try {
-                const response = await fetch(`${API_BASE_URL}/drivers/statistics`, {
+                const response = await fetch(`${window.API_BASE_URL}/drivers/statistics`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
@@ -499,7 +528,7 @@
             if (currentDriverStatus !== 'san_sang') return;
 
             try {
-                const response = await fetch(`${API_BASE_URL}/trips/available`, {
+                const response = await fetch(`${window.API_BASE_URL}/trips/available`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
@@ -563,19 +592,27 @@
         // Load my trips
         async function loadMyTrips() {
             try {
-                const response = await fetch(`${API_BASE_URL}/trips/my-trips?page=1&limit=10`, {
+                console.log('[DASHBOARD] Loading my trips...');
+                const response = await fetch(`${window.API_BASE_URL}/trips/my-trips?page=1&limit=10`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
+                console.log('[DASHBOARD] My trips response:', data);
 
                 const container = document.getElementById('my-trips-container');
+                console.log('[DASHBOARD] Container element:', container);
                 const currentTripSection = document.getElementById('current-trip-section');
                 const currentTripContainer = document.getElementById('current-trip-container');
+                console.log('[DASHBOARD] Current trip section:', currentTripSection);
+                console.log('[DASHBOARD] Current trip container:', currentTripContainer);
 
                 if (data.success && data.data && data.data.trips && data.data.trips.length > 0) {
+                    console.log('[DASHBOARD] Found', data.data.trips.length, 'trips');
                     // Separate current trip from history
                     const currentTrip = data.data.trips.find(t => ['da_nhan', 'dang_di'].includes(t.trang_thai));
                     const historyTrips = data.data.trips.filter(t => !['da_nhan', 'dang_di'].includes(t.trang_thai));
+                    console.log('[DASHBOARD] Current trip:', currentTrip);
+                    console.log('[DASHBOARD] History trips:', historyTrips.length);
 
                     // Display current trip if exists
                     if (currentTrip) {
@@ -597,22 +634,30 @@
                         `;
                     }
                 } else {
-                    currentTripSection.style.display = 'none';
-                    container.innerHTML = `
-                        <div class="text-center py-5 text-muted">
-                            <i class="fas fa-car fa-3x mb-3"></i>
-                            <p>Chưa có chuyến đi nào</p>
-                        </div>
-                    `;
+                    console.log('[DASHBOARD] No trips found or API failed');
+                    console.log('[DASHBOARD] data.success:', data.success);
+                    console.log('[DASHBOARD] data.data:', data.data);
+                    if (currentTripSection) currentTripSection.style.display = 'none';
+                    if (container) {
+                        container.innerHTML = `
+                            <div class="text-center py-5 text-muted">
+                                <i class="fas fa-car fa-3x mb-3"></i>
+                                <p>Chưa có chuyến đi nào</p>
+                            </div>
+                        `;
+                    }
                 }
             } catch (error) {
                 console.error('Load my trips error:', error);
-                document.getElementById('my-trips-container').innerHTML = `
-                    <div class="text-center py-5 text-danger">
-                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
-                        <p>Không thể tải danh sách chuyến đi</p>
-                    </div>
-                `;
+                const container = document.getElementById('my-trips-container');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="text-center py-5 text-danger">
+                            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                            <p>Không thể tải danh sách chuyến đi</p>
+                        </div>
+                    `;
+                }
             }
         }
 
@@ -738,7 +783,7 @@
             if (!confirm('Bạn có chắc muốn nhận chuyến đi này?')) return;
 
             try {
-                const response = await fetch(`${API_BASE_URL}/trips/${tripId}/accept`, {
+                const response = await fetch(`${window.API_BASE_URL}/trips/${tripId}/accept`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -767,7 +812,7 @@
             if (!confirm('Bạn đã đến điểm đón và bắt đầu chuyến đi?')) return;
 
             try {
-                const response = await fetch(`${API_BASE_URL}/trips/${tripId}/start`, {
+                const response = await fetch(`${window.API_BASE_URL}/trips/${tripId}/start`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -795,7 +840,7 @@
             if (!confirm('Xác nhận hoàn thành chuyến đi? Hệ thống sẽ tự động tính tiền (80% cho tài xế, 20% phí dịch vụ)')) return;
 
             try {
-                const response = await fetch(`${API_BASE_URL}/trips/${tripId}/complete`, {
+                const response = await fetch(`${window.API_BASE_URL}/trips/${tripId}/complete`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -847,8 +892,13 @@
         function logout() {
             if (confirm('Bạn có chắc muốn đăng xuất?')) {
                 stopPolling();
-                localStorage.removeItem('token');
-                window.location.href = '/index.html';
+                if (window.dcApp && typeof window.dcApp.logout === 'function') {
+                    window.dcApp.logout();
+                } else {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.href = '/index.html';
+                }
             }
         }
 

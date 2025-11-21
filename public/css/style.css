@@ -5,6 +5,11 @@
     box-sizing: border-box;
 }
 
+html, body {
+    overflow-x: hidden;
+    max-width: 100%;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
@@ -1181,8 +1186,9 @@ footer {
 /* Trips Carousel - Horizontal Scrollable Layout */
 .trips-carousel-wrapper {
     position: relative;
-    margin: 0 -15px;
+    margin: 0;
     padding: 20px 0;
+    overflow: hidden;
 }
 
 .trips-carousel {
@@ -1190,27 +1196,13 @@ footer {
     overflow-x: auto;
     scroll-behavior: smooth;
     gap: 20px;
-    padding: 0 50px;
-    scrollbar-width: thin;
-    scrollbar-color: #0d6efd #f0f0f0;
+    padding: 0 15px;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
 }
 
 .trips-carousel::-webkit-scrollbar {
-    height: 8px;
-}
-
-.trips-carousel::-webkit-scrollbar-track {
-    background: #f0f0f0;
-    border-radius: 10px;
-}
-
-.trips-carousel::-webkit-scrollbar-thumb {
-    background: #0d6efd;
-    border-radius: 10px;
-}
-
-.trips-carousel::-webkit-scrollbar-thumb:hover {
-    background: #0b5ed7;
+    display: none; /* Chrome, Safari, Opera */
 }
 
 .trip-card-item {

@@ -1,5 +1,6 @@
 // API Configuration
 const API_BASE_URL = 'http://localhost:3000/api';
+window.API_BASE_URL = API_BASE_URL; // Export to global scope for other scripts
 
 // Main Application Class
 class DCCarBooking {
@@ -325,7 +326,7 @@ class DCCarBooking {
                 
                 html += `
                     <div class="trip-card-item">
-                        <div class="card h-100 shadow-sm">
+                        <div class="card h-100 shadow-sm" style="cursor: pointer;" onclick="dcApp.viewTripDetails(${trip.id})">
                             <div class="card-header ${statusClass} text-white">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <h6 class="mb-0">Chuyến đi #${trip.id}</h6>
@@ -365,20 +366,6 @@ class DCCarBooking {
                                         </div>
                                     </div>
                                 ` : ''}
-                            </div>
-                            <div class="card-footer bg-white border-top">
-                                <div class="d-grid gap-2">
-                                    <button class="btn btn-outline-primary btn-sm" 
-                                            onclick="dcApp.viewTripDetails(${trip.id})">
-                                        <i class="fas fa-eye me-1"></i>Chi tiết
-                                    </button>
-                                    ${trip.trang_thai === 'hoan_thanh' ? `
-                                        <button class="btn btn-outline-warning btn-sm" 
-                                                onclick="if(typeof showReviewModal !== 'undefined') showReviewModal({chuyen_di_id: ${trip.id}})">
-                                            <i class="fas fa-star me-1"></i>Đánh giá
-                                        </button>
-                                    ` : ''}
-                                </div>
                             </div>
                         </div>
                     </div>
