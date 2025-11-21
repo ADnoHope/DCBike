@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thanh toán phí dịch vụ - DC Bike</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <style>
+        .payment-container {
+            max-width: 800px;
+            margin: 50px auto;
+        }
+        .payment-card {
+            border: 2px solid #ffc107;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .qr-container {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        /* Khung chứa QR */
+        .qr-frame {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto 15px auto;
+            background: white;
+            padding: 10px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .qr-frame img.qr-dynamic {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: none; /* Ẩn mặc định chờ load */
+        }
+        .bank-info {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .debt-summary {
+            background: #f8d7da;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5 class="text-white"><i class="fas fa-car"></i> DC Car Booking</h5>
+                    <p class="text-light opacity-75">Hệ thống đặt xe trực tuyến hàng đầu Việt Nam</p>
+                    <div class="mt-3">
+                        <img src="/uploads/bocongthuong/Logo-thong-bao-mau-do-1.png" 
+                             alt="Đã đăng ký Bộ Công Thương" 
+                             style="height: 150px; object-fit: contain;"
+                             onerror="this.style.display='none'">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-white mb-3">Liên hệ</h6>
+                    <div class="text-light opacity-75">
+                        <p class="mb-2"><i class="fas fa-phone"></i> Hotline: <a href="tel:19006789" class="text-light text-decoration-none">1900 6789</a></p>
+                        <p class="mb-2"><i class="fas fa-envelope"></i> Email: <a href="mailto:support@dcbooking.com" class="text-light text-decoration-none">support@dcbooking.com</a></p>
+                        <p class="mb-2"><i class="fab fa-facebook"></i> Facebook: <a href="https://web.facebook.com/manhcuonq204" target="_blank" class="text-light text-decoration-none">DC Booking</a></p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-white mb-3">Địa chỉ</h6>
+                    <p class="text-light opacity-75">
+                        <i class="fas fa-map-marker-alt"></i> Trụ sở:<br>
+                        HUTECH - Đại học Công nghệ TP.HCM (Thu Duc Campus)<br>
+                        Khu Công nghệ cao XLHN, Hiệp Phú,<br>
+                         Thủ Đức, Thành phố Hồ Chí Minh, Việt Nam
+                    </p>
+                </div>
+            </div>
+            <hr class="border-secondary my-3">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="text-light opacity-75 mb-0">© 2024 DC Car Booking. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <nav class="navbar navbar-dark bg-primary">
+        <div class="container-fluid">
+            <button class="btn btn-link text-white p-0 me-3" id="sidebar-toggle" type="button">
+                <i class="fas fa-bars fa-lg"></i>
+            </button>
+            <a class="navbar-brand fw-bold" href="/index.html">
+                <i class="fas fa-car"></i> DC Booking
+            </a>
+            <div class="ms-auto" id="auth-nav">
+                <a class="btn btn-link text-white text-decoration-none" href="#" onclick="showAuthModal()">Đăng nhập</a>
+            </div>
+            <div class="ms-auto d-none" id="user-nav">
+                <div class="dropdown">
+                    <a class="btn btn-link text-white text-decoration-none dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <span id="user-name"></span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="views/profile.html"><i class="fas fa-user me-2"></i>Hồ sơ cá nhân</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i>Đăng xuất</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar Menu (copied from homepage to match header behavior) -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <div class="sidebar-menu" id="sidebar-menu">
+        <div class="sidebar-header">
+            <h5 class="mb-0"><i class="fas fa-car"></i> Menu</h5>
+            <button class="btn-close btn-close-white" id="sidebar-close"></button>
+        </div>
+        <div class="sidebar-body">
+            <!-- Status Toggle (driver) -->
+            <div class="status-toggle-container mb-3">
+                <div class="status-toggle" id="status-container">
+                    <div>
+                        <h6 class="mb-0" id="status-title">
+                            <i class="fas fa-circle me-2" id="status-icon"></i>
+                            <span id="status-text">Đang tải...</span>
+                        </h6>
+                        <small class="text-muted" id="status-description">Đang kiểm tra trạng thái</small>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="statusToggle" onchange="toggleDriverStatus()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="mt-2 text-center" id="status-info">
+                    <small class="text-muted">Bật để nhận chuyến đi mới</small>
+                </div>
+            </div>
+            <ul class="nav flex-column">
+                <li class="nav-item d-none" id="home-nav-sidebar">
+                    <a class="nav-link" href="#home"><i class="fas fa-home me-2"></i>Trang chủ</a>
+                </li>
+                <li class="nav-item d-none" id="booking-nav-sidebar">
+                    <a class="nav-link" href="views/booking.html" data-auth><i class="fas fa-calendar-check me-2"></i>Đặt xe</a>
+                </li>
+                <li class="nav-item d-none" id="trips-nav-sidebar">
+                    <a class="nav-link" href="views/trips.html" data-auth><i class="fas fa-route me-2"></i>Chuyến đi</a>
+                </li>
+                <li class="nav-item d-none" id="drivers-nav-sidebar">
+                    <a class="nav-link" href="views/drivers.html"><i class="fas fa-user-tie me-2"></i>Tài xế</a>
+                </li>
+                <li class="nav-item d-none" id="stats-menu-item-sidebar">
+                    <a class="nav-link" href="views/driver-dashboard.html"><i class="fas fa-chart-bar me-2"></i>Thống kê</a>
+                </li>
+                <li class="nav-item d-none" id="promotions-nav-sidebar">
+                    <a class="nav-link" href="views/promotions.html"><i class="fas fa-gift me-2"></i>Khuyến mãi</a>
+                </li>
+                <li class="nav-item d-none" id="driverreg-nav-sidebar">
+                    <a class="nav-link" href="driver-registration.html"><i class="fas fa-user-plus me-2"></i>Đăng ký tài xế</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="payment-container">
+        <div class="card payment-card">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0">
+                    <i class="fas fa-credit-card me-2"></i>Thanh toán phí dịch vụ
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="debt-summary">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="mb-0">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Tổng số tiền cần thanh toán:
+                            </h5>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <h2 class="mb-0 text-danger fw-bold" id="totalPaymentAmount">0đ</h2>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Số chuyến đi chưa thanh toán: <strong id="unpaidTripsCount">0</strong>
+                        </small>
+                    </div>
+                </div>
+
+                <div class="qr-container">
+                    <h5 class="mb-3">Quét mã QR để thanh toán</h5>
+                    
+                    <div id="paymentQRCode" class="mb-3">
+                        <div class="qr-frame">
+                            <div class="spinner-border text-warning" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Số tiền và nội dung chuyển khoản đã được nhập tự động.
+                    </div>
+                </div>
+
+                <div class="bank-info">
+                    <h6 class="fw-bold mb-3">
+                        <i class="fas fa-university me-2"></i>Thông tin chi tiết
+                    </h6>
+                    <div class="row mb-2">
+                        <div class="col-5 text-end"><strong>Ngân hàng:</strong></div>
+                        <div class="col-7" id="bankName">-</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-5 text-end"><strong>Số tài khoản:</strong></div>
+                        <div class="col-7" id="bankAccount">-</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-5 text-end"><strong>Chủ tài khoản:</strong></div>
+                        <div class="col-7" id="bankAccountHolder">-</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-5 text-end"><strong>Số tiền:</strong></div>
+                        <div class="col-7 text-danger fw-bold" id="bankAmount">-</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-5 text-end"><strong>Nội dung:</strong></div>
+                        <div class="col-7 fw-bold" id="bankDescription">-</div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button class="btn btn-success btn-lg" onclick="confirmPayment()">
+                        <i class="fas fa-check me-2"></i>Tôi đã chuyển khoản thành công
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="goBack()">
+                        <i class="fas fa-arrow-left me-2"></i>Quay lại Dashboard
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Chi tiết các khoản nợ
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="debtDetailsTable"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/notifications.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        // Minimal driver status handling reused across pages
+        async function loadDriverStatus() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+                const res = await fetch(`${window.API_BASE_URL}/drivers/my-status`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (data && data.success && data.data) {
+                    const status = data.data.trang_thai_tai_xe;
+                    updateStatusUI(status);
+                }
+            } catch (e) { console.debug('loadDriverStatus failed', e); }
+        }
+
+        function updateStatusUI(status) {
+            const container = document.getElementById('status-container');
+            const toggle = document.getElementById('statusToggle');
+            const icon = document.getElementById('status-icon');
+            const text = document.getElementById('status-text');
+            const description = document.getElementById('status-description');
+            const availableSection = document.getElementById('available-trips-section');
+
+            if (!container || !toggle) return;
+
+            if (status === 'san_sang') {
+                container.classList.remove('inactive');
+                container.classList.add('active');
+                toggle.checked = true;
+                icon.className = 'fas fa-circle me-2';
+                text.textContent = 'Đang hoạt động';
+                description.textContent = 'Bạn có thể nhận chuyến đi mới';
+                if (availableSection) availableSection.style.display = 'block';
+            } else {
+                container.classList.remove('active');
+                container.classList.add('inactive');
+                toggle.checked = false;
+                icon.className = 'fas fa-moon me-2';
+                text.textContent = 'Không hoạt động';
+                description.textContent = 'Bật để bắt đầu nhận chuyến';
+                if (availableSection) availableSection.style.display = 'none';
+            }
+        }
+
+        async function toggleDriverStatus() {
+            const toggle = document.getElementById('statusToggle');
+            if (!toggle) return;
+            const token = localStorage.getItem('token');
+            const newStatus = toggle.checked ? 'san_sang' : 'nghi_lam';
+            try {
+                const res = await fetch(`${window.API_BASE_URL}/drivers/status`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ trang_thai: newStatus })
+                });
+                const data = await res.json();
+                if (data && data.success) {
+                    updateStatusUI(newStatus);
+                    showNotification(toggle.checked ? 'Đã bật trạng thái hoạt động' : 'Đã tắt trạng thái hoạt động', 'success');
+                } else {
+                    toggle.checked = !toggle.checked;
+                    showNotification('Không thể thay đổi trạng thái', 'error');
+                }
+            } catch (e) {
+                console.error('toggleDriverStatus error', e);
+                toggle.checked = !toggle.checked;
+                showNotification('Lỗi khi thay đổi trạng thái', 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(loadDriverStatus, 600);
+        });
+    </script>
+    
+    <script>
+        // ==========================================
+        // LOGIC XỬ LÝ THANH TOÁN & VIETQR
+        // ==========================================
+        
+        const token = localStorage.getItem('token');
+        let totalDebt = 0;
+
+        // 1. Kiểm tra đăng nhập
+        if (!token) {
+            window.location.href = '/index.html';
+        }
+
+        // 2. Hàm lấy mã BIN ngân hàng chuẩn VietQR
+        function getVietQrBankCode(bankName) {
+            if (!bankName) return '963'; 
+            const name = bankName.toLowerCase();
+            // Map tên ngân hàng sang mã BIN (AcqId)
+            if (name.includes('vietcombank') || name.includes('vcb')) return '970436';
+            if (name.includes('vib')) return '970441'; // Dùng 970441 cho VIB chuẩn Napas
+            if (name.includes('vietinbank') || name.includes('ctg')) return '970415';
+            if (name.includes('mb') || name.includes('military')) return '970422';
+            if (name.includes('techcombank') || name.includes('tcb')) return '970407';
+            if (name.includes('acb')) return '970416';
+            if (name.includes('vpbank')) return '970432';
+            if (name.includes('tpbank')) return '970423';
+            if (name.includes('bidv')) return '970418';
+            if (name.includes('agribank')) return '970405';
+            return '963'; // Mặc định (VIB cũ)
+        }
+
+        // 3. Format tiền tệ
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+        }
+
+        // 4. Hàm tạo QR Code Động (QUAN TRỌNG NHẤT)
+        function generateQRCode(settings) {
+            const qrContainer = document.getElementById('paymentQRCode');
+            
+            // Lấy thông tin giao dịch
+            const user = window.dcApp?.user;
+            // Tạo nội dung chuyển khoản: DCBIKE PHI DV <ID>
+            const rawInfo = `DCBIKE PHI DV ${user?.id || '7'}`;
+            
+            // Chuẩn bị tham số URL
+            const bankCode = getVietQrBankCode(settings.qr_bank_name);
+            const accountNo = settings.qr_bank_account || '028155456';
+            const amount = Math.round(totalDebt) || 0;
+            
+            // Mã hóa dữ liệu URL an toàn
+            const addInfo = encodeURIComponent(rawInfo.toUpperCase().replace(/[^A-Z0-9 ]/g, ''));
+            // QUAN TRỌNG: Truyền accountName để ép hiển thị template kể cả khi không tra cứu được tên
+            const accountName = encodeURIComponent(settings.qr_account_holder || 'DCBIKE DRIVER');
+
+            // Tạo URL chính: Dùng template 'compact2' (Đẹp, dọc)
+            const primaryUrl = `https://img.vietqr.io/image/${bankCode}-${accountNo}-compact2.png?amount=${amount}&addInfo=${addInfo}&accountName=${accountName}`;
+            
+            // Tạo URL dự phòng: Dùng template 'qr_only' (Chỉ mã QR, không khung)
+            const fallbackUrl = `https://img.vietqr.io/image/${bankCode}-${accountNo}-qr_only.png?amount=${amount}&addInfo=${addInfo}`;
+
+            console.log('Đang tạo QR:', primaryUrl);
+
+            // Render HTML
+            qrContainer.innerHTML = `
+                <div class="qr-frame">
+                    <div class="spinner-border text-warning" role="status" id="qrLoading">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <img 
+                        class="qr-dynamic" 
+                        src="${primaryUrl}" 
+                        alt="QR Chuyển khoản" 
+                        onload="document.getElementById('qrLoading').style.display='none'; this.style.display='block';"
+                        onerror="console.log('QR Template lỗi, chuyển sang chế độ đơn giản'); this.onerror=null; this.src='${fallbackUrl}';"
+                    />
+                </div>
+            `;
+        }
+
+        // 5. Tải dữ liệu trang
+        async function loadPaymentInfo() {
+            try {
+                // Gọi API lấy nợ
+                const debtResponse = await fetch(`${window.API_BASE_URL}/drivers/debts?status=chua_tra`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const debtData = await debtResponse.json();
+
+                if (!debtData.success) {
+                    showNotification(debtData.message || 'Lỗi tải thông tin nợ', 'error');
+                    return;
+                }
+
+                const debts = debtData.data || [];
+                if (debts.length === 0) {
+                    showNotification('Tuyệt vời! Bạn không có khoản nợ nào.', 'success');
+                    setTimeout(() => window.location.href = '/views/driver-dashboard.html', 2000);
+                    return;
+                }
+
+                // Tính toán
+                totalDebt = debts.reduce((sum, debt) => sum + parseFloat(debt.so_tien_no), 0);
+                
+                // Render thông tin
+                document.getElementById('totalPaymentAmount').textContent = formatCurrency(totalDebt);
+                document.getElementById('unpaidTripsCount').textContent = debts.length;
+                displayDebtTable(debts);
+
+                // Gọi API lấy setting ngân hàng
+                const settingsResponse = await fetch(`${window.API_BASE_URL}/settings/payment`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const settingsData = await settingsResponse.json();
+                
+                if (settingsData.success) {
+                    const settings = settingsData.data;
+                    displayBankInfo(settings);
+                    generateQRCode(settings); // Gọi hàm tạo QR
+                }
+
+            } catch (error) {
+                console.error('Lỗi hệ thống:', error);
+                showNotification('Không thể kết nối đến máy chủ', 'error');
+            }
+        }
+
+        function displayDebtTable(debts) {
+            let html = '<div class="table-responsive"><table class="table table-striped table-hover"><thead class="table-warning"><tr><th>Chuyến</th><th>Ngày</th><th>Tổng cước</th><th>Phí (20%)</th><th>Hạn trả</th></tr></thead><tbody>';
+            debts.forEach(debt => {
+                html += `<tr>
+                    <td>#${debt.chuyen_di_id}</td>
+                    <td>${new Date(debt.ngay_phat_sinh).toLocaleDateString('vi-VN')}</td>
+                    <td>${formatCurrency(debt.so_tien_no * 5)}</td>
+                    <td class="text-danger fw-bold">${formatCurrency(debt.so_tien_no)}</td>
+                    <td>${new Date(debt.han_thanh_toan).toLocaleDateString('vi-VN')}</td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+            document.getElementById('debtDetailsTable').innerHTML = html;
+        }
+
+        function displayBankInfo(settings) {
+            document.getElementById('bankName').textContent = settings.qr_bank_name || 'VIB';
+            document.getElementById('bankAccount').textContent = settings.qr_bank_account || '...';
+            document.getElementById('bankAccountHolder').textContent = settings.qr_account_holder || '...';
+            document.getElementById('bankAmount').textContent = formatCurrency(totalDebt);
+            const user = window.dcApp?.user;
+            document.getElementById('bankDescription').textContent = `DCBIKE PHI DV ${user?.id || '7'}`;
+        }
+
+        async function confirmPayment() {
+            if(!confirm('Bạn xác nhận đã chuyển khoản thành công số tiền ' + formatCurrency(totalDebt) + '?')) return;
+            
+            try {
+                const response = await fetch(`${window.API_BASE_URL}/drivers/confirm-payment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ amount: totalDebt, note: 'Tài xế xác nhận thanh toán qua QR' })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showNotification('Đã gửi xác nhận thành công! Vui lòng đợi Admin duyệt.', 'success');
+                    setTimeout(() => window.location.href = '/views/driver-dashboard.html', 3000);
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            } catch(e) { 
+                console.error(e); 
+                showNotification('Lỗi khi gửi xác nhận', 'error'); 
+            }
+        }
+
+        function goBack() { window.location.href = '/views/driver-dashboard.html'; }
+
+        // Khởi chạy khi trang load
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                if (window.dcApp?.user) loadPaymentInfo();
+                else window.location.href = '/index.html';
+            }, 500);
+        });
+    </script>
+</body>
+</html>

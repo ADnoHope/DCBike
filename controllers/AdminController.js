@@ -570,6 +570,135 @@ class AdminController {
       res.status(500).json({ success: false, message: 'Lỗi khi lấy thông tin người dùng' });
     }
   }
+
+  // Lấy danh sách khoản nợ cần xác nhận thanh toán
+  static async getPaymentVerification(req, res) {
+    try {
+      const { status } = req.query;
+      
+      let query = `
+        SELECT 
+          ntx.*,
+          nd.ten as ten_tai_xe,
+          nd.so_dien_thoai,
+          cd.diem_don,
+          cd.diem_den,
+          cd.tong_tien,
+          cd.thoi_gian_ket_thuc
+        FROM no_tai_xe ntx
+        INNER JOIN tai_xe tx ON ntx.tai_xe_id = tx.id
+        INNER JOIN nguoi_dung nd ON tx.nguoi_dung_id = nd.id
+        INNER JOIN chuyen_di cd ON ntx.chuyen_di_id = cd.id
+      `;
+      
+      const params = [];
+      
+      if (status && status !== 'all') {
+        query += ' WHERE ntx.trang_thai = ?';
+        params.push(status);
+      }
+      
+      query += ' ORDER BY ntx.ngay_phat_sinh DESC, ntx.han_thanh_toan ASC';
+      
+      const [debts] = await pool.execute(query, params);
+
+      res.json({
+        success: true,
+        data: debts
+      });
+    } catch (error) {
+      console.error('Get payment verification error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi lấy danh sách thanh toán'
+      });
+    }
+  }
+
+  // Duyệt thanh toán
+  static async approvePayment(req, res) {
+    try {
+      const { debt_id, driver_id } = req.body;
+
+      if (!debt_id || !driver_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Thiếu thông tin debt_id hoặc driver_id'
+        });
+      }
+
+      // Cập nhật trạng thái nợ thành "đã trả"
+      await pool.execute(`
+        UPDATE no_tai_xe 
+        SET 
+          trang_thai = 'da_tra',
+          so_tien_da_tra = so_tien_no,
+          ngay_thanh_toan = NOW()
+        WHERE id = ?
+      `, [debt_id]);
+
+      // Kiểm tra xem tài xế còn nợ nào chưa
+      const [unpaidDebts] = await pool.execute(`
+        SELECT COUNT(*) as count
+        FROM no_tai_xe
+        WHERE tai_xe_id = ? AND trang_thai != 'da_tra'
+      `, [driver_id]);
+
+      // Nếu không còn nợ, gỡ cờ bị chặn
+      if (unpaidDebts[0].count === 0) {
+        await pool.execute(`
+          UPDATE tai_xe 
+          SET bi_chan_vi_no = 0
+          WHERE id = ?
+        `, [driver_id]);
+      }
+
+      res.json({
+        success: true,
+        message: 'Đã duyệt thanh toán thành công'
+      });
+    } catch (error) {
+      console.error('Approve payment error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi duyệt thanh toán'
+      });
+    }
+  }
+
+  // Từ chối thanh toán
+  static async rejectPayment(req, res) {
+    try {
+      const { debt_id, reason } = req.body;
+
+      if (!debt_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Thiếu thông tin debt_id'
+        });
+      }
+
+      // Cập nhật trạng thái nợ về "chưa trả" và thêm ghi chú
+      await pool.execute(`
+        UPDATE no_tai_xe 
+        SET 
+          trang_thai = 'chua_tra',
+          ghi_chu = CONCAT(COALESCE(ghi_chu, ''), '\n[Admin từ chối] ', ?)
+        WHERE id = ?
+      `, [reason || 'Không có lý do', debt_id]);
+
+      res.json({
+        success: true,
+        message: 'Đã từ chối thanh toán'
+      });
+    } catch (error) {
+      console.error('Reject payment error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi từ chối thanh toán'
+      });
+    }
+  }
 }
 
 module.exports = AdminController;

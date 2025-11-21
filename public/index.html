@@ -44,6 +44,25 @@
             <button class="btn-close btn-close-white" id="sidebar-close"></button>
         </div>
         <div class="sidebar-body">
+            <!-- Status Toggle (driver) -->
+            <div class="status-toggle-container mb-3">
+                <div class="status-toggle" id="status-container">
+                    <div>
+                        <h6 class="mb-0" id="status-title">
+                            <i class="fas fa-circle me-2" id="status-icon"></i>
+                            <span id="status-text">Đang tải...</span>
+                        </h6>
+                        <small class="text-muted" id="status-description">Đang kiểm tra trạng thái</small>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="statusToggle" onchange="toggleDriverStatus()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="mt-2 text-center" id="status-info">
+                    <small class="text-muted">Bật để nhận chuyến đi mới</small>
+                </div>
+            </div>
             <ul class="nav flex-column">
                 <li class="nav-item d-none" id="home-nav-sidebar">
                     <a class="nav-link" href="#home"><i class="fas fa-home me-2"></i>Trang chủ</a>
@@ -494,5 +513,69 @@
     <script src="/js/notifications.js"></script>
     <script src="js/app.js"></script>
     <script src="js/chat.js"></script>
+    <script>
+        // Homepage driver status helper (keeps behavior consistent with other pages)
+        async function loadDriverStatus() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+                const res = await fetch(`${window.API_BASE_URL}/drivers/my-status`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (data && data.success && data.data) updateStatusUI(data.data.trang_thai_tai_xe);
+            } catch (e) { console.debug('loadDriverStatus error', e); }
+        }
+
+        function updateStatusUI(status) {
+            const container = document.getElementById('status-container');
+            const toggle = document.getElementById('statusToggle');
+            const icon = document.getElementById('status-icon');
+            const text = document.getElementById('status-text');
+            const description = document.getElementById('status-description');
+            if (!container || !toggle) return;
+            if (status === 'san_sang') {
+                container.classList.remove('inactive');
+                container.classList.add('active', 'pulse');
+                toggle.checked = true;
+                icon.className = 'fas fa-circle me-2';
+                text.textContent = 'Đang hoạt động';
+                description.textContent = 'Bạn có thể nhận chuyến đi mới';
+            } else {
+                container.classList.remove('active', 'pulse');
+                container.classList.add('inactive');
+                toggle.checked = false;
+                icon.className = 'fas fa-moon me-2';
+                text.textContent = 'Không hoạt động';
+                description.textContent = 'Bật để bắt đầu nhận chuyến';
+            }
+        }
+
+        async function toggleDriverStatus() {
+            const toggle = document.getElementById('statusToggle');
+            if (!toggle) return;
+            const newStatus = toggle.checked ? 'san_sang' : 'nghi_lam';
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${window.API_BASE_URL}/drivers/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ trang_thai: newStatus })
+                });
+                const data = await res.json();
+                if (data && data.success) {
+                    updateStatusUI(newStatus);
+                    showNotification(toggle.checked ? 'Đã bật trạng thái hoạt động' : 'Đã tắt trạng thái hoạt động', 'success');
+                } else {
+                    toggle.checked = !toggle.checked;
+                    showNotification('Không thể thay đổi trạng thái', 'error');
+                }
+            } catch (e) {
+                console.error('toggleDriverStatus error', e);
+                toggle.checked = !toggle.checked;
+                showNotification('Lỗi khi thay đổi trạng thái', 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => setTimeout(loadDriverStatus, 600));
+    </script>
 </body>
 </html>

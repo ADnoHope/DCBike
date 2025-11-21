@@ -2,6 +2,7 @@ const Trip = require('../models/Trip');
 const Driver = require('../models/Driver');
 const Promotion = require('../models/Promotion');
 const Revenue = require('../models/Revenue');
+const DriverDebt = require('../models/DriverDebt');
 
 class TripController {
   // Tạo chuyến đi mới
@@ -10,7 +11,8 @@ class TripController {
       const {
         diem_don, diem_den, lat_don, lng_don, lat_den, lng_den,
         khoang_cach, thoi_gian_du_kien, gia_cuoc, phi_dich_vu,
-        khuyen_mai_id, ma_khuyen_mai, so_tien_giam_gia, ghi_chu
+        khuyen_mai_id, ma_khuyen_mai, so_tien_giam_gia, ghi_chu,
+        phuong_thuc_thanh_toan
       } = req.body;
 
       const khach_hang_id = req.user.id;
@@ -66,6 +68,7 @@ class TripController {
         tong_tien,
         khuyen_mai_id: appliedPromotionId,
         so_tien_giam_gia: appliedDiscount || so_tien_giam_gia || 0,
+        phuong_thuc_thanh_toan: phuong_thuc_thanh_toan || 'tien_mat',
         ghi_chu
       };
 
@@ -209,6 +212,14 @@ class TripController {
         return res.status(403).json({
           success: false,
           message: 'Bạn không phải là tài xế'
+        });
+      }
+
+      // Kiểm tra nợ quá hạn
+      if (driver.bi_chan_vi_no) {
+        return res.status(403).json({
+          success: false,
+          message: 'Tài khoản của bạn đã bị khóa do có nợ quá hạn. Vui lòng thanh toán để tiếp tục nhận chuyến.'
         });
       }
 
@@ -368,6 +379,68 @@ class TripController {
       await Trip.updateStatus(tripId, 'hoan_thanh');
       await Driver.updateStatus(driver.id, 'san_sang');
 
+      // Xử lý thanh toán dựa trên phương thức
+      let qrData = null;
+      if (trip.phuong_thuc_thanh_toan === 'tien_mat') {
+        // Tiền mặt: Tạo khoản nợ 20% cho tài xế
+        try {
+          const { pool } = require('../config/database');
+          const [settings] = await pool.execute(
+            'SELECT gia_tri FROM cai_dat_he_thong WHERE ten_cai_dat = ?',
+            ['driver_commission_rate']
+          );
+          const commissionRate = settings[0]?.gia_tri || 20;
+          
+          const [deadlineSettings] = await pool.execute(
+            'SELECT gia_tri FROM cai_dat_he_thong WHERE ten_cai_dat = ?',
+            ['debt_payment_deadline_hours']
+          );
+          const deadlineHours = deadlineSettings[0]?.gia_tri || 24;
+
+          const debtAmount = (trip.tong_tien * commissionRate) / 100;
+          const deadline = new Date();
+          deadline.setHours(deadline.getHours() + parseInt(deadlineHours));
+
+          await DriverDebt.create({
+            tai_xe_id: driver.id,
+            chuyen_di_id: tripId,
+            so_tien_no: debtAmount,
+            han_thanh_toan: deadline,
+            ghi_chu: `Hoa hồng ${commissionRate}% từ chuyến đi #${tripId}`
+          });
+
+          // Cập nhật trạng thái chặn nếu có nợ quá hạn
+          await DriverDebt.updateDriverBlockStatus(driver.id);
+
+        } catch (debtError) {
+          console.error('Create debt error:', debtError);
+        }
+      } else if (trip.phuong_thuc_thanh_toan === 'chuyen_khoan') {
+        // Chuyển khoản: Tạo dữ liệu QR code
+        try {
+          const { pool } = require('../config/database');
+          const [bankSettings] = await pool.execute(
+            'SELECT ten_cai_dat, gia_tri FROM cai_dat_he_thong WHERE ten_cai_dat IN (?, ?, ?)',
+            ['qr_bank_name', 'qr_bank_account', 'qr_account_holder']
+          );
+
+          const settings = {};
+          bankSettings.forEach(s => {
+            settings[s.ten_cai_dat] = s.gia_tri;
+          });
+
+          qrData = {
+            bank: settings.qr_bank_name || 'Ngân hàng quốc tế VIB',
+            accountNumber: settings.qr_bank_account || '228155456',
+            accountHolder: settings.qr_account_holder || 'LE MANH CUONG',
+            amount: trip.tong_tien,
+            description: `DCBike Trip ${tripId}`
+          };
+        } catch (qrError) {
+          console.error('Generate QR data error:', qrError);
+        }
+      }
+
       // Xóa TẤT CẢ tin nhắn và cuộc trò chuyện giữa khách hàng và tài xế
       try {
         const { pool } = require('../config/database');
@@ -419,7 +492,8 @@ class TripController {
 
       res.json({
         success: true,
-        message: 'Đã hoàn thành chuyến đi'
+        message: 'Đã hoàn thành chuyến đi',
+        qrData: qrData
       });
     } catch (error) {
       console.error('Complete trip error:', error);

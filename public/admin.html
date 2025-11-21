@@ -131,6 +131,11 @@
                         </a>
                     </li>
                     <li class="nav-item mb-2">
+                        <a class="nav-link" href="#payment-verification" data-section="payment-verification">
+                            <i class="bi bi-cash-coin me-2"></i>Kiểm tra thanh toán
+                        </a>
+                    </li>
+                    <li class="nav-item mb-2">
                         <a class="nav-link" href="#" onclick="logout()">
                             <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
                         </a>
@@ -400,6 +405,64 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Payment Verification Section -->
+                <div id="payment-verification-section" class="content-section" style="display: none;">
+                    <h2 class="mb-4">Kiểm tra thanh toán</h2>
+                    
+                    <!-- Filter -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label class="form-label">Trạng thái</label>
+                                    <select class="form-select" id="payment-status-filter">
+                                        <option value="dang_tra" selected>Đang chờ xác nhận</option>
+                                        <option value="chua_tra">Chưa trả</option>
+                                        <option value="da_tra">Đã xác nhận</option>
+                                        <option value="all">Tất cả</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-8 d-flex align-items-end">
+                                    <button class="btn btn-primary" onclick="loadPaymentVerification()">
+                                        <i class="bi bi-search me-2"></i>Tìm kiếm
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment List -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-cash-coin me-2"></i>Danh sách thanh toán</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Tài xế</th>
+                                            <th>Chuyến đi</th>
+                                            <th>Số tiền nợ</th>
+                                            <th>Đã trả</th>
+                                            <th>Còn nợ</th>
+                                            <th>Hạn thanh toán</th>
+                                            <th>Trạng thái</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="payment-verification-table">
+                                        <tr>
+                                            <td colspan="9" class="text-center">Đang tải...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -629,6 +692,9 @@
                     break;
                 case 'vouchers':
                     loadVouchers();
+                    break;
+                case 'payment-verification':
+                    loadPaymentVerification();
                     break;
             }
         }
@@ -1179,6 +1245,161 @@
                 console.error('editVoucher error:', err);
                 alert('Lỗi khi tải voucher');
             }
+        }
+
+        // Load payment verification data
+        async function loadPaymentVerification() {
+            const status = document.getElementById('payment-status-filter').value;
+            const tbody = document.getElementById('payment-verification-table');
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center"><div class="spinner-border" role="status"></div></td></tr>';
+            
+            try {
+                const statusParam = status === 'all' ? '' : `?status=${status}`;
+                const response = await fetch(`/api/admin/payment-verification${statusParam}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Lỗi khi tải danh sách thanh toán');
+                
+                const result = await response.json();
+                const debts = result.data || [];
+                
+                if (debts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="text-center">Không có khoản nợ nào</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = debts.map(debt => {
+                    const conNo = debt.so_tien_no - debt.so_tien_da_tra;
+                    const isOverdue = new Date(debt.han_thanh_toan) < new Date() && debt.trang_thai !== 'da_tra';
+                    
+                    return `
+                        <tr class="${isOverdue ? 'table-danger' : ''}">
+                            <td>${debt.id}</td>
+                            <td>
+                                <strong>${debt.ten_tai_xe || 'N/A'}</strong><br>
+                                <small class="text-muted">${debt.so_dien_thoai || ''}</small>
+                            </td>
+                            <td>
+                                <small>
+                                    #${debt.chuyen_di_id}<br>
+                                    ${debt.diem_don ? debt.diem_don.substring(0, 30) + '...' : 'N/A'}
+                                </small>
+                            </td>
+                            <td>${formatCurrency(debt.so_tien_no)}</td>
+                            <td>${formatCurrency(debt.so_tien_da_tra)}</td>
+                            <td><strong>${formatCurrency(conNo)}</strong></td>
+                            <td>
+                                ${formatDateTime(debt.han_thanh_toan)}
+                                ${isOverdue ? '<br><span class="badge bg-danger">Quá hạn</span>' : ''}
+                            </td>
+                            <td>${getDebtStatusBadge(debt.trang_thai)}</td>
+                            <td>
+                                ${debt.trang_thai === 'dang_tra' ? `
+                                    <button class="btn btn-sm btn-success" onclick="approvePayment(${debt.id}, ${debt.tai_xe_id})">
+                                        <i class="bi bi-check-circle me-1"></i>Duyệt
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="rejectPayment(${debt.id})">
+                                        <i class="bi bi-x-circle me-1"></i>Từ chối
+                                    </button>
+                                ` : debt.trang_thai === 'chua_tra' ? `
+                                    <span class="text-muted">Chưa xác nhận</span>
+                                ` : `
+                                    <span class="text-success">Đã duyệt</span>
+                                `}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Load payment verification error:', error);
+                tbody.innerHTML = '<tr><td colspan="9" class="text-danger text-center">Lỗi khi tải danh sách</td></tr>';
+            }
+        }
+
+        // Get debt status badge
+        function getDebtStatusBadge(status) {
+            const statusMap = {
+                'chua_tra': { text: 'Chưa trả', color: 'danger' },
+                'dang_tra': { text: 'Chờ xác nhận', color: 'warning' },
+                'da_tra': { text: 'Đã thanh toán', color: 'success' }
+            };
+            const s = statusMap[status] || { text: status, color: 'secondary' };
+            return `<span class="badge bg-${s.color}">${s.text}</span>`;
+        }
+
+        // Approve payment
+        async function approvePayment(debtId, driverId) {
+            if (!confirm('Xác nhận duyệt thanh toán này?')) return;
+            
+            try {
+                const response = await fetch('/api/admin/approve-payment', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ debt_id: debtId, driver_id: driverId })
+                });
+                
+                if (!response.ok) throw new Error('Lỗi khi duyệt thanh toán');
+                
+                const result = await response.json();
+                alert(result.message || 'Đã duyệt thanh toán thành công');
+                loadPaymentVerification();
+            } catch (error) {
+                console.error('Approve payment error:', error);
+                alert('Lỗi khi duyệt thanh toán: ' + error.message);
+            }
+        }
+
+        // Reject payment
+        async function rejectPayment(debtId) {
+            const reason = prompt('Nhập lý do từ chối:');
+            if (!reason) return;
+            
+            try {
+                const response = await fetch('/api/admin/reject-payment', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ debt_id: debtId, reason })
+                });
+                
+                if (!response.ok) throw new Error('Lỗi khi từ chối thanh toán');
+                
+                const result = await response.json();
+                alert(result.message || 'Đã từ chối thanh toán');
+                loadPaymentVerification();
+            } catch (error) {
+                console.error('Reject payment error:', error);
+                alert('Lỗi khi từ chối thanh toán: ' + error.message);
+            }
+        }
+
+        // Format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN', { 
+                style: 'currency', 
+                currency: 'VND' 
+            }).format(amount || 0);
+        }
+
+        // Format datetime
+        function formatDateTime(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleString('vi-VN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
         }
 
         function logout() {

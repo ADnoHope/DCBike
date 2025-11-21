@@ -161,6 +161,8 @@ app.use('/api/promotions', require('./routes/promotions'));
 app.use('/api/reviews', authenticate, require('./routes/reviews'));
 // Revenue tracking (protected)
 app.use('/api/revenue', authenticate, require('./routes/revenue'));
+// System settings (payment info, etc.)
+app.use('/api/settings', require('./routes/settings'));
 app.use('/api/admin', authenticate, require('./routes/admin'));
 // Chat routes (realtime simple polling)
 app.use('/api/chat', require('./routes/chat'));

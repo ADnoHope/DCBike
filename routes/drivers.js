@@ -170,12 +170,92 @@ router.get('/statistics', authenticate, requireDriver, async (req, res) => {
     const Trip = require('../models/Trip');
     const stats = await Trip.getDriverStatistics(driver.id);
 
+    // Lấy thông tin nợ
+    const DriverDebt = require('../models/DriverDebt');
+    const debtStats = await DriverDebt.getDebtStatistics(driver.id);
+    const debts = await DriverDebt.getDriverDebts(driver.id, 'chua_tra');
+
     res.json({
       success: true,
-      data: stats
+      data: {
+        ...stats,
+        debt: debtStats,
+        unpaidDebts: debts,
+        isBlocked: driver.bi_chan_vi_no || false
+      }
     });
   } catch (error) {
     console.error('Get driver statistics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi hệ thống'
+    });
+  }
+});
+
+// Lấy danh sách nợ chi tiết của tài xế
+router.get('/debts', authenticate, requireDriver, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const driver = await Driver.findByUserId(userId);
+    
+    if (!driver) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không phải là tài xế'
+      });
+    }
+
+    const DriverDebt = require('../models/DriverDebt');
+    const status = req.query.status || 'chua_tra'; // Mặc định lấy nợ chưa trả
+    const debts = await DriverDebt.getDriverDebts(driver.id, status);
+
+    res.json({
+      success: true,
+      data: debts
+    });
+  } catch (error) {
+    console.error('Get driver debts error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi hệ thống'
+    });
+  }
+});
+
+// Xác nhận đã thanh toán (tài xế tự xác nhận, chờ admin duyệt)
+router.post('/confirm-payment', authenticate, requireDriver, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const driver = await Driver.findByUserId(userId);
+    
+    if (!driver) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không phải là tài xế'
+      });
+    }
+
+    const { amount, note } = req.body;
+
+    // Tạo log xác nhận thanh toán (có thể tạo bảng riêng hoặc gửi thông báo cho admin)
+    const { pool } = require('../config/database');
+    
+    // Cập nhật trạng thái nợ thành "đang xử lý"
+    await pool.execute(`
+      UPDATE no_tai_xe 
+      SET trang_thai = 'dang_tra', ghi_chu = ? 
+      WHERE tai_xe_id = ? AND trang_thai = 'chua_tra'
+    `, [note || 'Tài xế xác nhận đã chuyển khoản', driver.id]);
+
+    // TODO: Gửi thông báo cho admin để xác thực
+
+    res.json({
+      success: true,
+      message: 'Đã ghi nhận xác nhận thanh toán. Vui lòng chờ admin xác thực.'
+    });
+  } catch (error) {
+    console.error('Confirm payment error:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi hệ thống'

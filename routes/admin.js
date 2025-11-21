@@ -43,4 +43,9 @@ router.delete('/vouchers/:id', authenticate, adminAuth, AdminController.deleteVo
 router.get('/trips', authenticate, adminAuth, AdminController.getAllTrips);
 router.get('/trips/:id', authenticate, adminAuth, AdminController.getTripById);
 
+// Payment verification - Kiểm tra thanh toán
+router.get('/payment-verification', authenticate, adminAuth, AdminController.getPaymentVerification);
+router.post('/approve-payment', authenticate, adminAuth, AdminController.approvePayment);
+router.post('/reject-payment', authenticate, adminAuth, AdminController.rejectPayment);
+
 module.exports = router;
