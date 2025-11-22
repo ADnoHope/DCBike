@@ -284,6 +284,8 @@
         let currentPage = 1;
         let totalPages = 1;
         let currentFilters = {};
+        // Cache promotions fetched from server so detail modal can lookup by id
+        window.promotionsCache = [];
 
         document.addEventListener('DOMContentLoaded', function() {
             loadPromotions();
@@ -306,7 +308,10 @@
 
                 if (result.success) {
                     // result.data is expected to be an array of promotions
-                    let promotions = result.data || [];
+                    const allPromotions = result.data || [];
+                    // cache full list for lookup by id
+                    window.promotionsCache = allPromotions;
+                    let promotions = allPromotions.slice();
 
                     // Apply client-side filters (type, status, search)
                     if (currentFilters && Object.keys(currentFilters).length > 0) {
@@ -353,6 +358,8 @@
 
                 if (result.success) {
                     const promotions = result.data || [];
+                    // ensure cache is populated
+                    window.promotionsCache = promotions;
                     // Pick up to 2 promotions with highest gia_tri (fallback)
                     const featured = promotions.slice().sort((a, b) => (b.gia_tri || 0) - (a.gia_tri || 0)).slice(0, 2);
                     displayFeaturedPromotions(featured);
@@ -407,6 +414,8 @@
             ];
 
             displayPromotions(mockPromotions);
+            // cache mock promotions as well
+            window.promotionsCache = mockPromotions;
             setupPagination({ currentPage: 1, totalPages: 1, total: mockPromotions.length });
         }
 
@@ -680,28 +689,20 @@
             loadPromotions();
         }
 
-        function viewPromotionDetail(promotionId) {
-            // Mock promotion detail
-            const promotionDetail = {
-                id: promotionId,
-                ten_khuyen_mai: 'Giảm 20% cho khách hàng mới',
-                ma_khuyen_mai: 'NEW20',
-                mo_ta: 'Ưu đãi đặc biệt dành cho khách hàng lần đầu sử dụng dịch vụ DC Booking. Áp dụng cho tất cả các loại xe và không giới hạn quãng đường.',
-                loai_khuyen_mai: 'giam_gia_theo_phan_tram',
-                gia_tri: 20,
-                gia_tri_toi_da: 100000,
-                gia_tri_don_hang_toi_thieu: 150000,
-                ngay_bat_dau: '2024-10-01',
-                ngay_ket_thuc: '2024-12-31',
-                dieu_kien: [
-                    'Áp dụng cho khách hàng mới đăng ký tài khoản',
-                    'Chỉ sử dụng được 1 lần cho mỗi tài khoản',
-                    'Không áp dụng cùng với các khuyến mãi khác',
-                    'Giá trị đơn hàng tối thiểu 150,000 VND'
-                ]
-            };
+        async function viewPromotionDetail(promotionId) {
+            // Ensure we have a cached list of promotions
+            if (!window.promotionsCache || window.promotionsCache.length === 0) {
+                await loadPromotions();
+            }
 
-            displayPromotionDetail(promotionDetail);
+            const promotion = (window.promotionsCache || []).find(p => Number(p.id) === Number(promotionId));
+
+            if (!promotion) {
+                showAlert('error', 'Không tìm thấy chi tiết khuyến mãi');
+                return;
+            }
+
+            displayPromotionDetail(promotion);
             const modal = new bootstrap.Modal(document.getElementById('promotionDetailModal'));
             modal.show();
         }
