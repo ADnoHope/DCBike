@@ -209,10 +209,10 @@
                                     </label>
                                     <select class="form-select" id="car-type" required>
                                         <option value="">Chọn loại xe</option>
+                                        <option value="xe-may">Xe máy</option>
                                         <option value="4-cho">Xe 4 chỗ</option>
                                         <option value="7-cho">Xe 7 chỗ</option>
                                         <option value="16-cho">Xe 16 chỗ</option>
-                                        <option value="45-cho">Xe 45 chỗ</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6 mb-3">
@@ -278,7 +278,7 @@
                                                 </small>
                                                 <small class="text-muted d-block" id="pricing-breakdown" style="display: none;">
                                                     <div class="mt-2 pt-2 border-top">
-                                                        <div>Phí khởi hành: <span id="starting-fee">--</span></div>
+                                                        <div>Phí dịch vụ: <span id="starting-fee">--</span></div>
                                                         <div>Phí quãng đường: <span id="distance-fee">--</span></div>
                                                         <div id="passenger-fee-row" style="display: none;">
                                                             Phí thêm khách: <span id="passenger-fee">--</span>
@@ -1248,25 +1248,25 @@
 
             // Enhanced pricing structure
             const pricingStructure = {
-                '4-cho': { 
-                    basePrice: 15000,   // 15k/km
-                    startingFee: 20000,
+                'xe-may': {
+                    basePrice: 6000,    // 6k/km
+                    startingFee: 7000,  // 7k
+                    name: 'Xe máy'
+                },
+                '4-cho': {
+                    basePrice: 10000,   // 10k/km
+                    startingFee: 12000, // 12k
                     name: 'Xe 4 chỗ'
                 },
-                '7-cho': { 
-                    basePrice: 18000,   // 18k/km
-                    startingFee: 25000,
+                '7-cho': {
+                    basePrice: 13000,   // 13k/km
+                    startingFee: 16000, // 16k
                     name: 'Xe 7 chỗ'
                 },
-                '16-cho': { 
-                    basePrice: 25000,  // 25k/km
-                    startingFee: 35000,
+                '16-cho': {
+                    basePrice: 18000,   // 18k/km
+                    startingFee: 22000, // 22k
                     name: 'Xe 16 chỗ'
-                },
-                '45-cho': { 
-                    basePrice: 35000,   // 35k/km
-                    startingFee: 50000,
-                    name: 'Xe 45 chỗ'
                 }
             };
 
