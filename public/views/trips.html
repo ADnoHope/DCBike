@@ -45,7 +45,7 @@
         </div>
         <div class="sidebar-body">
             <!-- Status Toggle (driver) -->
-            <div class="status-toggle-container mb-3">
+            <div class="status-toggle-container mb-3" id="driver-status-section">
                 <div class="status-toggle" id="status-container">
                     <div>
                         <h6 class="mb-0" id="status-title">
@@ -90,7 +90,7 @@
     </div>
 
     <!-- Main Content -->
-    <div class="container my-5">
+    <div class="container my-5 page-content">
         <!-- Page Header -->
         <div class="row mb-4">
             <div class="col-md-8">
@@ -230,6 +230,20 @@
     <script src="/js/notifications.js"></script>
     <script src="/js/app.js"></script>
     <script>
+        // Ẩn driver status nếu không phải tài xế
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                let role = localStorage.getItem('role');
+                if (!role && localStorage.getItem('user')) {
+                    const user = JSON.parse(localStorage.getItem('user'));
+                    role = user && user.role ? user.role : null;
+                }
+                if (role !== 'tai_xe') {
+                    const statusSection = document.getElementById('driver-status-section');
+                    if (statusSection) statusSection.style.display = 'none';
+                }
+            } catch (e) { /* ignore */ }
+        });
         async function loadDriverStatus() {
             try {
                 const token = localStorage.getItem('token'); if (!token) return;
@@ -345,8 +359,8 @@
                 const price = trip.gia_cuoc ? new Intl.NumberFormat('vi-VN').format(trip.gia_cuoc) + ' VND' : 'Chưa xác định';
 
                 html += `
-                    <div class="card shadow-sm mb-3">
-                        <div class="card-body">
+                        <div class="card shadow-sm mb-3 trip-card-clickable" onclick="viewTripDetail(${trip.id})" role="button" tabindex="0" onkeydown="if(event.key==='Enter') viewTripDetail(${trip.id})">
+                            <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col-md-8">
                                     <div class="d-flex align-items-center mb-2">
@@ -379,12 +393,9 @@
                                     </div>
                                     
                                     <div class="actions">
-                                        <button class="btn btn-outline-primary btn-sm me-2" 
-                                                onclick="viewTripDetail(${trip.id})">
-                                            <i class="fas fa-eye me-1"></i>Chi tiết
-                                        </button>
+                                        <!-- Card is clickable for details; keep action buttons for cancel/rate only -->
                                         ${trip.trang_thai === 'cho_xac_nhan' || trip.trang_thai === 'da_xac_nhan' ? 
-                                            `<button class="btn btn-outline-danger btn-sm" onclick="cancelTrip(${trip.id})">
+                                            `<button class="btn btn-outline-danger btn-sm" onclick="event.stopPropagation(); cancelTrip(${trip.id})">
                                                 <i class="fas fa-times me-1"></i>Hủy
                                             </button>` : ''
                                         }
@@ -394,7 +405,7 @@
                                            && window.dcApp.user 
                                            && window.dcApp.user.loai_tai_khoan === 'khach_hang'
                                            && Number(trip.khach_hang_id) === Number(window.dcApp.user.id)
-                                           ? `<button class="btn btn-outline-warning btn-sm" onclick="rateTrip(${trip.id})">
+                                           ? `<button class="btn btn-outline-warning btn-sm" onclick="event.stopPropagation(); rateTrip(${trip.id})">
                                                 <i class="fas fa-star me-1"></i>Đánh giá
                                              </button>` : ''
                                         }
@@ -418,6 +429,7 @@
 
         function getStatusInfo(status) {
             const statusMap = {
+                'cho_tai_xe': { text: 'Chờ tài xế', class: 'bg-warning text-dark' },
                 'cho_xac_nhan': { text: 'Chờ xác nhận', class: 'bg-warning text-dark' },
                 'da_xac_nhan': { text: 'Đã xác nhận', class: 'bg-info text-white' },
                 'dang_thuc_hien': { text: 'Đang thực hiện', class: 'bg-primary text-white' },
@@ -437,7 +449,7 @@
             // Previous button
             html += `
                 <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                    <a class="page-link" href="#" onclick="loadTrips(${currentPage - 1})">Trước</a>
+                    <a class="page-link pagination-btn" href="#" onclick="loadTrips(${currentPage - 1})">Trước</a>
                 </li>
             `;
 
@@ -445,15 +457,15 @@
             for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
                 html += `
                     <li class="page-item ${i === currentPage ? 'active' : ''}">
-                        <a class="page-link" href="#" onclick="loadTrips(${i})">${i}</a>
-                    </li>
+                            <a class="page-link pagination-btn" href="#" onclick="loadTrips(${i})">${i}</a>
+                        </li>
                 `;
             }
 
             // Next button
             html += `
                 <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                    <a class="page-link" href="#" onclick="loadTrips(${currentPage + 1})">Sau</a>
+                    <a class="page-link pagination-btn" href="#" onclick="loadTrips(${currentPage + 1})">Sau</a>
                 </li>
             `;
 
@@ -513,7 +525,7 @@
             const formattedDate = new Date(trip.thoi_gian_don).toLocaleString('vi-VN');
             const price = trip.gia_cuoc ? new Intl.NumberFormat('vi-VN').format(trip.gia_cuoc) + ' VND' : 'Chưa xác định';
 
-            const content = `
+            let content = `
                 <div class="row">
                     <div class="col-md-6">
                         <h6>Thông tin chuyến đi</h6>
@@ -549,23 +561,51 @@
                         ` : ''}
                     </div>
                 </div>
-                ${trip.tai_xe ? `
+            `;
+
+            // Build driver info from possible shapes returned by the API
+            let driverInfo = null;
+            if (trip.tai_xe && typeof trip.tai_xe === 'object') {
+                driverInfo = trip.tai_xe;
+            } else if (trip.ten_tai_xe || trip.sdt_tai_xe || trip.sdt_khach_hang) {
+                driverInfo = {
+                    id: trip.tai_xe_id || trip.tai_xeId || null,
+                    ten: trip.ten_tai_xe || trip.nd_tx || trip.ten || null,
+                    so_dien_thoai: trip.sdt_tai_xe || trip.sdt_khach_hang || trip.so_dien_thoai || null,
+                    loai_xe: trip.loai_xe || null,
+                    bien_so_xe: trip.bien_so_xe || null,
+                    mau_xe: trip.mau_xe || null,
+                    rating: trip.tai_xe_diem || trip.diem_tai_xe || null,
+                    avatar: trip.tai_xe_avatar || trip.avatar || null
+                };
+            }
+
+            if (driverInfo) {
+                content += `
                     <hr>
                     <h6>Thông tin tài xế</h6>
                     <div class="d-flex align-items-center">
-                        <i class="fas fa-user-circle fa-2x text-primary me-3"></i>
-                        <div>
-                            <h6 class="mb-1">${trip.tai_xe.ten}</h6>
-                            <p class="mb-0 text-muted">
-                                <i class="fas fa-phone me-1"></i> ${trip.tai_xe.so_dien_thoai}
+                        <div class="me-3">
+                            ${driverInfo.avatar ? `<img src="${driverInfo.avatar}" alt="${driverInfo.ten || 'Tài xế'}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;">` : `<i class="fas fa-user-circle fa-3x text-primary"></i>`}
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">${driverInfo.ten || 'Tài xế'}</h6>
+                            <p class="mb-1 text-muted">
+                                <i class="fas fa-phone me-1"></i>
+                                ${driverInfo.so_dien_thoai ? `<a href="tel:${driverInfo.so_dien_thoai}" class="text-decoration-none">${driverInfo.so_dien_thoai}</a>` : 'Không có số'}
                             </p>
-                            <p class="mb-0 text-muted">
-                                <i class="fas fa-car me-1"></i> ${trip.tai_xe.loai_xe} - ${trip.tai_xe.bien_so_xe}
+                            <p class="mb-1 text-muted">
+                                <i class="fas fa-car me-1"></i>
+                                ${driverInfo.loai_xe || '-'} ${driverInfo.bien_so_xe ? '• ' + driverInfo.bien_so_xe : ''} ${driverInfo.mau_xe ? '• ' + driverInfo.mau_xe : ''}
                             </p>
+                            ${driverInfo.rating ? `<p class="mb-0"><span class="badge bg-warning text-dark"><i class="fas fa-star me-1"></i>${Number(driverInfo.rating).toFixed(1)}</span></p>` : ''}
+                        </div>
+                        <div class="text-end">
+                            ${driverInfo.id ? `<a href="/views/driver-detail.html?id=${driverInfo.id}" class="btn btn-sm btn-primary"><i class="fas fa-user me-1"></i>Xem hồ sơ</a>` : ''}
                         </div>
                     </div>
-                ` : ''}
-            `;
+                `;
+            }
 
             document.getElementById('trip-detail-content').innerHTML = content;
 
@@ -700,6 +740,18 @@
     </script>
 
     <style>
+        /* Ensure footer stays at bottom when content is short */
+        html, body {
+            height: 100%;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .page-content {
+            flex: 1 0 auto;
+        }
         .rating-stars .star {
             font-size: 1.5rem;
             cursor: pointer;
@@ -726,6 +778,62 @@
         
         .badge {
             font-size: 0.75rem;
+        }
+
+        /* Pagination button styles */
+        .pagination {
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .pagination .pagination-btn {
+            border-radius: 999px;
+            padding: .45rem .9rem;
+            background: linear-gradient(135deg,#ffffff 0%, #f8f9ff 100%);
+            border: 1px solid rgba(13,110,253,0.12);
+            box-shadow: 0 2px 6px rgba(16,24,40,0.06);
+            color: #0d6efd;
+            transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+            display: inline-block;
+        }
+
+        .pagination .pagination-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(13,110,253,0.12);
+            background: linear-gradient(135deg,#ffffff 0%, #e9f4ff 100%);
+            text-decoration: none;
+        }
+
+        .pagination .page-item.active .pagination-btn {
+            background: linear-gradient(90deg,#0d6efd 0%,#6610f2 100%);
+            color: #fff !important;
+            box-shadow: 0 10px 30px rgba(13,110,253,0.18);
+            border-color: transparent;
+        }
+
+        .pagination .page-item.disabled .pagination-btn {
+            opacity: 0.6;
+            pointer-events: none;
+            transform: none;
+        }
+
+        .pagination .pagination-btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 6px rgba(13,110,253,0.08);
+        }
+
+        /* Clickable trip card styles */
+        .trip-card-clickable {
+            cursor: pointer;
+            transition: transform .12s ease, box-shadow .12s ease;
+        }
+        .trip-card-clickable:focus,
+        .trip-card-clickable:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(16,24,40,0.08);
+        }
+        .trip-card-clickable .actions .btn {
+            pointer-events: auto; /* allow inner buttons to be clickable */
         }
     </style>
 

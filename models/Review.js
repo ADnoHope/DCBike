@@ -66,7 +66,9 @@ class Review {
   static async getByDriverId(driverId) {
     const [rows] = await pool.execute(`
       SELECT dg.id, dg.diem_so, dg.binh_luan, dg.created_at,
-             nd.ten AS ten_nguoi_danh_gia
+             nd.id AS nguoi_danh_gia_id,
+             nd.ten AS ten_nguoi_danh_gia,
+             nd.avatar AS nguoi_danh_gia_avatar
       FROM danh_gia dg
       JOIN chuyen_di cd ON dg.chuyen_di_id = cd.id
       JOIN nguoi_dung nd ON dg.nguoi_danh_gia_id = nd.id

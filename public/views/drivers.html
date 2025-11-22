@@ -45,7 +45,7 @@
         </div>
         <div class="sidebar-body">
             <!-- Status Toggle (driver) -->
-            <div class="status-toggle-container mb-3">
+            <div class="status-toggle-container mb-3" id="driver-status-section">
                 <div class="status-toggle" id="status-container">
                     <div>
                         <h6 class="mb-0" id="status-title">
@@ -342,6 +342,20 @@
     <script src="/js/notifications.js"></script>
     <script src="/js/app.js"></script>
     <script>
+        // Ẩn driver status nếu không phải tài xế
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                let role = localStorage.getItem('role');
+                if (!role && localStorage.getItem('user')) {
+                    const user = JSON.parse(localStorage.getItem('user'));
+                    role = user && user.role ? user.role : null;
+                }
+                if (role !== 'tai_xe') {
+                    const statusSection = document.getElementById('driver-status-section');
+                    if (statusSection) statusSection.style.display = 'none';
+                }
+            } catch (e) { /* ignore */ }
+        });
         async function loadDriverStatus() {
             try { const token = localStorage.getItem('token'); if(!token) return; const res = await fetch(`${window.API_BASE_URL}/drivers/my-status`, { headers: { 'Authorization': `Bearer ${token}` } }); const data = await res.json(); if (data && data.success && data.data) updateStatusUI(data.data.trang_thai_tai_xe); } catch (e) { console.debug(e); }
         }
@@ -766,7 +780,6 @@
                                 
                                 <h6 class="mt-3">Bằng lái xe</h6>
                                 <table class="table table-borderless table-sm">
-                                    <tr><td><i class="fas fa-id-card me-2"></i>Số bằng lái:</td><td>${driver.so_bang_lai}</td></tr>
                                     <tr><td><i class="fas fa-certificate me-2"></i>Loại bằng lái:</td><td>${driver.loai_bang_lai}</td></tr>
                                     
                                     <tr><td><i class="fas fa-star me-2"></i>Điểm TB:</td><td>${rating} ★ (${reviewCount} lượt)</td></tr>

@@ -7,9 +7,129 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
+    <style>
+        /* CSS MỚI CHO PHẦN BODY (KHÔNG ẢNH HƯỞNG HEADER/FOOTER) */
+        :root {
+            --primary-dark: #00004d;
+            --primary-light: #dbeafe;
+            --text-highlight: #1e40af;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            min-height: 85vh;
+            background-color: #f8faff;
+            padding: 80px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .badge-custom {
+            background-color: var(--primary-light);
+            color: var(--text-highlight);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: inline-block;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: #111827;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+        }
+        
+        .text-highlight-title { color: var(--primary-dark); }
+
+        .hero-desc {
+            font-size: 1.15rem;
+            color: #6b7280;
+            margin-bottom: 2rem;
+            max-width: 90%;
+        }
+
+        /* Nút bấm trong Body */
+        .btn-primary-custom {
+            background-color: var(--primary-dark);
+            border: none;
+            border-radius: 50px;
+            padding: 14px 32px;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0, 0, 77, 0.2);
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .btn-primary-custom:hover {
+            background-color: #000033;
+            color: white;
+            transform: translateY(-3px);
+        }
+
+        .btn-outline-custom {
+            background-color: transparent;
+            border: 2px solid #e5e7eb;
+            border-radius: 50px;
+            padding: 12px 32px;
+            color: #374151;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-outline-custom:hover {
+            border-color: var(--primary-dark);
+            color: var(--primary-dark);
+            background-color: #fff;
+        }
+
+        .hero-image-wrapper {
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Services Card */
+        .service-card .card {
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            border: 1px solid #f0f0f0;
+        }
+        .service-card .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08) !important;
+        }
+        .service-icon {
+            width: 70px; height: 70px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+
+        /* Driver CTA */
+        .driver-cta {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 24px;
+            overflow: hidden;
+        }
+
+        /* Animation */
+        .animate-up { animation: fadeInUp 0.8s ease-out forwards; opacity: 0; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 991px) {
+            .hero-title { font-size: 2.5rem; }
+            .hero-section { text-align: center; padding: 40px 0; }
+            .hero-desc { margin: 0 auto 2rem auto; }
+            .d-flex.gap-3 { justify-content: center; }
+            .hero-stats { justify-content: center; margin-top: 2rem; }
+            .hero-image-wrapper { margin-top: 3rem; }
+        }
+    </style>
 </head>
 <body>
-    <!-- Navigation -->
     <nav class="navbar navbar-dark bg-primary">
         <div class="container-fluid">
             <button class="btn btn-link text-white p-0 me-3" id="sidebar-toggle" type="button">
@@ -36,7 +156,6 @@
         </div>
     </nav>
 
-    <!-- Sidebar Menu -->
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <div class="sidebar-menu" id="sidebar-menu">
         <div class="sidebar-header">
@@ -44,8 +163,7 @@
             <button class="btn-close btn-close-white" id="sidebar-close"></button>
         </div>
         <div class="sidebar-body">
-            <!-- Status Toggle (driver) -->
-            <div class="status-toggle-container mb-3">
+            <div class="status-toggle-container mb-3" id="driver-status-section">
                 <div class="status-toggle" id="status-container">
                     <div>
                         <h6 class="mb-0" id="status-title">
@@ -88,158 +206,154 @@
             </ul>
         </div>
     </div>
-                        </div>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
 
-    <!-- Main Content -->
     <main>
-        <!-- Hero Section -->
-        <section id="home" class="hero-section">
+        <section id="home" class="hero-section d-flex align-items-center">
             <div class="container">
-                <div class="row align-items-center min-vh-100">
-                    <div class="col-lg-6 order-lg-1 order-2">
-                        <div class="hero-content">
-                            <h1 class="display-4 fw-bold mb-4 hero-title">
-                                Đặt xe nhanh chóng, an toàn và tiện lợi
-                            </h1>
-                            <p class="lead mb-4 hero-subtitle">
-                                DC Booking - Giải pháp di chuyển thông minh với công nghệ hiện đại
-                            </p>
-                            <div class="d-grid gap-2 d-md-flex hero-buttons">
-                                <a href="views/booking.html" class="btn btn-warning btn-lg px-4" data-auth>
-                                    <i class="fas fa-car"></i> Đặt xe ngay
-                                </a>
-                                <button id="signup-btn" class="btn btn-outline-light btn-lg px-4" onclick="showAuthModal()">
-                                    <i class="fas fa-user-plus"></i> Đăng ký tài khoản
-                                </button>
+                <div class="row align-items-center">
+                    <div class="col-lg-6 pe-lg-5 mb-5 mb-lg-0">
+                        <div class="animate-up" style="animation-delay: 0.1s;">
+                            <span class="badge-custom">
+                                <i class="fas fa-star me-1"></i> Dịch vụ đặt xe số 1 Việt Nam
+                            </span>
+                        </div>
+                        
+                        <h1 class="hero-title animate-up" style="animation-delay: 0.2s;">
+                            Di chuyển thông minh,<br>
+                            <span class="text-highlight-title">An toàn tuyệt đối</span>
+                        </h1>
+                        
+                        <p class="hero-desc animate-up" style="animation-delay: 0.3s;">
+                            DC Booking kết nối bạn với hàng nghìn tài xế chuyên nghiệp. Đặt xe nhanh chóng, giá cả minh bạch và hành trình an toàn trên mọi nẻo đường.
+                        </p>
+                        
+                        <div class="d-flex flex-wrap gap-3 mb-5 animate-up" style="animation-delay: 0.4s;">
+                            <a href="views/booking.html" class="btn btn-primary-custom btn-lg" data-auth>
+                                <i class="fas fa-car me-2"></i>Đặt xe ngay
+                            </a>
+                            <button onclick="showAuthModal()" class="btn btn-outline-custom btn-lg">
+                                <i class="fas fa-user-plus me-2"></i>Đăng ký ngay
+                            </button>
+                        </div>
+                        
+                        <div class="hero-stats d-flex align-items-center animate-up" style="animation-delay: 0.5s;">
+                            <div class="stat-item">
+                                <h4 class="fw-bold mb-0">50k+</h4>
+                                <span class="text-muted small">Tài xế</span>
+                            </div>
+                            <div class="vr mx-4" style="height: 40px; opacity: 0.1;"></div>
+                            <div class="stat-item">
+                                <h4 class="fw-bold mb-0">1M+</h4>
+                                <span class="text-muted small">Chuyến đi</span>
+                            </div>
+                            <div class="vr mx-4" style="height: 40px; opacity: 0.1;"></div>
+                            <div class="stat-item">
+                                <h4 class="fw-bold mb-0">4.9/5</h4>
+                                <span class="text-muted small">Đánh giá</span>
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-6 order-lg-2 order-1">
-                        <div class="hero-image-container">
-                            <img src="https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800" 
-                                 alt="DC Car Booking" 
-                                 class="img-fluid hero-image">
-                        </div>
-                    </div>
-                    <div class="col-lg-6 d-none">
-                        <div class="booking-card" id="booking-form" style="display: none;">
-                            <div class="card shadow-lg">
-                                <div class="card-header bg-warning">
-                                    <h5 class="card-title mb-0">
-                                        <i class="fas fa-map-marker-alt"></i> Đặt chuyến đi
-                                    </h5>
-                                </div>
-                                <div class="card-body">
-                                    <form id="booking-form">
-                                        <div class="mb-3">
-                                            <label for="pickup-location" class="form-label">Điểm đón</label>
-                                            <input type="text" class="form-control" id="pickup-location" 
-                                                   placeholder="Nhập địa chỉ đón" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="destination" class="form-label">Điểm đến</label>
-                                            <input type="text" class="form-control" id="destination" 
-                                                   placeholder="Nhập địa chỉ đến" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="pickup-time" class="form-label">Thời gian đón</label>
-                                            <input type="datetime-local" class="form-control" id="pickup-time" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="vehicle-type" class="form-label">Loại xe</label>
-                                            <select class="form-select" id="vehicle-type" required>
-                                                <option value="">Chọn loại xe</option>
-                                                <option value="bike">Xe máy</option>
-                                                <option value="car">Ô tô 4 chỗ</option>
-                                                <option value="car_7">Ô tô 7 chỗ</option>
-                                            </select>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="notes" class="form-label">Ghi chú</label>
-                                            <textarea class="form-control" id="notes" rows="2" 
-                                                      placeholder="Ghi chú thêm (nếu có)"></textarea>
-                                        </div>
-                                        <button type="submit" class="btn btn-primary w-100">
-                                            <i class="fas fa-check"></i> Xác nhận đặt xe
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
+                    
+                    <div class="col-lg-6 animate-up" style="animation-delay: 0.4s;">
+                        <div class="hero-image-wrapper">
+                            <img src="https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800&q=80" 
+                                 alt="DC Booking Driver" 
+                                 class="img-fluid w-100 h-100 object-fit-cover">
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Services Section -->
-        <section id="services" class="py-5">
-            <div class="container">
+        <section class="py-5 bg-white">
+            <div class="container py-4">
                 <div class="text-center mb-5">
-                    <h2 class="fw-bold">Dịch vụ của chúng tôi</h2>
-                    <p class="text-muted">Đa dạng loại xe và dịch vụ cho mọi nhu cầu di chuyển</p>
+                    <h6 class="text-primary fw-bold text-uppercase mb-2">Quy trình</h6>
+                    <h2 class="fw-bold">Đặt xe chỉ với 3 bước đơn giản</h2>
+                </div>
+                <div class="row g-4 text-center">
+                    <div class="col-md-4">
+                        <div class="p-4 rounded-4 bg-light h-100">
+                            <div class="mb-4">
+                                <div class="bg-white rounded-circle shadow-sm d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                    <i class="fas fa-map-marker-alt fa-2x text-danger"></i>
+                                </div>
+                            </div>
+                            <h5>1. Chọn điểm đến</h5>
+                            <p class="text-muted">Mở ứng dụng, nhập điểm đón và điểm đến của bạn để xem trước giá cước.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-4 rounded-4 bg-light h-100">
+                            <div class="mb-4">
+                                <div class="bg-white rounded-circle shadow-sm d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                    <i class="fas fa-car-side fa-2x text-primary"></i>
+                                </div>
+                            </div>
+                            <h5>2. Tài xế đón bạn</h5>
+                            <p class="text-muted">Tài xế gần nhất sẽ nhận chuyến. Bạn có thể theo dõi vị trí xe theo thời gian thực.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-4 rounded-4 bg-light h-100">
+                            <div class="mb-4">
+                                <div class="bg-white rounded-circle shadow-sm d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                    <i class="fas fa-star fa-2x text-warning"></i>
+                                </div>
+                            </div>
+                            <h5>3. Hoàn thành & Đánh giá</h5>
+                            <p class="text-muted">Thanh toán linh hoạt và đánh giá chất lượng chuyến đi để chúng tôi phục vụ tốt hơn.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="services" class="py-5" style="background-color: #f8f9fa;">
+            <div class="container py-4">
+                <div class="text-center mb-5">
+                    <h6 class="text-primary fw-bold text-uppercase mb-2">Dịch vụ</h6>
+                    <h2 class="fw-bold">Đa dạng loại xe cho mọi nhu cầu</h2>
                 </div>
                 <div class="row g-4">
                     <div class="col-md-4">
                         <div class="service-card h-100">
-                            <div class="card h-100 border-0 shadow-sm">
-                                <div class="card-body text-center p-4">
-                                    <div class="service-icon mb-3">
-                                        <i class="fas fa-car fa-3x text-primary"></i>
+                            <div class="card h-100 border-0 shadow-sm p-3">
+                                <div class="card-body text-center">
+                                    <div class="service-icon bg-primary-subtle text-primary">
+                                        <i class="fas fa-motorcycle fa-2x"></i>
                                     </div>
-                                    <h5 class="card-title">Xe 4 chỗ</h5>
-                                    <p class="card-text text-muted">
-                                        Phù hợp cho gia đình nhỏ, đi làm hoặc đi chơi trong thành phố
-                                    </p>
-                                    <ul class="list-unstyled">
-                                        <li><i class="fas fa-check text-success"></i> Tiết kiệm chi phí</li>
-                                        <li><i class="fas fa-check text-success"></i> Linh hoạt di chuyển</li>
-                                        <li><i class="fas fa-check text-success"></i> Sạch sẽ, thoải mái</li>
-                                    </ul>
+                                    <h4 class="card-title fw-bold mb-3">DC Bike</h4>
+                                    <p class="card-text text-muted mb-4">Di chuyển nhanh chóng qua các con phố đông đúc, tiết kiệm chi phí tối đa.</p>
+                                    <a href="views/booking.html" class="btn btn-outline-primary rounded-pill px-4" data-auth>Đặt Bike</a>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="service-card h-100">
-                            <div class="card h-100 border-0 shadow-sm">
-                                <div class="card-body text-center p-4">
-                                    <div class="service-icon mb-3">
-                                        <i class="fas fa-users fa-3x text-success"></i>
+                            <div class="card h-100 border-0 shadow-sm p-3">
+                                <div class="card-body text-center">
+                                    <div class="service-icon bg-success-subtle text-success">
+                                        <i class="fas fa-car fa-2x"></i>
                                     </div>
-                                    <h5 class="card-title">Xe 7 chỗ</h5>
-                                    <p class="card-text text-muted">
-                                        Lý tưởng cho nhóm bạn, gia đình đông người hoặc chuyến đi xa
-                                    </p>
-                                    <ul class="list-unstyled">
-                                        <li><i class="fas fa-check text-success"></i> Rộng rãi thoải mái</li>
-                                        <li><i class="fas fa-check text-success"></i> Phù hợp nhóm đông</li>
-                                        <li><i class="fas fa-check text-success"></i> Hành lý nhiều</li>
-                                    </ul>
+                                    <h4 class="card-title fw-bold mb-3">DC Car 4 Chỗ</h4>
+                                    <p class="card-text text-muted mb-4">Thoải mái, mát mẻ, riêng tư cho các chuyến đi cá nhân hoặc gia đình nhỏ.</p>
+                                    <a href="views/booking.html" class="btn btn-outline-success rounded-pill px-4" data-auth>Đặt Car 4</a>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="service-card h-100">
-                            <div class="card h-100 border-0 shadow-sm">
-                                <div class="card-body text-center p-4">
-                                    <div class="service-icon mb-3">
-                                        <i class="fas fa-crown fa-3x text-warning"></i>
+                            <div class="card h-100 border-0 shadow-sm p-3">
+                                <div class="card-body text-center">
+                                    <div class="service-icon bg-warning-subtle text-warning">
+                                        <i class="fas fa-shuttle-van fa-2x"></i>
                                     </div>
-                                    <h5 class="card-title">Xe VIP</h5>
-                                    <p class="card-text text-muted">
-                                        Dịch vụ cao cấp với xe sang trọng cho các dịp đặc biệt
-                                    </p>
-                                    <ul class="list-unstyled">
-                                        <li><i class="fas fa-check text-success"></i> Xe sang trọng</li>
-                                        <li><i class="fas fa-check text-success"></i> Tài xế chuyên nghiệp</li>
-                                        <li><i class="fas fa-check text-success"></i> Dịch vụ hoàn hảo</li>
-                                    </ul>
+                                    <h4 class="card-title fw-bold mb-3">DC Car 7 Chỗ</h4>
+                                    <p class="card-text text-muted mb-4">Rộng rãi cho cả gia đình lớn, nhóm bạn bè và hành lý trong những chuyến đi xa.</p>
+                                    <a href="views/booking.html" class="btn btn-outline-warning rounded-pill px-4" data-auth>Đặt Car 7</a>
                                 </div>
                             </div>
                         </div>
@@ -248,95 +362,88 @@
             </div>
         </section>
 
-        <!-- About Section -->
-        <section id="about" class="py-5 bg-light">
-            <div class="container">
-                <div class="row align-items-center">
-                    <div class="col-lg-6">
-                        <h2 class="fw-bold mb-4">Về DC Booking</h2>
-                        <p class="lead mb-4">
-                            Chúng tôi cam kết mang đến dịch vụ đặt xe chất lượng cao với công nghệ hiện đại 
-                            và đội ngũ tài xế chuyên nghiệp.
-                        </p>
-                        <div class="row g-3">
-                            <div class="col-sm-6">
-                                <div class="d-flex align-items-center">
-                                    <div class="feature-icon me-3">
-                                        <i class="fas fa-shield-alt fa-2x text-primary"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-1">An toàn</h6>
-                                        <small class="text-muted">Cam kết an toàn tuyệt đối</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-sm-6">
-                                <div class="d-flex align-items-center">
-                                    <div class="feature-icon me-3">
-                                        <i class="fas fa-clock fa-2x text-success"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-1">Nhanh chóng</h6>
-                                        <small class="text-muted">Phản hồi trong vòng 3 phút</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-sm-6">
-                                <div class="d-flex align-items-center">
-                                    <div class="feature-icon me-3">
-                                        <i class="fas fa-dollar-sign fa-2x text-warning"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-1">Giá cả hợp lý</h6>
-                                        <small class="text-muted">Minh bạch, không phí ẩn</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-sm-6">
-                                <div class="d-flex align-items-center">
-                                    <div class="feature-icon me-3">
-                                        <i class="fas fa-heart fa-2x text-danger"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-1">Tận tâm</h6>
-                                        <small class="text-muted">Phục vụ 24/7</small>
-                                    </div>
-                                </div>
-                            </div>
+        <section class="py-5 bg-white">
+            <div class="container py-4">
+                <div class="driver-cta shadow-lg">
+                    <div class="row g-0 align-items-center">
+                        <div class="col-lg-6 order-lg-2">
+                            <img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" 
+                                 alt="Driver" class="img-fluid w-100 h-100 object-fit-cover" style="min-height: 400px;">
                         </div>
-                    </div>
-                    <div class="col-lg-6">
-                        <div class="text-center">
-                            <img src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" 
-                                 alt="DC Booking" class="img-fluid rounded shadow">
+                        <div class="col-lg-6 order-lg-1 p-5 text-white">
+                            <span class="badge bg-warning text-dark mb-3">Cơ hội việc làm</span>
+                            <h2 class="fw-bold mb-4 display-6">Trở thành đối tác tài xế</h2>
+                            <ul class="list-unstyled mb-4">
+                                <li class="mb-3 d-flex align-items-center"><i class="fas fa-check-circle text-warning me-3 fa-lg"></i> Thu nhập hấp dẫn, thanh toán linh hoạt</li>
+                                <li class="mb-3 d-flex align-items-center"><i class="fas fa-check-circle text-warning me-3 fa-lg"></i> Thời gian làm việc tự do, chủ động</li>
+                                <li class="mb-3 d-flex align-items-center"><i class="fas fa-check-circle text-warning me-3 fa-lg"></i> Cộng đồng tài xế văn minh, hỗ trợ 24/7</li>
+                            </ul>
+                            <a href="driver-registration.html" class="btn btn-warning btn-lg rounded-pill px-5 fw-bold text-dark">
+                                Đăng ký ngay <i class="fas fa-arrow-right ms-2"></i>
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- My Trips Section -->
-        <section id="my-trips" class="py-5">
-            <div class="container">
-                <h2 class="text-center mb-5">Chuyến đi của tôi</h2>
-                
-                <!-- Trip List -->
-                <div class="trips-carousel-wrapper position-relative">
-                    <button class="carousel-nav-btn carousel-prev" onclick="scrollHomeTrips('left')" style="display: none;">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <div class="trips-carousel" id="trips-list">
-                        <!-- Trip cards will be loaded here -->
+        <section class="py-5" style="background-color: #f8f9fa;">
+            <div class="container py-4">
+                <div class="text-center mb-5">
+                    <h6 class="text-primary fw-bold text-uppercase mb-2">Đánh giá</h6>
+                    <h2 class="fw-bold">Khách hàng nói gì về chúng tôi?</h2>
+                </div>
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
+                            <div class="mb-3 text-warning">
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                            </div>
+                            <p class="text-muted fst-italic mb-4 flex-grow-1">"Dịch vụ rất tốt, tài xế thân thiện và đón đúng giờ. Xe sạch sẽ, không mùi. Tôi sẽ sử dụng thường xuyên."</p>
+                            <div class="d-flex align-items-center">
+                                <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="User" class="rounded-circle me-3" width="50">
+                                <div>
+                                    <h6 class="mb-0 fw-bold">Nguyễn Thu Hà</h6>
+                                    <small class="text-muted">Nhân viên văn phòng</small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <button class="carousel-nav-btn carousel-next" onclick="scrollHomeTrips('right')" style="display: none;">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
+                            <div class="mb-3 text-warning">
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                            </div>
+                            <p class="text-muted fst-italic mb-4 flex-grow-1">"Ứng dụng dễ sử dụng, đặt xe nhanh chóng. Giá cả hợp lý hơn so với taxi truyền thống. Rất hài lòng!"</p>
+                            <div class="d-flex align-items-center">
+                                <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="User" class="rounded-circle me-3" width="50">
+                                <div>
+                                    <h6 class="mb-0 fw-bold">Trần Minh Tuấn</h6>
+                                    <small class="text-muted">Sinh viên</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
+                            <div class="mb-3 text-warning">
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+                            </div>
+                            <p class="text-muted fst-italic mb-4 flex-grow-1">"Tôi thường xuyên đi công tác và DC Booking luôn là lựa chọn hàng đầu. Xuất hóa đơn nhanh chóng."</p>
+                            <div class="d-flex align-items-center">
+                                <img src="https://randomuser.me/api/portraits/men/86.jpg" alt="User" class="rounded-circle me-3" width="50">
+                                <div>
+                                    <h6 class="mb-0 fw-bold">Lê Văn Hùng</h6>
+                                    <small class="text-muted">Doanh nhân</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Footer -->
     <footer class="bg-dark text-light py-4">
         <div class="container">
             <div class="row">
@@ -377,8 +484,6 @@
         </div>
     </footer>
 
-    <!-- Modals -->
-    <!-- Auth Modal -->
     <div class="modal fade" id="authModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content auth-modal-content">
@@ -386,7 +491,6 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body px-4 pb-4">
-                    <!-- Auth Header -->
                     <div class="text-center mb-4">
                         <div class="auth-icon-wrapper mb-3">
                             <i class="fas fa-user-circle fa-4x text-primary"></i>
@@ -395,7 +499,6 @@
                         <p class="text-muted small" id="authModalSubtitle">Chào mừng bạn quay trở lại</p>
                     </div>
 
-                    <!-- Login Form -->
                     <form id="login-form" class="auth-form">
                         <div class="mb-3">
                             <label class="form-label small fw-semibold text-dark">Email hoặc Số điện thoại</label>
@@ -422,7 +525,6 @@
                         </button>
                     </form>
 
-                    <!-- Register Form -->
                     <form id="register-form" class="auth-form d-none">
                         <div class="mb-3">
                             <label class="form-label small fw-semibold text-dark">Họ và tên</label>
@@ -491,12 +593,10 @@
                         </button>
                     </form>
 
-                    <!-- Divider -->
                     <div class="text-center my-3">
                         <hr class="my-3">
                     </div>
 
-                    <!-- Switch Form Link -->
                     <div class="text-center">
                         <p class="mb-0 text-muted small">
                             <span id="auth-switch-text">Chưa có tài khoản?</span>
@@ -508,13 +608,25 @@
         </div>
     </div>
 
-    <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script src="/js/notifications.js"></script>
     <script src="js/app.js"></script>
     <script src="js/chat.js"></script>
     <script>
-        // Homepage driver status helper (keeps behavior consistent with other pages)
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                let role = localStorage.getItem('role');
+                if (!role && localStorage.getItem('user')) {
+                    const user = JSON.parse(localStorage.getItem('user'));
+                    role = user && user.role ? user.role : null;
+                }
+                if (role === 'khach_hang') {
+                    const statusSection = document.getElementById('driver-status-section');
+                    if (statusSection) statusSection.style.display = 'none';
+                }
+            } catch (e) { /* ignore */ }
+        });
+
         async function loadDriverStatus() {
             try {
                 const token = localStorage.getItem('token');

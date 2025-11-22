@@ -13,8 +13,10 @@ html, body {
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
-    /* Default text color — use white for primary surfaces; some components override to dark when needed */
-    color: #ffffff;
+    /* Default text color for page content (dark for readability). Components
+       that live on dark backgrounds (navbar, footer, badges) already override
+       color using specific rules, so keep the global text dark. */
+    color: #0f1724;
 }
 
 :root {

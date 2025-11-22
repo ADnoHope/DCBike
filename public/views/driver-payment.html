@@ -134,7 +134,7 @@
         </div>
         <div class="sidebar-body">
             <!-- Status Toggle (driver) -->
-            <div class="status-toggle-container mb-3">
+            <div class="status-toggle-container mb-3" id="driver-status-section">
                 <div class="status-toggle" id="status-container">
                     <div>
                         <h6 class="mb-0" id="status-title">
@@ -276,6 +276,20 @@
     <script src="/js/notifications.js"></script>
     <script src="/js/app.js"></script>
     <script>
+        // Ẩn driver status nếu không phải tài xế
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                let role = localStorage.getItem('role');
+                if (!role && localStorage.getItem('user')) {
+                    const user = JSON.parse(localStorage.getItem('user'));
+                    role = user && user.role ? user.role : null;
+                }
+                if (role !== 'tai_xe') {
+                    const statusSection = document.getElementById('driver-status-section');
+                    if (statusSection) statusSection.style.display = 'none';
+                }
+            } catch (e) { /* ignore */ }
+        });
         // Minimal driver status handling reused across pages
         async function loadDriverStatus() {
             try {
