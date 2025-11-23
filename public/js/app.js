@@ -719,6 +719,20 @@ class DCCarBooking {
         } catch (err) {
             console.error('Error applying role-based UI restrictions', err);
         }
+
+        // Ensure driver status section visibility is controlled centrally here
+        try {
+            const statusSectionEl = document.getElementById('driver-status-section');
+            if (this.user && this.user.loai_tai_khoan === 'tai_xe') {
+                if (statusSectionEl) statusSectionEl.style.display = '';
+                // Load driver's current status to update the toggle UI
+                try { this.loadDriverStatus(); } catch (e) { console.debug('loadDriverStatus failed', e); }
+            } else {
+                if (statusSectionEl) statusSectionEl.style.display = 'none';
+            }
+        } catch (e) {
+            console.debug('Error updating driver status section visibility', e);
+        }
     }
 
     // Dynamically load chat widget script once when user is logged in
@@ -824,15 +838,22 @@ async function register() {
     }
 
     try {
+        // Always create base account as a normal customer. If user selected
+        // driver, we'll open the driver-info modal to submit a driver application.
         const payload = {
             ten: name,
             email: email,
             so_dien_thoai: phone,
             mat_khau: password,
-            loai_tai_khoan: role
+            loai_tai_khoan: 'khach_hang'
         };
 
-        const response = await fetch(`${API_BASE_URL}/auth/register/customer`, {
+        // Always create base user account via customer endpoint.
+        // Detailed driver info will be submitted separately via the authenticated
+        // `/auth/register-driver` endpoint using the token returned here.
+        const endpoint = '/auth/register/customer';
+
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -844,7 +865,7 @@ async function register() {
 
         if (result.success) {
             if (role === 'tai_xe') {
-                // Save token and go to driver info page to complete driver profile
+                // Save token and user locally, then open small driver-info modal
                 localStorage.setItem('token', result.data.token);
                 if (result.data.user) {
                     localStorage.setItem('user', JSON.stringify(result.data.user));
@@ -853,7 +874,12 @@ async function register() {
                 dcApp.user = result.data.user;
                 dcApp.updateUI();
                 showSuccess('Tài khoản tạo thành công! Vui lòng hoàn thiện hồ sơ tài xế.');
-                setTimeout(() => window.location.href = '/driver-info.html', 800);
+                // Hide auth modal if open, then show inline driver info modal
+                try {
+                    const authModal = bootstrap.Modal.getInstance(document.getElementById('authModal'));
+                    if (authModal) authModal.hide();
+                } catch (e) {}
+                setTimeout(() => showDriverInfoModal(), 600);
             } else {
                 showSuccess('Đăng ký thành công! Vui lòng đăng nhập.');
                 toggleAuthForm(); // Switch to login form
@@ -898,6 +924,151 @@ function toggleAuthForm() {
         authSwitchText.textContent = 'Đã có tài khoản?';
         authSwitchLink.textContent = 'Đăng nhập ngay';
     }
+}
+
+// Create and show a small modal to collect detailed driver information
+function showDriverInfoModal() {
+        try {
+                // If modal already exists, just show it
+                if (document.getElementById('driverInfoModal')) {
+                        const m = new bootstrap.Modal(document.getElementById('driverInfoModal'));
+                        m.show();
+                        return;
+                }
+
+                // Modal HTML
+                const html = `
+                <div class="modal fade" id="driverInfoModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Hoàn thiện hồ sơ tài xế</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="driver-info-form">
+                                    <div class="mb-2">
+                                        <label class="form-label">CCCD *</label>
+                                        <input type="text" name="cccd" class="form-control" required>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label class="form-label">Số bằng lái *</label>
+                                            <input type="text" name="so_bang_lai" class="form-control" required>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label">Loại bằng lái *</label>
+                                            <select name="bang_lai" class="form-select" required>
+                                                <option value="">Chọn</option>
+                                                <option value="A1">A1</option>
+                                                <option value="A2">A2</option>
+                                                <option value="B1">B1</option>
+                                                <option value="B2">B2</option>
+                                                <option value="C">C</option>
+                                                <option value="D">D</option>
+                                                <option value="E">E</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mt-2">
+                                        <div class="col-6">
+                                            <label class="form-label">Biển số xe *</label>
+                                            <input type="text" name="bien_so_xe" class="form-control" required>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label">Loại xe *</label>
+                                            <input type="text" name="loai_xe" class="form-control" required>
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mt-2">
+                                        <div class="col-6">
+                                            <label class="form-label">Màu xe</label>
+                                            <input type="text" name="mau_xe" class="form-control">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label">Hãng xe</label>
+                                            <input type="text" name="hang_xe" class="form-control">
+                                        </div>
+                                    </div>
+                                    <div class="mb-2 mt-2">
+                                        <label class="form-label">Số chỗ ngồi</label>
+                                        <input type="number" name="so_cho_ngoi" class="form-control" min="1" max="50">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">Ghi chú (tùy chọn)</label>
+                                        <textarea name="ghi_chu" class="form-control" rows="2"></textarea>
+                                    </div>
+                                    <div class="d-grid gap-2 mt-3">
+                                        <button type="submit" class="btn btn-primary">Gửi yêu cầu đăng ký</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `;
+
+                document.body.insertAdjacentHTML('beforeend', html);
+
+                const modalEl = document.getElementById('driverInfoModal');
+                const modal = new bootstrap.Modal(modalEl);
+
+                // Attach submit handler once
+                const form = modalEl.querySelector('#driver-info-form');
+                if (form && !form.dataset.handlerAttached) {
+                        form.addEventListener('submit', async function (e) {
+                                e.preventDefault();
+
+                                const fd = new FormData(form);
+                                const payload = Object.fromEntries(fd.entries());
+
+                                // Basic validation
+                                const required = ['cccd', 'so_bang_lai', 'bang_lai', 'bien_so_xe', 'loai_xe'];
+                                for (const k of required) {
+                                        if (!payload[k] || String(payload[k]).trim() === '') {
+                                                showError('Vui lòng điền đầy đủ thông tin bắt buộc');
+                                                return;
+                                        }
+                                }
+
+                                const loading = showLoading('Đang gửi yêu cầu đăng ký...');
+                                try {
+                                        const token = dcApp && dcApp.token ? dcApp.token : localStorage.getItem('token');
+                                        const res = await fetch(`${API_BASE_URL}/auth/register-driver`, {
+                                                method: 'POST',
+                                                headers: {
+                                                        'Content-Type': 'application/json',
+                                                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                                                },
+                                                body: JSON.stringify(payload)
+                                        });
+
+                                        hideNotification(loading);
+
+                                        const data = await res.json().catch(() => ({}));
+                                        if (res.ok && data.success) {
+                                                showSuccess(data.message || 'Đăng ký tài xế đã được gửi.');
+                                                modal.hide();
+                                                // Optionally show success modal if exists
+                                                try { new bootstrap.Modal(document.getElementById('successModal')).show(); } catch (e) {}
+                                        } else {
+                                                const msg = (data && data.message) ? data.message : 'Gửi đăng ký thất bại';
+                                                showError(msg);
+                                        }
+                                } catch (err) {
+                                        hideNotification(loading);
+                                        console.error('Driver registration submit error:', err);
+                                        showError('Lỗi khi gửi đăng ký. Vui lòng thử lại');
+                                }
+                        });
+                        form.dataset.handlerAttached = '1';
+                }
+
+                modal.show();
+        } catch (err) {
+                console.error('showDriverInfoModal error', err);
+                showError('Không thể mở form hồ sơ tài xế');
+        }
 }
 
 function logout() {

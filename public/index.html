@@ -612,14 +612,19 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             try {
-                let role = localStorage.getItem('role');
-                if (!role && localStorage.getItem('user')) {
+                // Luôn ẩn thanh trạng thái tài xế mặc định
+                const statusSection = document.getElementById('driver-status-section');
+                if (statusSection) statusSection.style.display = 'none';
+
+                // Chỉ hiển thị nếu đã đăng nhập và là tài xế
+                let role = null;
+                if (localStorage.getItem('user')) {
                     const user = JSON.parse(localStorage.getItem('user'));
-                    role = user && user.role ? user.role : null;
+                    // Có thể là 'loai_tai_khoan' hoặc 'role' tùy backend
+                    role = user && (user.loai_tai_khoan || user.role) ? (user.loai_tai_khoan || user.role) : null;
                 }
-                if (role === 'khach_hang') {
-                    const statusSection = document.getElementById('driver-status-section');
-                    if (statusSection) statusSection.style.display = 'none';
+                if (role === 'tai_xe' && statusSection) {
+                    statusSection.style.display = '';
                 }
             } catch (e) { /* ignore */ }
         });
