@@ -188,6 +188,114 @@ class DriverDebt {
       throw error;
     }
   }
+
+  // Xử lý tài xế quá hạn thanh toán - chuyển về khách hàng
+  static async processOverdueDrivers() {
+    try {
+      // Tìm các tài xế có nợ quá hạn
+      const [overdueDrivers] = await pool.execute(`
+        SELECT DISTINCT 
+          tx.id as tai_xe_id,
+          tx.nguoi_dung_id,
+          nd.ten,
+          nd.email,
+          COUNT(ntx.id) as so_no_qua_han,
+          SUM(ntx.so_tien_no - ntx.so_tien_da_tra) as tong_no_qua_han
+        FROM tai_xe tx
+        INNER JOIN nguoi_dung nd ON tx.nguoi_dung_id = nd.id
+        INNER JOIN no_tai_xe ntx ON tx.id = ntx.tai_xe_id
+        WHERE ntx.trang_thai != 'da_tra' 
+        AND ntx.han_thanh_toan < NOW()
+        AND nd.loai_tai_khoan = 'tai_xe'
+        GROUP BY tx.id, tx.nguoi_dung_id, nd.ten, nd.email
+      `);
+
+      let processedCount = 0;
+      const processedDrivers = [];
+
+      for (const driver of overdueDrivers) {
+        // Chuyển role về khách hàng
+        await pool.execute(
+          `UPDATE nguoi_dung 
+           SET loai_tai_khoan = 'khach_hang' 
+           WHERE id = ?`,
+          [driver.nguoi_dung_id]
+        );
+
+        // Đánh dấu tài xế bị chặn
+        await pool.execute(
+          `UPDATE tai_xe 
+           SET bi_chan_vi_no = 1 
+           WHERE id = ?`,
+          [driver.tai_xe_id]
+        );
+
+        processedCount++;
+        processedDrivers.push({
+          id: driver.tai_xe_id,
+          ten: driver.ten,
+          email: driver.email,
+          so_no_qua_han: driver.so_no_qua_han,
+          tong_no_qua_han: driver.tong_no_qua_han
+        });
+      }
+
+      return {
+        processed: processedCount,
+        drivers: processedDrivers
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Khôi phục tài xế sau khi thanh toán hết nợ
+  static async restoreDriverAccount(tai_xe_id) {
+    try {
+      // Lấy thông tin tài xế
+      const [driver] = await pool.execute(
+        'SELECT nguoi_dung_id FROM tai_xe WHERE id = ?',
+        [tai_xe_id]
+      );
+
+      if (!driver || driver.length === 0) {
+        throw new Error('Không tìm thấy tài xế');
+      }
+
+      // Kiểm tra còn nợ chưa trả không
+      const [unpaidDebts] = await pool.execute(
+        `SELECT COUNT(*) as count 
+         FROM no_tai_xe 
+         WHERE tai_xe_id = ? AND trang_thai != 'da_tra'`,
+        [tai_xe_id]
+      );
+
+      if (unpaidDebts[0].count > 0) {
+        return { restored: false, reason: 'Tài xế vẫn còn nợ chưa thanh toán' };
+      }
+
+      // Khôi phục role tài xế
+      await pool.execute(
+        `UPDATE nguoi_dung 
+         SET loai_tai_khoan = 'tai_xe' 
+         WHERE id = ?`,
+        [driver[0].nguoi_dung_id]
+      );
+
+      // Gỡ cờ bị chặn
+      await pool.execute(
+        `UPDATE tai_xe 
+         SET bi_chan_vi_no = 0 
+         WHERE id = ?`,
+        [tai_xe_id]
+      );
+
+      return { restored: true };
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 module.exports = DriverDebt;
+

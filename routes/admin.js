@@ -16,9 +16,10 @@ router.get('/dashboard', authenticate, adminAuth, AdminController.getDashboard);
 
 // Quản lý đăng ký tài xế
 router.get('/driver-registrations', authenticate, adminAuth, AdminController.getDriverRegistrations);
-router.get('/driver-registrations/:id', authenticate, adminAuth, AdminController.getDriverRegistrationById);
 router.post('/driver-registrations/:id/approve', authenticate, adminAuth, AdminController.approveDriverRegistration);
 router.post('/driver-registrations/:id/reject', authenticate, adminAuth, AdminController.rejectDriverRegistration);
+router.delete('/driver-registrations/:id', authenticate, adminAuth, AdminController.deleteDriverRegistration);
+router.get('/driver-registrations/:id', authenticate, adminAuth, AdminController.getDriverRegistrationById);
 
 // New: list users by role (tai_xe, khach_hang, admin)
 router.get('/users', authenticate, adminAuth, AdminController.getUsersByRole);

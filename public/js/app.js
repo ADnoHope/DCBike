@@ -1126,6 +1126,37 @@ function scrollHomeTrips(direction) {
 document.addEventListener('DOMContentLoaded', () => {
     window.dcApp = new DCCarBooking();
     
+    // Check for Google login callback with token in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const googleLogin = urlParams.get('google_login');
+    const error = urlParams.get('error');
+    
+    if (token && googleLogin === 'success') {
+        // Save token to localStorage
+        localStorage.setItem('token', token);
+        
+        // Show success message
+        showNotification('Đăng nhập Google thành công!', 'success');
+        
+        // Clean URL and reload to update UI
+        window.history.replaceState({}, document.title, window.location.pathname);
+        setTimeout(() => {
+            location.reload();
+        }, 1000);
+    } else if (error) {
+        let errorMessage = 'Đăng nhập Google thất bại!';
+        if (error === 'google_auth_failed') {
+            errorMessage = 'Không thể xác thực với Google. Vui lòng thử lại.';
+        } else if (error === 'google_auth_error') {
+            errorMessage = 'Có lỗi xảy ra trong quá trình đăng nhập Google.';
+        }
+        showNotification(errorMessage, 'error');
+        
+        // Clean URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
     // Setup auth form handlers
     const loginForm = document.getElementById('login-form');
     if (loginForm) {

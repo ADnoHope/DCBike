@@ -1,6 +1,7 @@
 const DriverRegistration = require('../models/DriverRegistration');
 const Promotion = require('../models/Promotion');
 const Trip = require('../models/Trip');
+const EmailService = require('../services/EmailService');
 const { pool } = require('../config/database');
 
 class AdminController {
@@ -307,6 +308,23 @@ class AdminController {
 
       const result = await DriverRegistration.approve(id, approverId, password);
 
+      // Gửi email thông báo phê duyệt
+      if (result.registration) {
+        EmailService.sendDriverApprovalEmail(
+          result.registration.email,
+          result.registration.ten,
+          {
+            bien_so_xe: result.registration.bien_so_xe,
+            loai_xe: result.registration.loai_xe,
+            hang_xe: result.registration.hang_xe || 'Không có',
+            mau_xe: result.registration.mau_xe || 'Không có',
+            so_cho_ngoi: result.registration.so_cho_ngoi || 'Không có'
+          }
+        ).catch(err => {
+          console.error('Lỗi khi gửi email phê duyệt:', err);
+        });
+      }
+
       res.json({
         success: true,
         message: 'Đã duyệt thành công đơn đăng ký tài xế',
@@ -337,7 +355,18 @@ class AdminController {
         });
       }
 
-      await DriverRegistration.reject(id, approverId, ly_do_tu_choi);
+      const registration = await DriverRegistration.reject(id, approverId, ly_do_tu_choi);
+
+      // Gửi email thông báo từ chối
+      if (registration) {
+        EmailService.sendDriverRejectionEmail(
+          registration.email,
+          registration.ten,
+          ly_do_tu_choi
+        ).catch(err => {
+          console.error('Lỗi khi gửi email từ chối:', err);
+        });
+      }
 
       res.json({
         success: true,
@@ -348,6 +377,33 @@ class AdminController {
       res.status(400).json({
         success: false,
         message: error.message || 'Lỗi khi từ chối đơn đăng ký'
+      });
+    }
+  }
+
+  // Xóa đơn đăng ký tài xế
+  static async deleteDriverRegistration(req, res) {
+    try {
+      const { id } = req.params;
+      
+      const deleted = await DriverRegistration.deleteById(id);
+      
+      if (!deleted) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy đơn đăng ký'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Đã xóa đơn đăng ký tài xế thành công'
+      });
+    } catch (error) {
+      console.error('Delete driver registration error:', error);
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Lỗi khi xóa đơn đăng ký'
       });
     }
   }
@@ -627,6 +683,8 @@ class AdminController {
         });
       }
 
+      const DriverDebt = require('../models/DriverDebt');
+
       // Cập nhật trạng thái nợ thành "đã trả"
       await pool.execute(`
         UPDATE no_tai_xe 
@@ -644,13 +702,16 @@ class AdminController {
         WHERE tai_xe_id = ? AND trang_thai != 'da_tra'
       `, [driver_id]);
 
-      // Nếu không còn nợ, gỡ cờ bị chặn
+      // Nếu không còn nợ, gỡ cờ bị chặn và khôi phục tài khoản tài xế
       if (unpaidDebts[0].count === 0) {
-        await pool.execute(`
-          UPDATE tai_xe 
-          SET bi_chan_vi_no = 0
-          WHERE id = ?
-        `, [driver_id]);
+        const result = await DriverDebt.restoreDriverAccount(driver_id);
+        
+        if (result.restored) {
+          return res.json({
+            success: true,
+            message: 'Đã duyệt thanh toán thành công. Tài khoản tài xế đã được khôi phục.'
+          });
+        }
       }
 
       res.json({

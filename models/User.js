@@ -127,6 +127,76 @@ class User {
     }
   }
 
+  // Tìm hoặc tạo user từ Google OAuth
+  static async findOrCreateGoogleUser(googleData) {
+    try {
+      let isNewUser = false;
+      
+      // Kiểm tra xem user đã tồn tại với google_id chưa
+      const [existingByGoogleId] = await pool.execute(
+        'SELECT * FROM nguoi_dung WHERE google_id = ? LIMIT 1',
+        [googleData.google_id]
+      );
+
+      if (existingByGoogleId.length > 0) {
+        return {
+          user: new User(existingByGoogleId[0]),
+          isNewUser: false
+        };
+      }
+
+      // Kiểm tra xem email đã tồn tại chưa
+      const [existingByEmail] = await pool.execute(
+        'SELECT * FROM nguoi_dung WHERE email = ? LIMIT 1',
+        [googleData.email]
+      );
+
+      if (existingByEmail.length > 0) {
+        // Nếu user đã tồn tại với email này, cập nhật google_id
+        await pool.execute(
+          'UPDATE nguoi_dung SET google_id = ?, avatar = COALESCE(avatar, ?) WHERE id = ?',
+          [googleData.google_id, googleData.avatar, existingByEmail[0].id]
+        );
+        
+        const [updated] = await pool.execute(
+          'SELECT * FROM nguoi_dung WHERE id = ? LIMIT 1',
+          [existingByEmail[0].id]
+        );
+        return {
+          user: new User(updated[0]),
+          isNewUser: false
+        };
+      }
+
+      // Tạo user mới
+      isNewUser = true;
+      const [result] = await pool.execute(
+        `INSERT INTO nguoi_dung (ten, email, so_dien_thoai, google_id, avatar, loai_tai_khoan, trang_thai) 
+         VALUES (?, ?, ?, ?, ?, ?, 'hoat_dong')`,
+        [
+          googleData.ten,
+          googleData.email,
+          googleData.so_dien_thoai,
+          googleData.google_id,
+          googleData.avatar,
+          googleData.loai_tai_khoan || 'khach_hang'
+        ]
+      );
+
+      const [newUser] = await pool.execute(
+        'SELECT * FROM nguoi_dung WHERE id = ? LIMIT 1',
+        [result.insertId]
+      );
+
+      return {
+        user: new User(newUser[0]),
+        isNewUser: true
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Lấy danh sách người dùng với phân trang
   static async getAll(page = 1, limit = 10, loai_tai_khoan = null) {
     try {

@@ -451,6 +451,62 @@
     <script src="/js/notifications.js"></script>
     <script src="/js/app.js"></script>
     <script>
+        // Logic điều chỉnh số hành khách theo loại xe
+        document.addEventListener('DOMContentLoaded', function() {
+            const carTypeSelect = document.getElementById('car-type');
+            const passengersInput = document.getElementById('passengers');
+            
+            if (carTypeSelect && passengersInput) {
+                carTypeSelect.addEventListener('change', function() {
+                    const carType = this.value;
+                    
+                    switch(carType) {
+                        case 'xe-may':
+                            // Xe máy: mặc định 1, tối đa 1
+                            passengersInput.value = 1;
+                            passengersInput.min = 1;
+                            passengersInput.max = 1;
+                            passengersInput.readOnly = true;
+                            break;
+                        case '4-cho':
+                            // Xe 4 chỗ: mặc định 1, tối đa 4
+                            if (passengersInput.value > 4 || passengersInput.value < 1) {
+                                passengersInput.value = 1;
+                            }
+                            passengersInput.min = 1;
+                            passengersInput.max = 4;
+                            passengersInput.readOnly = false;
+                            break;
+                        case '7-cho':
+                            // Xe 7 chỗ: mặc định 1, tối đa 7
+                            if (passengersInput.value > 7 || passengersInput.value < 1) {
+                                passengersInput.value = 1;
+                            }
+                            passengersInput.min = 1;
+                            passengersInput.max = 7;
+                            passengersInput.readOnly = false;
+                            break;
+                        case '16-cho':
+                            // Xe 16 chỗ: mặc định 1, tối đa 16
+                            if (passengersInput.value > 16 || passengersInput.value < 1) {
+                                passengersInput.value = 1;
+                            }
+                            passengersInput.min = 1;
+                            passengersInput.max = 16;
+                            passengersInput.readOnly = false;
+                            break;
+                        default:
+                            // Chưa chọn loại xe
+                            passengersInput.value = 1;
+                            passengersInput.min = 1;
+                            passengersInput.max = 45;
+                            passengersInput.readOnly = false;
+                            break;
+                    }
+                });
+            }
+        });
+        
         // Ẩn driver status nếu không phải tài xế
         document.addEventListener('DOMContentLoaded', function() {
             try {

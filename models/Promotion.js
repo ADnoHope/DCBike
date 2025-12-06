@@ -186,9 +186,27 @@ class Promotion {
     }
   }
 
+  // Cập nhật trạng thái voucher hết hạn
+  static async updateExpiredPromotions() {
+    try {
+      const [result] = await pool.execute(`
+        UPDATE khuyen_mai 
+        SET trang_thai = 'het_han' 
+        WHERE trang_thai = 'hoat_dong' 
+        AND ngay_ket_thuc < NOW()
+      `);
+      return result.affectedRows;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Lấy danh sách khuyến mãi
   static async getAll(page = 1, limit = 10, trang_thai = null) {
     try {
+      // Cập nhật trạng thái voucher hết hạn trước khi lấy danh sách
+      await this.updateExpiredPromotions();
+
       const offset = (page - 1) * limit;
       let query = 'SELECT * FROM khuyen_mai WHERE 1=1';
       const params = [];
@@ -233,6 +251,9 @@ class Promotion {
   // Lấy khuyến mãi đang hoạt động cho khách hàng
   static async getActivePromotions() {
     try {
+      // Cập nhật trạng thái voucher hết hạn trước
+      await this.updateExpiredPromotions();
+
       const [rows] = await pool.execute(`
         SELECT * FROM khuyen_mai 
         WHERE trang_thai = 'hoat_dong' 
@@ -250,6 +271,9 @@ class Promotion {
   // Lấy tất cả khuyến mãi (public) - trả về mọi bản ghi để hiển thị trên giao diện
   static async getAllPublic() {
     try {
+      // Cập nhật trạng thái voucher hết hạn trước
+      await this.updateExpiredPromotions();
+
       const [rows] = await pool.execute(`
         SELECT * FROM khuyen_mai
         ORDER BY created_at DESC

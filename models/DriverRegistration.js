@@ -184,7 +184,8 @@ class DriverRegistration {
         userId,
         email: registration.email,
         password,
-        message: 'Đã duyệt thành công đơn đăng ký tài xế'
+        message: 'Đã duyệt thành công đơn đăng ký tài xế',
+        registration // Trả về thông tin đầy đủ để gửi email
       };
     } catch (error) {
       await connection.rollback();
@@ -197,6 +198,19 @@ class DriverRegistration {
   // Từ chối đơn đăng ký
   static async reject(id, approver_id, ly_do_tu_choi) {
     try {
+      // Lấy thông tin đơn đăng ký trước khi cập nhật
+      const [regRows] = await pool.execute(
+        'SELECT * FROM driver_registrations WHERE id = ? AND trang_thai = "cho_duyet"',
+        [id]
+      );
+
+      if (regRows.length === 0) {
+        throw new Error('Không tìm thấy đơn đăng ký hoặc đã được xử lý');
+      }
+
+      const registration = regRows[0];
+
+      // Cập nhật trạng thái từ chối
       const [result] = await pool.execute(`
         UPDATE driver_registrations 
         SET trang_thai = 'tu_choi', 
@@ -210,7 +224,7 @@ class DriverRegistration {
         throw new Error('Không tìm thấy đơn đăng ký hoặc đã được xử lý');
       }
 
-      return { message: 'Đã từ chối đơn đăng ký' };
+      return registration;
     } catch (error) {
       throw error;
     }
@@ -240,6 +254,19 @@ class DriverRegistration {
       });
 
       return stats;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Xóa đơn đăng ký theo ID
+  static async deleteById(id) {
+    try {
+      const [result] = await pool.execute(
+        'DELETE FROM driver_registrations WHERE id = ?',
+        [id]
+      );
+      return result.affectedRows > 0;
     } catch (error) {
       throw error;
     }

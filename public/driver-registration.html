@@ -176,7 +176,7 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Loại bằng lái *</label>
-                                <select class="form-select" name="bang_lai" required>
+                                <select class="form-select" name="bang_lai" id="bang_lai" required>
                                     <option value="">Chọn loại bằng lái</option>
                                     <option value="A1">A1 - Xe mô tô 2 bánh dưới 175cc</option>
                                     <option value="A2">A2 - Xe mô tô 2 bánh từ 175cc trở lên</option>
@@ -212,8 +212,9 @@
                                 <input type="text" class="form-control" name="hang_xe" placeholder="Hãng xe">
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label class="form-label">Số chỗ ngồi</label>
-                                <input type="number" class="form-control" name="so_cho_ngoi" min="1" max="50" placeholder="Số chỗ">
+                                <label class="form-label">Số chỗ ngồi *</label>
+                                <input type="number" class="form-control" name="so_cho_ngoi" id="so_cho_ngoi" min="1" max="50" placeholder="Số chỗ" required>
+                                <div class="invalid-feedback" id="so_cho_ngoi_error"></div>
                             </div>
                         </div>
 
@@ -338,6 +339,34 @@
                 } else {
                     const error = await response.json();
                     const message = error.message || 'Đăng ký thất bại';
+                    
+                    // Kiểm tra nếu có nợ chưa thanh toán
+                    if (error.requirePayment) {
+                        const confirmMsg = error.hasOverdueDebt 
+                            ? `Bạn có ${error.data.soKhoanNo} khoản nợ QUẮT HẠN với tổng số tiền ${error.data.tongNo.toLocaleString('vi-VN')}đ.\n\nBạn cần thanh toán trước khi có thể đăng ký lại làm tài xế.\n\nChuyển đến trang thanh toán ngay?`
+                            : `Bạn có ${error.data.soKhoanNo} khoản nợ chưa thanh toán với tổng số tiền ${error.data.tongNo.toLocaleString('vi-VN')}đ.\n\nVui lòng thanh toán trước khi đăng ký lại làm tài xế.\n\nChuyển đến trang thanh toán ngay?`;
+                        
+                        showError(message);
+                        setTimeout(() => {
+                            if (confirm(confirmMsg)) {
+                                // Chuyển đến trang thanh toán với thông tin nợ
+                                window.location.href = `/views/driver-payment.html?highlight=unpaid`;
+                            }
+                        }, 500);
+                        return;
+                    }
+                    
+                    // Nếu cần cập nhật số điện thoại trước
+                    if (error.requireUpdate && error.field === 'so_dien_thoai') {
+                        showError(message);
+                        setTimeout(() => {
+                            if (confirm('Bạn có muốn chuyển đến trang hồ sơ cá nhân để cập nhật số điện thoại không?')) {
+                                window.location.href = '/views/profile.html';
+                            }
+                        }, 1000);
+                        return;
+                    }
+                    
                     // If server indicates a specific field, focus it
                     if (error.field) {
                         const el = document.querySelector(`[name="${error.field}"]`);
@@ -355,6 +384,72 @@
                 console.error('Registration error:', error);
                 showError('Có lỗi xảy ra. Vui lòng thử lại!');
             }
+        });
+    </script>
+    <script>
+        // Logic validation cho loại bằng lái và số chỗ ngồi
+        document.addEventListener('DOMContentLoaded', function() {
+            const bangLaiSelect = document.getElementById('bang_lai');
+            const soChoNgoiInput = document.getElementById('so_cho_ngoi');
+            const soChoNgoiError = document.getElementById('so_cho_ngoi_error');
+            
+            // Khi thay đổi loại bằng lái
+            bangLaiSelect.addEventListener('change', function() {
+                const bangLai = this.value;
+                
+                if (bangLai === 'A1' || bangLai === 'A2') {
+                    // Xe máy: mặc định 2 chỗ, fix min=2, max=2
+                    soChoNgoiInput.value = 2;
+                    soChoNgoiInput.min = 2;
+                    soChoNgoiInput.max = 2;
+                    soChoNgoiInput.readOnly = true;
+                    soChoNgoiInput.classList.remove('is-invalid');
+                    soChoNgoiError.textContent = '';
+                } else if (bangLai) {
+                    // Ô tô: tối thiểu 4 chỗ
+                    if (!soChoNgoiInput.value || soChoNgoiInput.value < 4) {
+                        soChoNgoiInput.value = 4;
+                    }
+                    soChoNgoiInput.min = 4;
+                    soChoNgoiInput.max = 50;
+                    soChoNgoiInput.readOnly = false;
+                } else {
+                    // Chưa chọn loại bằng
+                    soChoNgoiInput.value = '';
+                    soChoNgoiInput.min = 1;
+                    soChoNgoiInput.max = 50;
+                    soChoNgoiInput.readOnly = false;
+                }
+            });
+            
+            // Validation khi thay đổi số chỗ ngồi
+            soChoNgoiInput.addEventListener('change', function() {
+                const bangLai = bangLaiSelect.value;
+                const soChoNgoi = parseInt(this.value);
+                
+                if (!bangLai) {
+                    return; // Chưa chọn bằng lái
+                }
+                
+                // Kiểm tra xe máy (A1, A2) phải 2 chỗ
+                if ((bangLai === 'A1' || bangLai === 'A2') && soChoNgoi !== 2) {
+                    this.classList.add('is-invalid');
+                    soChoNgoiError.textContent = 'Xe máy (A1/A2) chỉ có 2 chỗ ngồi';
+                    this.value = 2;
+                    return;
+                }
+                
+                // Kiểm tra ô tô phải từ 4 chỗ trở lên
+                if (bangLai !== 'A1' && bangLai !== 'A2' && soChoNgoi < 4) {
+                    this.classList.add('is-invalid');
+                    soChoNgoiError.textContent = 'Loại bằng lái không phù hợp với loại xe. Ô tô phải có tối thiểu 4 chỗ ngồi';
+                    return;
+                }
+                
+                // Valid
+                this.classList.remove('is-invalid');
+                soChoNgoiError.textContent = '';
+            });
         });
     </script>
     <script>
@@ -382,6 +477,16 @@
                         window.location.href = 'index.html';
                     }, 2000);
                     return;
+                }
+                
+                // Kiểm tra số điện thoại
+                if (user && !user.so_dien_thoai) {
+                    showWarning('⚠️ Bạn chưa có số điện thoại! Số điện thoại là thông tin bắt buộc để đăng ký tài xế và liên lạc với khách hàng.');
+                    setTimeout(() => {
+                        if (confirm('Bạn có muốn chuyển đến trang hồ sơ cá nhân để cập nhật số điện thoại không?')) {
+                            window.location.href = '/views/profile.html';
+                        }
+                    }, 2000);
                 }
                 
                 // Tự động điền thông tin từ user đã đăng nhập

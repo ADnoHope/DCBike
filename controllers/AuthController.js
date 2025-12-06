@@ -1,8 +1,10 @@
-const bcrypt = require('bcryptjs');
+﻿const bcrypt = require('bcryptjs');
 const { generateToken } = require('../config/jwt');
 const User = require('../models/User');
 const Driver = require('../models/Driver');
 const DriverRegistration = require('../models/DriverRegistration');
+const DriverDebt = require('../models/DriverDebt');
+const EmailService = require('../services/EmailService');
 const path = require('path');
 const fs = require('fs');
 
@@ -46,7 +48,7 @@ class AuthController {
       });
 
       // Tạo token
-  const token = generateToken({ userId, email, loai_tai_khoan: userType });
+      const token = generateToken({ userId, email, loai_tai_khoan: userType });
 
       res.status(201).json({
         success: true,
@@ -63,6 +65,13 @@ class AuthController {
           }
         }
       });
+
+      // Gửi email chào mừng nếu sử dụng Gmail
+      if (email && email.toLowerCase().endsWith('@gmail.com')) {
+        EmailService.sendWelcomeEmail(email, ten).catch(err => {
+          console.error('Register customer welcome email error:', err);
+        });
+      }
     } catch (error) {
       console.error('Register customer error:', error);
       res.status(500).json({
@@ -104,18 +113,26 @@ class AuthController {
 
       // Đăng ký tài xế
       const result = await Driver.register({
-        ten, email, so_dien_thoai, 
-        mat_khau: hashedPassword, 
+        ten,
+        email,
+        so_dien_thoai,
+        mat_khau: hashedPassword,
         dia_chi,
-        so_bang_lai, loai_bang_lai, kinh_nghiem_lien_tuc,
-        bien_so_xe, loai_xe, mau_xe, hang_xe, so_cho_ngoi
+        so_bang_lai,
+        loai_bang_lai,
+        kinh_nghiem_lien_tuc,
+        bien_so_xe,
+        loai_xe,
+        mau_xe,
+        hang_xe,
+        so_cho_ngoi
       });
 
       // Tạo token
-      const token = generateToken({ 
-        userId: result.userId, 
-        email, 
-        loai_tai_khoan: 'tai_xe' 
+      const token = generateToken({
+        userId: result.userId,
+        email,
+        loai_tai_khoan: 'tai_xe'
       });
 
       res.status(201).json({
@@ -134,6 +151,13 @@ class AuthController {
           }
         }
       });
+
+      // Gửi email chào mừng nếu sử dụng Gmail
+      if (email && email.toLowerCase().endsWith('@gmail.com')) {
+        EmailService.sendWelcomeEmail(email, ten).catch(err => {
+          console.error('Register driver welcome email error:', err);
+        });
+      }
     } catch (error) {
       console.error('Register driver error:', error);
       res.status(500).json({
@@ -202,6 +226,28 @@ class AuthController {
         success: false,
         message: 'Lỗi hệ thống khi đăng nhập'
       });
+    }
+  }
+
+  // Google OAuth callback
+  static async googleCallback(req, res) {
+    try {
+      if (!req.user) {
+        return res.redirect('/index.html?error=google_auth_error');
+      }
+
+      const loaiTaiKhoan = req.user.loai_tai_khoan || 'khach_hang';
+      const token = generateToken({
+        userId: req.user.id,
+        email: req.user.email,
+        loai_tai_khoan: loaiTaiKhoan
+      });
+
+      const redirectUrl = `/index.html?google_login=success&token=${encodeURIComponent(token)}`;
+      return res.redirect(redirectUrl);
+    } catch (error) {
+      console.error('Google callback error:', error);
+      return res.redirect('/index.html?error=google_auth_error');
     }
   }
 
@@ -394,6 +440,65 @@ class AuthController {
         });
       }
 
+      // Kiểm tra nếu user trước đây là tài xế và có nợ chưa thanh toán
+      const { pool } = require('../config/database');
+      const [driverRecord] = await pool.execute(
+        'SELECT id FROM tai_xe WHERE nguoi_dung_id = ?',
+        [userId]
+      );
+
+      if (driverRecord.length > 0) {
+        const driverId = driverRecord[0].id;
+        
+        // Kiểm tra nợ chưa thanh toán
+        const [unpaidDebts] = await pool.execute(
+          `SELECT 
+            id, 
+            chuyen_di_id, 
+            so_tien_no, 
+            so_tien_da_tra,
+            han_thanh_toan,
+            trang_thai
+          FROM no_tai_xe 
+          WHERE tai_xe_id = ? AND trang_thai != 'da_tra'
+          ORDER BY han_thanh_toan ASC`,
+          [driverId]
+        );
+
+        if (unpaidDebts.length > 0) {
+          // Tính tổng nợ
+          const tongNo = unpaidDebts.reduce((sum, debt) => {
+            return sum + (parseFloat(debt.so_tien_no) - parseFloat(debt.so_tien_da_tra || 0));
+          }, 0);
+
+          // Kiểm tra nợ quá hạn
+          const hasOverdueDebt = unpaidDebts.some(debt => 
+            new Date(debt.han_thanh_toan) < new Date()
+          );
+
+          return res.status(400).json({ 
+            success: false, 
+            requirePayment: true,
+            hasOverdueDebt,
+            message: hasOverdueDebt 
+              ? 'Bạn có khoản nợ quá hạn chưa thanh toán. Vui lòng thanh toán trước khi đăng ký lại tài xế.'
+              : 'Bạn còn khoản nợ chưa thanh toán. Vui lòng thanh toán trước khi đăng ký lại tài xế.',
+            data: {
+              tongNo: Math.round(tongNo),
+              soKhoanNo: unpaidDebts.length,
+              driverId: driverId,
+              debts: unpaidDebts.map(debt => ({
+                id: debt.id,
+                soTien: Math.round(parseFloat(debt.so_tien_no) - parseFloat(debt.so_tien_da_tra || 0)),
+                hanThanhToan: debt.han_thanh_toan,
+                trangThai: debt.trang_thai,
+                quaHan: new Date(debt.han_thanh_toan) < new Date()
+              }))
+            }
+          });
+        }
+      }
+
       // Kiểm tra đã có đơn đăng ký chưa
       const existingRegistration = await DriverRegistration.findByEmail(user.email);
       if (existingRegistration && existingRegistration.trang_thai === 'cho_duyet') {
@@ -416,10 +521,31 @@ class AuthController {
       } = req.body;
 
       // Validate required fields
-      if (!cccd || !so_bang_lai || !bang_lai || !bien_so_xe || !loai_xe) {
+      if (!cccd || !so_bang_lai || !bang_lai || !bien_so_xe || !loai_xe || !so_cho_ngoi) {
         return res.status(400).json({ 
           success: false, 
           message: 'Thiếu thông tin bắt buộc' 
+        });
+      }
+
+      // Validate số chỗ ngồi theo loại bằng lái
+      const soChoNgoiNum = parseInt(so_cho_ngoi);
+      
+      // Xe máy (A1, A2) phải có 2 chỗ
+      if ((bang_lai === 'A1' || bang_lai === 'A2') && soChoNgoiNum !== 2) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Xe máy (bằng A1/A2) chỉ có 2 chỗ ngồi',
+          field: 'so_cho_ngoi'
+        });
+      }
+      
+      // Ô tô (B1, B2, C, D, E, FB2, FC) phải có ít nhất 4 chỗ
+      if (bang_lai !== 'A1' && bang_lai !== 'A2' && soChoNgoiNum < 4) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Loại bằng lái không phù hợp với loại xe. Ô tô phải có tối thiểu 4 chỗ ngồi',
+          field: 'so_cho_ngoi'
         });
       }
 
@@ -446,6 +572,15 @@ class AuthController {
 
       const registration = await DriverRegistration.create(registrationData);
 
+      // Gửi email xác nhận đã nhận đơn
+      EmailService.sendDriverRegistrationEmail(
+        user.email,
+        user.ten,
+        registration
+      ).catch(err => {
+        console.error('Driver registration email error:', err);
+      });
+
       res.status(201).json({
         success: true,
         message: 'Đăng ký tài xế đã được gửi thành công. Vui lòng chờ admin duyệt.',
@@ -468,7 +603,7 @@ class AuthController {
       if (!req.file) {
         return res.status(400).json({
           success: false,
-          message: 'Vui lòng chọn file ảnh'
+          message: 'Vui lòng chọn file đúng'
         });
       }
 
