@@ -704,6 +704,136 @@ class AuthController {
       });
     }
   }
+
+  // Yêu cầu quên mật khẩu (gửi mã xác nhận)
+  static async forgotPassword(req, res) {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vui lòng nhập email'
+        });
+      }
+
+      // Kiểm tra email có tồn tại không
+      const user = await User.findByEmail(email);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Email không tồn tại trong hệ thống'
+        });
+      }
+
+      // Tạo mã xác nhận 6 số
+      const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Thời gian hết hạn: 15 phút
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+      // Lưu mã vào database
+      await User.saveResetCode(email, resetCode, expiresAt);
+
+      // Gửi email
+      await EmailService.sendPasswordResetEmail(email, user.ten, resetCode);
+
+      res.json({
+        success: true,
+        message: 'Mã xác nhận đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.'
+      });
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi gửi mã xác nhận. Vui lòng thử lại sau.'
+      });
+    }
+  }
+
+  // Xác thực mã reset
+  static async verifyResetCode(req, res) {
+    try {
+      const { email, code } = req.body;
+
+      if (!email || !code) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vui lòng nhập đầy đủ email và mã xác nhận'
+        });
+      }
+
+      // Xác thực mã
+      const user = await User.verifyResetCode(email, code);
+      
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mã xác nhận không đúng hoặc đã hết hạn'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Mã xác nhận hợp lệ. Vui lòng nhập mật khẩu mới.'
+      });
+    } catch (error) {
+      console.error('Verify reset code error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi xác thực mã'
+      });
+    }
+  }
+
+  // Đặt lại mật khẩu mới
+  static async resetPassword(req, res) {
+    try {
+      const { email, code, newPassword } = req.body;
+
+      if (!email || !code || !newPassword) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vui lòng nhập đầy đủ thông tin'
+        });
+      }
+
+      // Kiểm tra độ dài mật khẩu
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mật khẩu phải có ít nhất 6 ký tự'
+        });
+      }
+
+      // Xác thực mã lần nữa
+      const user = await User.verifyResetCode(email, code);
+      
+      if (!user) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mã xác nhận không đúng hoặc đã hết hạn'
+        });
+      }
+
+      // Hash mật khẩu mới
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+      // Cập nhật mật khẩu
+      await User.resetPassword(email, hashedPassword);
+
+      res.json({
+        success: true,
+        message: 'Đặt lại mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới.'
+      });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi đặt lại mật khẩu'
+      });
+    }
+  }
 }
 
 module.exports = AuthController;

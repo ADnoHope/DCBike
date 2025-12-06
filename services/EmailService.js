@@ -91,6 +91,78 @@ class EmailService {
     }
   }
 
+  // Gửi email mã xác nhận reset mật khẩu
+  async sendPasswordResetEmail(userEmail, userName, resetCode) {
+    if (!this.isConfigured) {
+      console.log('Email service chưa cấu hình, bỏ qua gửi email');
+      return;
+    }
+
+    try {
+      const mailOptions = {
+        from: `"DC Bike" <${process.env.EMAIL_USER}>`,
+        to: userEmail,
+        subject: 'Mã xác nhận đặt lại mật khẩu - DC Bike 🔐',
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+              .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+              .code-box { background: #fff; border: 2px dashed #667eea; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0; }
+              .code { font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 8px; font-family: monospace; }
+              .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; }
+              .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>🔐 Đặt lại mật khẩu</h1>
+              </div>
+              <div class="content">
+                <h2>Xin chào ${userName}!</h2>
+                <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
+                
+                <p>Mã xác nhận của bạn là:</p>
+                <div class="code-box">
+                  <div class="code">${resetCode}</div>
+                </div>
+
+                <p><strong>Mã này có hiệu lực trong 15 phút.</strong></p>
+
+                <div class="warning">
+                  <strong>⚠️ Lưu ý bảo mật:</strong>
+                  <ul style="margin: 10px 0 0 0;">
+                    <li>Không chia sẻ mã này với bất kỳ ai</li>
+                    <li>DC Bike không bao giờ yêu cầu mã qua điện thoại</li>
+                    <li>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này</li>
+                  </ul>
+                </div>
+
+                <p style="margin-top: 30px; color: #666;">Nếu bạn không thực hiện yêu cầu này, vui lòng liên hệ với chúng tôi ngay lập tức.</p>
+              </div>
+              <div class="footer">
+                <p>© 2025 DC Bike. Tất cả quyền được bảo lưu.</p>
+                <p>Email này được gửi tự động, vui lòng không trả lời.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `
+      };
+
+      await this.transporter.sendMail(mailOptions);
+      console.log(`✓ Đã gửi mã reset mật khẩu đến ${userEmail}`);
+    } catch (error) {
+      console.error('Lỗi khi gửi email reset mật khẩu:', error);
+      throw error;
+    }
+  }
+
   // Gửi email xác nhận đăng ký tài xế
   async sendDriverRegistrationEmail(userEmail, userName, registrationData) {
     if (!this.isConfigured) {

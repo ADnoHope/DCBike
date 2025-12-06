@@ -23,6 +23,11 @@ router.post('/register-driver', authenticate, AuthController.submitDriverRegistr
 // Đăng nhập
 router.post('/login', validateLogin, AuthController.login);
 
+// Quên mật khẩu
+router.post('/forgot-password', AuthController.forgotPassword);
+router.post('/verify-reset-code', AuthController.verifyResetCode);
+router.post('/reset-password', AuthController.resetPassword);
+
 // Google OAuth routes (chỉ kích hoạt nếu có credentials)
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   router.get('/google',

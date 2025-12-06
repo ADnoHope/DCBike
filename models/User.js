@@ -88,6 +88,51 @@ class User {
     }
   }
 
+  // Lưu mã reset mật khẩu
+  static async saveResetCode(email, resetCode, expiresAt) {
+    try {
+      await pool.execute(
+        `UPDATE nguoi_dung 
+         SET reset_code = ?, reset_code_expires = ? 
+         WHERE email = ?`,
+        [resetCode, expiresAt, email]
+      );
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Xác thực mã reset
+  static async verifyResetCode(email, resetCode) {
+    try {
+      const [rows] = await pool.execute(
+        `SELECT * FROM nguoi_dung 
+         WHERE email = ? AND reset_code = ? AND reset_code_expires > NOW() 
+         AND trang_thai = "hoat_dong"`,
+        [email, resetCode]
+      );
+      return rows.length > 0 ? new User(rows[0]) : null;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Đặt lại mật khẩu
+  static async resetPassword(email, newPassword) {
+    try {
+      await pool.execute(
+        `UPDATE nguoi_dung 
+         SET mat_khau = ?, reset_code = NULL, reset_code_expires = NULL 
+         WHERE email = ?`,
+        [newPassword, email]
+      );
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // Cập nhật thông tin người dùng
   static async update(id, updateData) {
     try {

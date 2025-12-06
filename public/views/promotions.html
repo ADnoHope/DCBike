@@ -367,15 +367,32 @@
         // Featured promotions: reuse active promotions and pick top 2 by value
         async function loadFeaturedPromotions() {
             try {
-                const response = await fetch(`${API_BASE_URL}/promotions/all`);
+                const response = await fetch(`${API_BASE_URL}/promotions/active`);
                 const result = await response.json();
 
                 if (result.success) {
                     const promotions = result.data || [];
                     // ensure cache is populated
                     window.promotionsCache = promotions;
-                    // Pick up to 2 promotions with highest gia_tri (fallback)
-                    const featured = promotions.slice().sort((a, b) => (b.gia_tri || 0) - (a.gia_tri || 0)).slice(0, 2);
+                    
+                    // Lọc chỉ voucher đang hoạt động và chưa hết hạn
+                    const now = new Date();
+                    const validPromotions = promotions.filter(p => {
+                        const endDate = p.ngay_ket_thuc ? new Date(p.ngay_ket_thuc) : null;
+                        const isActive = p.trang_thai === 'hoat_dong' || p.trang_thai === 'kich_hoat';
+                        const notExpired = !endDate || endDate >= now;
+                        return isActive && notExpired;
+                    });
+                    
+                    // Sắp xếp theo thời gian tạo mới nhất (created_at DESC), lấy 2 cái đầu
+                    const featured = validPromotions
+                        .sort((a, b) => {
+                            const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+                            const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+                            return dateB - dateA;
+                        })
+                        .slice(0, 2);
+                    
                     displayFeaturedPromotions(featured);
                 } else {
                     throw new Error(result.message || 'Không thể tải khuyến mãi nổi bật');
