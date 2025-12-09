@@ -4,11 +4,22 @@ const morgan = require('morgan');
 const session = require('express-session');
 const passport = require('./config/google');
 const path = require('path');
+const http = require('http');
+const socketIO = require('socket.io');
 require('dotenv').config();
 
 const { testConnection } = require('./config/database');
+const setupSocket = require('./socket/socketHandler');
 
 const app = express();
+const httpServer = http.createServer(app);
+const io = socketIO(httpServer, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -158,6 +169,10 @@ app.get('/*.html', (req, res, next) => {
 // Test database connection
 testConnection();
 
+// Setup Socket.IO
+setupSocket(io);
+global.io = io;
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 
@@ -169,8 +184,8 @@ app.use('/api/trips', authenticate, require('./routes/trips'));
 // expose public endpoints (like /available) while protecting others
 // with route-level middleware inside the router file.
 app.use('/api/drivers', require('./routes/drivers'));
-// Driver notifications (protected)
-app.use('/api/drivers/notifications', require('./routes/notifications'));
+// Notifications (customer notifications + driver notifications)
+app.use('/api/notifications', require('./routes/notifications'));
 // Promotions router contains some public endpoints (active/all) and some admin-only endpoints.
 // Mount it without the global `authenticate` so the routes file can opt-in where needed.
 app.use('/api/promotions', require('./routes/promotions'));
@@ -219,10 +234,11 @@ app.use((error, req, res, next) => {
 });
 
 // Start server (store server instance so we can handle errors)
-const server = app.listen(PORT, () => {
+const server = httpServer.listen(PORT, () => {
   console.log(`🚗 DC Car Booking Server đang chạy tại http://localhost:${PORT}`);
   console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
   console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
+  console.log(`🔌 WebSocket (Socket.IO) tại ws://localhost:${PORT}`);
 });
 
 // Graceful error handling for common server errors

@@ -7,7 +7,187 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
+    
+    <!-- Socket.IO Client -->
+    <script src="/socket.io/socket.io.js"></script>
+    
     <style>
+        /* Realtime Notification Styles */
+        .notification-bell-container {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 999;
+        }
+
+        .notification-bell {
+            position: relative;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notification-bell:hover {
+            background: #0056b3;
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+        }
+
+        .unread-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff4757;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            border: 2px solid white;
+        }
+
+        .notification-list {
+            position: fixed;
+            top: 130px;
+            right: 20px;
+            width: 350px;
+            max-height: 500px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .notification-list-header {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+        }
+
+        .notification-list-header h5 {
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .notification-list-body {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 350px;
+        }
+
+        .notification-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            gap: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .notification-item:hover {
+            background: #f8f9fa;
+        }
+
+        .notification-item-icon {
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .notification-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .notification-item-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #111;
+            margin-bottom: 4px;
+        }
+
+        .notification-item-message {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 6px;
+            word-break: break-word;
+        }
+
+        .notification-item-time {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .notification-list-footer {
+            padding: 10px;
+            border-top: 1px solid #e0e0e0;
+            background: #f8f9fa;
+        }
+
+        .notification-list-footer a {
+            font-size: 13px;
+            color: #007bff;
+            font-weight: 500;
+        }
+
+        .notification-list-footer a:hover {
+            color: #0056b3;
+        }
+
+        /* Responsive */
+        @media (max-width: 576px) {
+            .notification-list {
+                width: calc(100vw - 40px);
+                right: 20px;
+                left: 20px;
+                max-height: 70vh;
+            }
+
+            .notification-bell-container {
+                right: 15px;
+                top: 60px;
+            }
+
+            .notification-bell {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+            }
+        }
+
         /* CSS MỚI CHO PHẦN BODY (KHÔNG ẢNH HƯỞNG HEADER/FOOTER) */
         :root {
             --primary-dark: #00004d;
@@ -378,62 +558,6 @@
                             <a href="driver-registration.html" class="btn btn-warning btn-lg rounded-pill px-5 fw-bold text-dark">
                                 Đăng ký ngay <i class="fas fa-arrow-right ms-2"></i>
                             </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="py-5" style="background-color: #f8f9fa;">
-            <div class="container py-4">
-                <div class="text-center mb-5">
-                    <h6 class="text-primary fw-bold text-uppercase mb-2">Đánh giá</h6>
-                    <h2 class="fw-bold">Khách hàng nói gì về chúng tôi?</h2>
-                </div>
-                <div class="row g-4">
-                    <div class="col-md-4">
-                        <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
-                            <div class="mb-3 text-warning">
-                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-                            </div>
-                            <p class="text-muted fst-italic mb-4 flex-grow-1">"Dịch vụ rất tốt, tài xế thân thiện và đón đúng giờ. Xe sạch sẽ, không mùi. Tôi sẽ sử dụng thường xuyên."</p>
-                            <div class="d-flex align-items-center">
-                                <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="User" class="rounded-circle me-3" width="50">
-                                <div>
-                                    <h6 class="mb-0 fw-bold">Nguyễn Thu Hà</h6>
-                                    <small class="text-muted">Nhân viên văn phòng</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
-                            <div class="mb-3 text-warning">
-                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-                            </div>
-                            <p class="text-muted fst-italic mb-4 flex-grow-1">"Ứng dụng dễ sử dụng, đặt xe nhanh chóng. Giá cả hợp lý hơn so với taxi truyền thống. Rất hài lòng!"</p>
-                            <div class="d-flex align-items-center">
-                                <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="User" class="rounded-circle me-3" width="50">
-                                <div>
-                                    <h6 class="mb-0 fw-bold">Trần Minh Tuấn</h6>
-                                    <small class="text-muted">Sinh viên</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card border-0 shadow-sm h-100 p-4 rounded-4">
-                            <div class="mb-3 text-warning">
-                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
-                            </div>
-                            <p class="text-muted fst-italic mb-4 flex-grow-1">"Tôi thường xuyên đi công tác và DC Booking luôn là lựa chọn hàng đầu. Xuất hóa đơn nhanh chóng."</p>
-                            <div class="d-flex align-items-center">
-                                <img src="https://randomuser.me/api/portraits/men/86.jpg" alt="User" class="rounded-circle me-3" width="50">
-                                <div>
-                                    <h6 class="mb-0 fw-bold">Lê Văn Hùng</h6>
-                                    <small class="text-muted">Doanh nhân</small>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -949,6 +1073,39 @@
         function isValidEmail(email) {
             return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
         }
+    </script>
+
+    <!-- Real-time Notification Manager (Load BEFORE initialization) -->
+    <script src="/js/notification-realtime.js"></script>
+
+    <script>
+        // Initialize real-time notifications AFTER notification-realtime.js loads
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                const token = localStorage.getItem('token');
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                
+                // Only initialize if user is logged in
+                if (token && user.id) {
+                    // Check if notification library is loaded
+                    if (typeof realtimeNotifications !== 'undefined') {
+                        const userRole = user.loai_tai_khoan || user.role;
+                        console.log('Initializing Socket.IO on homepage for role:', userRole);
+                        const success = realtimeNotifications.init(token, userRole);
+                        
+                        if (success) {
+                            console.log('✅ Real-time notifications initialized for:', userRole);
+                        } else {
+                            console.error('Failed to initialize notifications');
+                        }
+                    } else {
+                        console.error('Real-time notification library not found');
+                    }
+                }
+            } catch (e) {
+                console.error('Notification init error:', e);
+            }
+        });
     </script>
 </body>
 </html>

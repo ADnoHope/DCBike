@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thông báo - DC Booking</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <style>
+        .notifications-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .notifications-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 0;
+            margin-bottom: 30px;
+            border-radius: 0 0 15px 15px;
+        }
+
+        .notifications-header h1 {
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+
+        .notifications-header p {
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .notifications-filters {
+            margin-bottom: 25px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .filter-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .notification-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            display: flex;
+            gap: 15px;
+            cursor: pointer;
+        }
+
+        .notification-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+
+        .notification-card.unread {
+            background: #f8f9ff;
+            border-left: 4px solid #667eea;
+        }
+
+        .notification-icon {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .notification-icon.trip-accepted {
+            background: #e8f5e9;
+            color: #4caf50;
+        }
+
+        .notification-icon.new-trip {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+
+        .notification-icon.trip-cancelled {
+            background: #ffebee;
+            color: #f44336;
+        }
+
+        .notification-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .notification-message {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .notification-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            color: #999;
+        }
+
+        .notification-time {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .notification-status {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .notification-status.unread {
+            background: #667eea;
+            color: white;
+        }
+
+        .notification-status.read {
+            background: #e0e0e0;
+            color: #666;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .notification-action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .notification-action-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            color: #ccc;
+            margin-bottom: 15px;
+        }
+
+        .empty-state-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .empty-state-desc {
+            color: #999;
+            margin-bottom: 20px;
+        }
+
+        .empty-state-btn {
+            padding: 10px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .empty-state-btn:hover {
+            background: #764ba2;
+        }
+
+        .notifications-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .notifications-count {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .toolbar-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .toolbar-btn {
+            padding: 8px 16px;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .toolbar-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .toolbar-btn.danger {
+            color: #f44336;
+            border-color: #ffcdd2;
+        }
+
+        .toolbar-btn.danger:hover {
+            background: #ffebee;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .notification-details {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #f0f0f0;
+            font-size: 13px;
+            color: #999;
+        }
+
+        .detail-item {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+
+        .detail-label {
+            font-weight: 500;
+            color: #666;
+            min-width: 80px;
+        }
+
+        @media (max-width: 768px) {
+            .notifications-header {
+                padding: 20px 0;
+            }
+
+            .notifications-header h1 {
+                font-size: 24px;
+            }
+
+            .notification-card {
+                padding: 15px;
+                gap: 12px;
+            }
+
+            .notification-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+
+            .notifications-toolbar {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .notifications-filters {
+                flex-direction: column;
+            }
+
+            .filter-btn {
+                width: 100%;
+            }
+
+            .toolbar-actions {
+                width: 100%;
+            }
+
+            .toolbar-btn {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-car"></i> DC Booking
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Trang chủ</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/views/booking.html">Đặt xe</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/views/profile.html">Hồ sơ</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="logout()">Đăng xuất</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Notifications Header -->
+    <div class="notifications-header">
+        <div class="container">
+            <h1>
+                <i class="fas fa-bell me-2"></i>Thông báo
+            </h1>
+            <p id="headerSubtitle">Quản lý tất cả thông báo của bạn</p>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container notifications-container">
+        <!-- Filters -->
+        <div class="notifications-filters">
+            <button class="filter-btn active" onclick="filterNotifications('all')">
+                Tất cả
+            </button>
+            <button class="filter-btn" onclick="filterNotifications('trip_accepted')">
+                <i class="fas fa-check-circle me-1"></i>Chuyến được nhận
+            </button>
+            <button class="filter-btn" onclick="filterNotifications('new_trip')">
+                <i class="fas fa-plus-circle me-1"></i>Chuyến mới
+            </button>
+            <button class="filter-btn" onclick="filterNotifications('unread')">
+                <i class="fas fa-circle me-1"></i>Chưa đọc
+            </button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="notifications-toolbar">
+            <span class="notifications-count">
+                <i class="fas fa-inbox me-2"></i><span id="totalCount">0</span> thông báo
+            </span>
+            <div class="toolbar-actions">
+                <button class="toolbar-btn" id="markAllReadBtn" onclick="markAllAsRead()">
+                    <i class="fas fa-check-double me-1"></i>Đánh dấu tất cả đã đọc
+                </button>
+                <button class="toolbar-btn danger" id="deleteAllBtn" onclick="deleteAll()">
+                    <i class="fas fa-trash me-1"></i>Xóa tất cả
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-spinner" style="display: none;">
+            <div class="spinner"></div>
+            <p class="mt-3">Đang tải thông báo...</p>
+        </div>
+
+        <!-- Notifications List -->
+        <div id="notificationsList">
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">
+                <i class="fas fa-inbox"></i>
+            </div>
+            <div class="empty-state-title">Không có thông báo</div>
+            <div class="empty-state-desc">Bạn chưa có thông báo nào. Quay lại sau!</div>
+            <a href="/" class="empty-state-btn">Quay lại trang chủ</a>
+        </div>
+    </div>
+
+    <!-- Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- Real-time Notifications Manager -->
+    <script src="/js/notification-realtime.js"></script>
+
+    <script>
+        let allNotifications = [];
+        let currentFilter = 'all';
+        let socket = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+            if (!token || !user.id) {
+                window.location.href = '/';
+                return;
+            }
+
+            showLoading(true);
+            await loadNotifications();
+            setupSocketIO(token);
+            showLoading(false);
+        });
+
+        /**
+         * Load all notifications from server
+         */
+        async function loadNotifications() {
+            try {
+                const response = await fetch('/api/notifications?limit=100', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/';
+                        return;
+                    }
+                    throw new Error('Failed to load notifications');
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    allNotifications = result.notifications || [];
+                    renderNotifications();
+                    updateHeader();
+                } else {
+                    showError('Không thể tải thông báo');
+                }
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+                showError('Có lỗi xảy ra khi tải thông báo');
+            }
+        }
+
+        /**
+         * Render notifications based on current filter
+         */
+        function renderNotifications() {
+            const notificationsList = document.getElementById('notificationsList');
+            const emptyState = document.getElementById('emptyState');
+
+            // Filter notifications
+            let filtered = allNotifications;
+            if (currentFilter === 'unread') {
+                filtered = allNotifications.filter(n => n.status === 'unread');
+            } else if (currentFilter !== 'all') {
+                filtered = allNotifications.filter(n => n.type === currentFilter);
+            }
+
+            // Update count
+            document.getElementById('totalCount').textContent = filtered.length;
+
+            if (filtered.length === 0) {
+                notificationsList.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            notificationsList.style.display = 'block';
+            emptyState.style.display = 'none';
+
+            notificationsList.innerHTML = filtered.map(notif => createNotificationCard(notif)).join('');
+        }
+
+        /**
+         * Create notification card HTML
+         */
+        function createNotificationCard(notif) {
+            const date = new Date(notif.created_at);
+            const timeAgo = getTimeAgo(date);
+            const isUnread = notif.status === 'unread';
+
+            // Get icon and color based on type
+            let iconClass = 'fa-bell';
+            let iconColor = 'notification-icon';
+
+            if (notif.type === 'trip_accepted') {
+                iconClass = 'fa-check-circle';
+                iconColor = 'notification-icon trip-accepted';
+            } else if (notif.type === 'new_trip') {
+                iconClass = 'fa-plus-circle';
+                iconColor = 'notification-icon new-trip';
+            } else if (notif.type === 'trip_cancelled') {
+                iconClass = 'fa-times-circle';
+                iconColor = 'notification-icon trip-cancelled';
+            }
+
+            let detailsHtml = '';
+            if (notif.data) {
+                const data = typeof notif.data === 'string' ? JSON.parse(notif.data) : notif.data;
+                if (data.diem_don || data.diem_den) {
+                    detailsHtml = `
+                        <div class="notification-details">
+                            ${data.diem_don ? `<div class="detail-item"><span class="detail-label">📍 Từ:</span><span>${data.diem_don}</span></div>` : ''}
+                            ${data.diem_den ? `<div class="detail-item"><span class="detail-label">📍 Đến:</span><span>${data.diem_den}</span></div>` : ''}
+                            ${data.gia_cuoc ? `<div class="detail-item"><span class="detail-label">💰 Giá:</span><span>${formatPrice(data.gia_cuoc)}</span></div>` : ''}
+                            ${data.driverName ? `<div class="detail-item"><span class="detail-label">👤 Tài xế:</span><span>${data.driverName}</span></div>` : ''}
+                        </div>
+                    `;
+                }
+            }
+
+            return `
+                <div class="notification-card ${isUnread ? 'unread' : ''}" data-id="${notif.id}">
+                    <div class="${iconColor}">
+                        <i class="fas ${iconClass}"></i>
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-title">${notif.title || 'Thông báo'}</div>
+                        <div class="notification-message">${notif.message || ''}</div>
+                        ${detailsHtml}
+                        <div class="notification-meta">
+                            <span class="notification-time">
+                                <i class="fas fa-clock"></i>${timeAgo}
+                            </span>
+                            <span class="notification-status ${notif.status}">
+                                ${notif.status === 'unread' ? '✓ Chưa đọc' : '✓ Đã đọc'}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="notification-actions">
+                        ${isUnread ? `<button class="notification-action-btn" onclick="markAsRead(${notif.id})">Đánh dấu đã đọc</button>` : ''}
+                        <button class="notification-action-btn" onclick="deleteNotification(${notif.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * Filter notifications by type
+         */
+        function filterNotifications(filter) {
+            currentFilter = filter;
+
+            // Update active button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.closest('.filter-btn').classList.add('active');
+
+            renderNotifications();
+        }
+
+        /**
+         * Mark single notification as read
+         */
+        async function markAsRead(notificationId) {
+            try {
+                const response = await fetch(`/api/notifications/${notificationId}/read`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    // Update local state
+                    const notif = allNotifications.find(n => n.id === notificationId);
+                    if (notif) {
+                        notif.status = 'read';
+                        renderNotifications();
+                    }
+                }
+            } catch (error) {
+                console.error('Error marking as read:', error);
+            }
+        }
+
+        /**
+         * Mark all notifications as read
+         */
+        async function markAllAsRead() {
+            if (!confirm('Đánh dấu tất cả thông báo là đã đọc?')) return;
+
+            try {
+                const response = await fetch('/api/notifications/read-all', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    allNotifications.forEach(n => n.status = 'read');
+                    renderNotifications();
+                    updateHeader();
+                }
+            } catch (error) {
+                console.error('Error marking all as read:', error);
+            }
+        }
+
+        /**
+         * Delete single notification
+         */
+        async function deleteNotification(notificationId) {
+            if (!confirm('Xóa thông báo này?')) return;
+
+            try {
+                const response = await fetch(`/api/notifications/${notificationId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    allNotifications = allNotifications.filter(n => n.id !== notificationId);
+                    renderNotifications();
+                    updateHeader();
+                }
+            } catch (error) {
+                console.error('Error deleting notification:', error);
+            }
+        }
+
+        /**
+         * Delete all notifications
+         */
+        async function deleteAll() {
+            if (!confirm('Xóa tất cả thông báo? Hành động này không thể hoàn tác!')) return;
+
+            try {
+                // Delete each notification
+                const promises = allNotifications.map(n => 
+                    fetch(`/api/notifications/${n.id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    })
+                );
+
+                await Promise.all(promises);
+                allNotifications = [];
+                renderNotifications();
+                updateHeader();
+            } catch (error) {
+                console.error('Error deleting all:', error);
+            }
+        }
+
+        /**
+         * Update header with counts
+         */
+        function updateHeader() {
+            const unreadCount = allNotifications.filter(n => n.status === 'unread').length;
+            const subtitle = document.getElementById('headerSubtitle');
+            
+            if (unreadCount > 0) {
+                subtitle.textContent = `${unreadCount} thông báo chưa đọc`;
+            } else {
+                subtitle.textContent = 'Quản lý tất cả thông báo của bạn';
+            }
+        }
+
+        /**
+         * Setup Socket.IO for real-time updates
+         */
+        function setupSocketIO(token) {
+            socket = io({
+                auth: { token }
+            });
+
+            socket.on('trip-accepted', (data) => {
+                console.log('📢 New trip-accepted notification:', data);
+                // Add to beginning
+                allNotifications.unshift({
+                    id: Date.now(),
+                    user_id: JSON.parse(localStorage.getItem('user')).id,
+                    trip_id: data.tripId,
+                    type: 'trip_accepted',
+                    title: 'Tài xế đã nhận chuyến',
+                    message: data.message,
+                    data: data,
+                    status: 'unread',
+                    created_at: new Date().toISOString()
+                });
+                renderNotifications();
+                updateHeader();
+            });
+
+            socket.on('new-trip-available', (data) => {
+                console.log('📢 New trip-available notification:', data);
+                allNotifications.unshift({
+                    id: Date.now(),
+                    user_id: JSON.parse(localStorage.getItem('user')).id,
+                    trip_id: data.tripId,
+                    type: 'new_trip',
+                    title: 'Chuyến xe mới',
+                    message: data.message,
+                    data: data,
+                    status: 'unread',
+                    created_at: new Date().toISOString()
+                });
+                renderNotifications();
+                updateHeader();
+            });
+        }
+
+        /**
+         * Utility functions
+         */
+        function showLoading(show) {
+            document.getElementById('loadingState').style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            alert(message);
+        }
+
+        function getTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            if (seconds < 60) return 'Vừa xong';
+            if (seconds < 3600) return `${Math.floor(seconds / 60)} phút trước`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)} giờ trước`;
+            if (seconds < 604800) return `${Math.floor(seconds / 86400)} ngày trước`;
+            return date.toLocaleDateString('vi-VN');
+        }
+
+        function formatPrice(price) {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(price);
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

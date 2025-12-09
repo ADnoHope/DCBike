@@ -8,6 +8,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="/css/style.css" rel="stylesheet">
     
+    <!-- Socket.IO Client (IMPORTANT: Load before notification-realtime.js) -->
+    <script src="/socket.io/socket.io.js"></script>
+    
     <!-- Leaflet Maps CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <!-- Leaflet Maps JS -->
@@ -2442,6 +2445,33 @@
             </div>
         </div>
     </footer>
+
+    <!-- Real-time Notification Manager (Load BEFORE init script) -->
+    <script src="/js/notification-realtime.js"></script>
+
+    <script>
+        // Initialize real-time notifications AFTER notification-realtime.js loads
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                const token = localStorage.getItem('token');
+                const user = JSON.parse(localStorage.getItem('user') || '{}');
+                
+                if (token && user.id && typeof realtimeNotifications !== 'undefined') {
+                    const userRole = user.loai_tai_khoan || user.role;
+                    console.log('Initializing notifications for customer:', user.id, userRole);
+                    realtimeNotifications.init(token, userRole);
+                } else {
+                    console.error('Notification init failed:', {
+                      hasToken: !!token,
+                      userId: user.id,
+                      hasClass: typeof realtimeNotifications !== 'undefined'
+                    });
+                }
+            } catch (e) {
+                console.error('Booking page notification init error:', e);
+            }
+        });
+    </script>
 
 </body>
 </html>

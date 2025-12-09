@@ -3,6 +3,7 @@ const Driver = require('../models/Driver');
 const Promotion = require('../models/Promotion');
 const Revenue = require('../models/Revenue');
 const DriverDebt = require('../models/DriverDebt');
+const Notification = require('../models/Notification');
 
 class TripController {
   // Tạo chuyến đi mới
@@ -98,6 +99,25 @@ class TripController {
             } catch (e) {
               console.debug('Notification create failed for driver', drv.id, e.message);
             }
+          }
+
+          // 🔔 Emit real-time notification tới tất cả drivers thông qua Socket.IO
+          if (global.notifyAllDrivers) {
+            global.notifyAllDrivers('new-trip-available', {
+              tripId,
+              khach_hang_id: khach_hang_id,
+              diem_don,
+              diem_den,
+              gia_cuoc,
+              khoang_cach,
+              thoi_gian_du_kien,
+              lat_don,
+              lng_don,
+              lat_den,
+              lng_den,
+              message: msg,
+              timestamp: new Date().toISOString()
+            });
           }
         } catch (e) {
           console.error('Error creating driver notifications:', e);
@@ -250,6 +270,46 @@ class TripController {
       // Cập nhật chuyến đi và trạng thái tài xế
       await Trip.updateStatus(tripId, 'da_nhan', { tai_xe_id: driver.id });
       await Driver.updateStatus(driver.id, 'dang_di');
+
+      // 🔔 Emit real-time notification to customer via Socket.IO
+      const trip_data = await Trip.findById(tripId);
+      if (global.sendNotificationToUser && trip_data) {
+        const [driverInfo] = await require('../config/database').pool.execute(
+          'SELECT nd.ten FROM nguoi_dung nd JOIN tai_xe tx ON nd.id = tx.nguoi_dung_id WHERE tx.id = ?',
+          [driver.id]
+        );
+        const driverName = driverInfo.length ? driverInfo[0].ten : 'Tài xế';
+
+        const notificationData = {
+          tripId,
+          tai_xe_id: driver.id,
+          driverName,
+          diem_don: trip_data.diem_don,
+          diem_den: trip_data.diem_den,
+          gia_cuoc: trip_data.gia_cuoc,
+          message: `Tài xế ${driverName} đã nhận chuyến của bạn`,
+          timestamp: new Date().toISOString()
+        };
+
+        // 💾 Save notification to database for persistence
+        try {
+          await Notification.create({
+            user_id: trip_data.khach_hang_id,
+            trip_id: tripId,
+            type: 'trip_accepted',
+            title: `${driverName} đã nhận chuyến`,
+            message: `Tài xế ${driverName} đã nhận chuyến của bạn từ ${trip_data.diem_don} đến ${trip_data.diem_den}`,
+            data: notificationData
+          });
+          console.log(`✅ Notification saved to DB for customer ${trip_data.khach_hang_id}`);
+        } catch (dbError) {
+          console.error('Error saving notification to database:', dbError);
+          // Continue even if DB save fails
+        }
+
+        // Emit Socket.IO event for real-time notification
+        global.sendNotificationToUser(trip_data.khach_hang_id, 'trip-accepted', notificationData);
+      }
 
       // Tự động tạo cuộc trò chuyện và gửi tin nhắn thông báo
       try {
