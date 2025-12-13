@@ -808,6 +808,10 @@ async function login() {
                 }, 1500);
             } else {
                 showSuccess('Đăng nhập thành công!');
+                // Refresh trang để cập nhật giao diện
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
             }
         } else {
             showError(result.message || 'Đăng nhập thất bại');

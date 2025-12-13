@@ -602,8 +602,16 @@ class TripController {
         });
       }
 
-      // Kiểm tra trạng thái có thể hủy
-      if (!['cho_tai_xe', 'da_nhan'].includes(trip.trang_thai)) {
+      // Khách hàng chỉ có thể hủy khi chuyến đang CHỜ TÀI XẾ (chưa có ai nhận)
+      if (isCustomer && trip.trang_thai !== 'cho_tai_xe') {
+        return res.status(400).json({
+          success: false,
+          message: 'Không thể hủy chuyến đi sau khi tài xế đã nhận'
+        });
+      }
+
+      // Tài xế và Admin có thể hủy ở trạng thái cho_tai_xe hoặc da_nhan
+      if ((isDriver || isAdmin) && !['cho_tai_xe', 'da_nhan'].includes(trip.trang_thai)) {
         return res.status(400).json({
           success: false,
           message: 'Không thể hủy chuyến đi ở trạng thái hiện tại'

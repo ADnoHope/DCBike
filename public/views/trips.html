@@ -613,7 +613,8 @@
             const cancelBtn = document.getElementById('cancel-trip-btn');
             const rateBtn = document.getElementById('rate-trip-btn');
             
-            cancelBtn.style.display = (trip.trang_thai === 'cho_xac_nhan' || trip.trang_thai === 'da_xac_nhan') ? 'block' : 'none';
+            // Khách hàng chỉ có thể hủy khi chuyến đang CHỜ TÀI XẾ (chưa có tài xế nhận)
+            cancelBtn.style.display = (trip.trang_thai === 'cho_tai_xe') ? 'block' : 'none';
             rateBtn.style.display = (trip.trang_thai === 'hoan_thanh' && !trip.da_danh_gia) ? 'block' : 'none';
 
             cancelBtn.onclick = () => cancelTrip(trip.id);

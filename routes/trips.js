@@ -36,6 +36,6 @@ router.post('/:id/start', authenticate, requireDriver, TripController.startTrip)
 router.post('/:id/complete', authenticate, requireDriver, TripController.completeTrip);
 
 // Hủy chuyến đi
-router.post('/:id/cancel', authenticate, TripController.cancelTrip);
+router.put('/:id/cancel', authenticate, TripController.cancelTrip);
 
 module.exports = router;
