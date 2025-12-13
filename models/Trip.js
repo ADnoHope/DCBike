@@ -32,14 +32,15 @@ class Trip {
     try {
       const [result] = await pool.execute(`
         INSERT INTO chuyen_di (
-          khach_hang_id, diem_don, diem_den, toa_do_diem_don, toa_do_diem_den,
+          khach_hang_id, diem_don, diem_den, loai_xe, toa_do_diem_don, toa_do_diem_den,
           khoang_cach, thoi_gian_du_kien, gia_cuoc, phi_dich_vu, tong_tien,
           khuyen_mai_id, so_tien_giam_gia, ghi_chu
-        ) VALUES (?, ?, ?, POINT(?, ?), POINT(?, ?), ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, POINT(?, ?), POINT(?, ?), ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         tripData.khach_hang_id,
         tripData.diem_don,
         tripData.diem_den,
+        tripData.loai_xe || 'xe_may',
         tripData.lat_don || 0, tripData.lng_don || 0,
         tripData.lat_den || 0, tripData.lng_den || 0,
         tripData.khoang_cach,
@@ -251,7 +252,7 @@ class Trip {
   }
 
   // Lấy chuyến đi đang chờ tài xế
-  static async getAvailableTrips(lat = null, lng = null, radius = 10) {
+  static async getAvailableTrips(lat = null, lng = null, radius = 10, loai_xe = null) {
     try {
       let query = `
         SELECT cd.*, 
@@ -265,6 +266,30 @@ class Trip {
       `;
       
       const params = [];
+      
+      // Lọc theo loại xe (theo nhóm: xe máy vs ô tô)
+      if (loai_xe) {
+        const loaiXeLower = (loai_xe || '').toLowerCase();
+        
+        // Xác định tài xế lái xe gì
+        const isMotorbikeDriver = loaiXeLower.includes('xe_may') || 
+                                   loaiXeLower.includes('xe-may') ||
+                                   loaiXeLower.includes('airblade') ||
+                                   loaiXeLower.includes('sh') ||
+                                   loaiXeLower.includes('wave') ||
+                                   loaiXeLower.includes('exciter');
+        
+        if (isMotorbikeDriver) {
+          // Tài xế xe máy: chỉ xem chuyến xe máy
+          query += ` AND (cd.loai_xe LIKE '%xe_may%' OR cd.loai_xe LIKE '%xe-may%')`;
+        } else {
+          // Tài xế ô tô: chỉ xem chuyến ô tô (4-cho, 7-cho, oto_4_cho, oto_7_cho...)
+          query += ` AND (cd.loai_xe LIKE 'oto%' OR cd.loai_xe LIKE '%cho' OR 
+                          cd.loai_xe LIKE '4-cho' OR cd.loai_xe LIKE '7-cho' OR
+                          cd.loai_xe LIKE '%civic%' OR cd.loai_xe LIKE '%honda%' OR 
+                          cd.loai_xe LIKE '%toyota%' OR cd.loai_xe LIKE '%vios%')`;
+        }
+      }
       
       // Nếu có tọa độ, tìm trong bán kính
       if (lat && lng) {

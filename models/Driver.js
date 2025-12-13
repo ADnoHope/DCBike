@@ -332,6 +332,7 @@ class Driver {
       const [rows] = await pool.execute(`
         SELECT 
           tx.id,
+          tx.nguoi_dung_id,
           nd.ten,
           nd.so_dien_thoai,
           nd.avatar,
@@ -361,6 +362,7 @@ class Driver {
       
       return rows.map(row => ({
         id: row.id,
+        nguoi_dung_id: row.nguoi_dung_id,
         ten: row.ten,
         so_dien_thoai: row.so_dien_thoai || 'N/A',
         avatar: row.avatar || null,
@@ -379,6 +381,83 @@ class Driver {
       }));
     } catch (error) {
       console.error('Find available drivers error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Tìm tài xế theo loại xe (nhóm: xe máy hoặc ô tô)
+   */
+  static async findDriversByVehicleType(loai_xe) {
+    try {
+      // Chuẩn hóa: xe_may hoặc xe-may -> tìm tất cả tài xế xe máy
+      // oto_4_cho, oto_7_cho... -> tìm tất cả tài xế ô tô
+      const isMotorbike = (loai_xe || '').toLowerCase().includes('xe_may') || 
+                          (loai_xe || '').toLowerCase().includes('xe-may');
+      
+      let query, params;
+      if (isMotorbike) {
+        // Tìm tài xế xe máy (có thể là tên cụ thể như Airblade, SH...)
+        query = `
+          SELECT 
+            tx.id,
+            tx.nguoi_dung_id,
+            nd.ten,
+            nd.so_dien_thoai,
+            tx.loai_xe,
+            tx.trang_thai_tai_xe,
+            tx.diem_danh_gia
+          FROM tai_xe tx
+          INNER JOIN nguoi_dung nd ON tx.nguoi_dung_id = nd.id
+          WHERE nd.trang_thai = 'hoat_dong' 
+            AND nd.loai_tai_khoan = 'tai_xe'
+            AND tx.loai_xe NOT LIKE 'oto%'
+            AND tx.loai_xe NOT LIKE '%civic%'
+            AND tx.loai_xe NOT LIKE '%honda%'
+            AND tx.loai_xe NOT LIKE '%toyota%'
+            AND tx.loai_xe NOT LIKE '%mazda%'
+            AND tx.loai_xe NOT LIKE '%vios%'
+            AND tx.trang_thai_tai_xe = 'san_sang'
+          ORDER BY tx.diem_danh_gia DESC
+        `;
+        params = [];
+      } else {
+        // Tìm tài xế ô tô
+        query = `
+          SELECT 
+            tx.id,
+            tx.nguoi_dung_id,
+            nd.ten,
+            nd.so_dien_thoai,
+            tx.loai_xe,
+            tx.trang_thai_tai_xe,
+            tx.diem_danh_gia
+          FROM tai_xe tx
+          INNER JOIN nguoi_dung nd ON tx.nguoi_dung_id = nd.id
+          WHERE nd.trang_thai = 'hoat_dong' 
+            AND nd.loai_tai_khoan = 'tai_xe'
+            AND (tx.loai_xe LIKE 'oto%' OR tx.loai_xe LIKE '%civic%' OR 
+                 tx.loai_xe LIKE '%honda%' OR tx.loai_xe LIKE '%toyota%' OR 
+                 tx.loai_xe LIKE '%mazda%' OR tx.loai_xe LIKE '%vios%')
+            AND tx.trang_thai_tai_xe = 'san_sang'
+          ORDER BY tx.diem_danh_gia DESC
+        `;
+        params = [];
+      }
+      
+      const [rows] = await pool.execute(query, params);
+      
+      return rows.map(row => ({
+        id: row.id,
+        nguoi_dung_id: row.nguoi_dung_id,
+        ten: row.ten,
+        so_dien_thoai: row.so_dien_thoai,
+        loai_xe: row.loai_xe,
+        trang_thai_tai_xe: row.trang_thai_tai_xe,
+        diem_danh_gia: row.diem_danh_gia
+      }));
+    } catch (error) {
+      console.error('Find drivers by vehicle type error:', error);
       throw error;
     }
   }

@@ -13,7 +13,7 @@ class TripController {
         diem_don, diem_den, lat_don, lng_don, lat_den, lng_den,
         khoang_cach, thoi_gian_du_kien, gia_cuoc, phi_dich_vu,
         khuyen_mai_id, ma_khuyen_mai, so_tien_giam_gia, ghi_chu,
-        phuong_thuc_thanh_toan
+        phuong_thuc_thanh_toan, loai_xe
       } = req.body;
 
       const khach_hang_id = req.user.id;
@@ -58,6 +58,7 @@ class TripController {
         khach_hang_id,
         diem_don,
         diem_den,
+        loai_xe: loai_xe || 'xe_may', // Mặc định là xe máy nếu không chỉ định
         lat_don,
         lng_don,
         lat_den,
@@ -101,13 +102,15 @@ class TripController {
             }
           }
 
-          // 🔔 Emit real-time notification tới tất cả drivers thông qua Socket.IO
-          if (global.notifyAllDrivers) {
-            global.notifyAllDrivers('new-trip-available', {
+          // 🔔 Emit real-time notification tới drivers phù hợp theo loại xe
+          const vehicleType = loai_xe || 'xe_may';
+          if (global.notifyDriversByVehicleType) {
+            global.notifyDriversByVehicleType('new-trip-available', {
               tripId,
               khach_hang_id: khach_hang_id,
               diem_don,
               diem_den,
+              loai_xe: vehicleType,
               gia_cuoc,
               khoang_cach,
               thoi_gian_du_kien,
@@ -117,7 +120,7 @@ class TripController {
               lng_den,
               message: msg,
               timestamp: new Date().toISOString()
-            });
+            }, vehicleType);
           }
         } catch (e) {
           console.error('Error creating driver notifications:', e);
@@ -642,10 +645,15 @@ class TripController {
         });
       }
 
+      // Lấy loại xe của tài xế
+      const driverVehicleType = driver.loai_xe;
+      console.log('Driver vehicle type:', driverVehicleType);
+
       const trips = await Trip.getAvailableTrips(
         lat ? parseFloat(lat) : null,
         lng ? parseFloat(lng) : null,
-        radius ? parseInt(radius) : 10
+        radius ? parseInt(radius) : 10,
+        driverVehicleType // Truyền loại xe của tài xế để lọc
       );
 
       res.json({

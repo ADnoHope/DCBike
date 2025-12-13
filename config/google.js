@@ -67,9 +67,9 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     }
   });
 
-  console.log('✓ Google OAuth đã được cấu hình');
+  console.log('Google OAuth đã được cấu hình');
 } else {
-  console.warn('⚠ Google OAuth chưa được cấu hình. Vui lòng thêm GOOGLE_CLIENT_ID và GOOGLE_CLIENT_SECRET vào file .env');
+  console.warn('Google OAuth chưa được cấu hình. Vui lòng thêm GOOGLE_CLIENT_ID và GOOGLE_CLIENT_SECRET vào file .env');
 }
 
 module.exports = passport;

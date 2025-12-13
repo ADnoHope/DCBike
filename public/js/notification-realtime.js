@@ -15,8 +15,17 @@ class RealtimeNotificationManager {
 
   /**
    * Initialize Socket.IO connection và setup UI
+   * @deprecated Use setupUI() and initSocket() separately
    */
   init(token, userRole) {
+    this.setupUI();
+    return this.initSocket(token, userRole);
+  }
+
+  /**
+   * Initialize Socket.IO connection only (separated from UI setup)
+   */
+  initSocket(token, userRole) {
     // Check if Socket.IO client library is loaded
     if (typeof io === 'undefined') {
       console.error('Socket.IO client library not found. Make sure to include <script src="/socket.io/socket.io.js"></script>');
@@ -102,12 +111,6 @@ class RealtimeNotificationManager {
       this.showDesktopNotification('Tài xế đã nhận chuyến', data.message);
     });
 
-    // Setup UI elements
-    this.setupUI();
-
-    // 💾 Load existing notifications from database
-    this.loadExistingNotifications();
-
     return true;
   }
 
@@ -115,6 +118,10 @@ class RealtimeNotificationManager {
    * Setup notification UI (bell icon, notification list)
    */
   setupUI() {
+    // Check if header container exists (for index.html)
+    const headerContainer = document.getElementById('header-notification-container');
+    const targetContainer = headerContainer || document.body;
+    
     // Create notification container if not exists
     if (!document.getElementById('realtime-notification-container')) {
       const container = document.createElement('div');
@@ -126,30 +133,30 @@ class RealtimeNotificationManager {
             <i class="fas fa-bell"></i>
             <span id="unread-badge" class="unread-badge" style="display: none;">0</span>
           </button>
-        </div>
-
-        <!-- Notification List Popup -->
-        <div id="notification-list" class="notification-list" style="display: none;">
-          <div class="notification-list-header">
-            <h5 class="mb-0">
-              <i class="fas fa-bell me-2"></i>Thông báo
-            </h5>
-            <button class="btn-close btn-sm" id="close-notification-list"></button>
-          </div>
-          <div id="notification-list-body" class="notification-list-body">
-            <div class="text-center text-muted py-4">
-              <i class="fas fa-inbox fa-2x mb-2"></i>
-              <p>Chưa có thông báo</p>
+        
+          <!-- Notification List Popup -->
+          <div id="notification-list" class="notification-list" style="display: none;">
+            <div class="notification-list-header">
+              <h5 class="mb-0">
+                <i class="fas fa-bell me-2"></i>Thông báo
+              </h5>
+              <button class="btn-close btn-sm" id="close-notification-list"></button>
             </div>
-          </div>
-          <div class="notification-list-footer text-center">
-            <a href="/views/notifications.html" class="text-decoration-none d-block py-2">
-              <i class="fas fa-arrow-right me-1"></i>Xem tất cả thông báo
-            </a>
+            <div id="notification-list-body" class="notification-list-body">
+              <div class="text-center text-muted py-4">
+                <i class="fas fa-inbox fa-2x mb-2"></i>
+                <p>Chưa có thông báo</p>
+              </div>
+            </div>
+            <div class="notification-list-footer text-center">
+              <a href="/views/notifications.html" class="text-decoration-none d-block py-2">
+                <i class="fas fa-arrow-right me-1"></i>Xem tất cả thông báo
+              </a>
+            </div>
           </div>
         </div>
       `;
-      document.body.appendChild(container);
+      targetContainer.appendChild(container);
     }
 
     // Get UI elements
@@ -161,6 +168,15 @@ class RealtimeNotificationManager {
     if (this.notificationBell) {
       this.notificationBell.addEventListener('click', (e) => {
         e.stopPropagation();
+        
+        // Check if user is logged in
+        const token = localStorage.getItem('token');
+        if (!token) {
+          // Show login prompt if not logged in
+          this.showLoginPrompt();
+          return;
+        }
+        
         const isHidden = this.notificationList.style.display === 'none';
         this.notificationList.style.display = isHidden ? 'block' : 'none';
       });
@@ -181,6 +197,25 @@ class RealtimeNotificationManager {
         this.notificationList.style.display = 'none';
       }
     });
+  }
+
+  /**
+   * Show login prompt when user is not logged in
+   */
+  showLoginPrompt() {
+    const body = document.getElementById('notification-list-body');
+    if (body) {
+      body.innerHTML = `
+        <div class="text-center py-4">
+          <i class="fas fa-sign-in-alt fa-2x mb-3 text-primary"></i>
+          <p class="mb-3">Vui lòng đăng nhập để xem thông báo</p>
+          <button class="btn btn-primary btn-sm" onclick="showAuthModal(); document.getElementById('notification-list').style.display='none';">
+            <i class="fas fa-sign-in-alt me-2"></i>Đăng nhập
+          </button>
+        </div>
+      `;
+    }
+    this.notificationList.style.display = 'block';
   }
 
   /**

@@ -22,10 +22,10 @@ const pool = mysql.createPool({
 const testConnection = async () => {
   try {
     const connection = await pool.getConnection();
-    console.log('✅ Kết nối database thành công!');
+    console.log(' Kết nối database thành công!');
     connection.release();
   } catch (error) {
-    console.error('❌ Lỗi kết nối database:', error.message);
+    console.error(' Lỗi kết nối database:', error.message);
   }
 };
 

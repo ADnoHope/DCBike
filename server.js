@@ -45,13 +45,6 @@ app.use(passport.session());
 
 // Static files
 app.use('/public', express.static(path.join(__dirname, 'public')));
-
-// Protect access to admin.html: serve a small gatekeeper page that verifies
-// the user's JWT (from localStorage) via /api/auth/profile before allowing
-// the actual admin HTML to be served. This is necessary because the app
-// stores JWT in localStorage (not cookies) so the initial HTML request
-// cannot include Authorization header. The gatekeeper performs a client-side
-// check and then reloads /admin.html?allow=1 which will be passed to static.
 app.get('/admin.html', (req, res, next) => {
   if (req.query && req.query.allow === '1') return next();
 
@@ -235,16 +228,16 @@ app.use((error, req, res, next) => {
 
 // Start server (store server instance so we can handle errors)
 const server = httpServer.listen(PORT, () => {
-  console.log(`🚗 DC Car Booking Server đang chạy tại http://localhost:${PORT}`);
-  console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
-  console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
-  console.log(`🔌 WebSocket (Socket.IO) tại ws://localhost:${PORT}`);
+  console.log(` DC Car Booking Server đang chạy tại http://localhost:${PORT}`);
+  console.log(` API Documentation: http://localhost:${PORT}/api-docs`);
+  console.log(` Health Check: http://localhost:${PORT}/health`);
+  console.log(` WebSocket (Socket.IO) tại ws://localhost:${PORT}`);
 });
 
 // Graceful error handling for common server errors
 server.on('error', (err) => {
   if (err && err.code === 'EADDRINUSE') {
-    console.error(`❌ Port ${PORT} đã được sử dụng. Hãy dừng tiến trình khác hoặc đổi PORT.`);
+    console.error(` Port ${PORT} đã được sử dụng. Hãy dừng tiến trình khác hoặc đổi PORT.`);
     process.exit(1);
   }
   console.error('Unhandled server error:', err);

@@ -94,7 +94,33 @@ module.exports = function setupSocket(io) {
   };
 
   /**
-   * Helper function để gửi notification tới tất cả drivers
+   * Helper function để gửi notification tới drivers theo loại xe
+   */
+  global.notifyDriversByVehicleType = async (eventName, data, loai_xe) => {
+    const Driver = require('../models/Driver');
+    
+    try {
+      // Lấy danh sách drivers có loại xe phù hợp và đang sẵn sàng
+      const matchingDrivers = await Driver.findDriversByVehicleType(loai_xe);
+      
+      if (matchingDrivers && matchingDrivers.length > 0) {
+        // Gửi notification tới từng driver phù hợp
+        matchingDrivers.forEach(driver => {
+          const userId = driver.nguoi_dung_id;
+          io.to(`user-${userId}`).emit(eventName, data);
+        });
+        
+        console.log(`📢 Sent ${eventName} to ${matchingDrivers.length} drivers with vehicle type: ${loai_xe}`);
+      } else {
+        console.log(`⚠️ No drivers found with vehicle type: ${loai_xe}`);
+      }
+    } catch (error) {
+      console.error('Error notifying drivers by vehicle type:', error);
+    }
+  };
+
+  /**
+   * Helper function để gửi notification tới tất cả drivers (backward compatibility)
    */
   global.notifyAllDrivers = (eventName, data) => {
     // Broadcast tới cả 'role-tai_xe' (Vietnamese) và 'role-driver' (English)
