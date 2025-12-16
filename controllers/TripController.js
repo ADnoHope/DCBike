@@ -497,7 +497,7 @@ class TripController {
             accountNumber: settings.qr_bank_account || '228155456',
             accountHolder: settings.qr_account_holder || 'LE MANH CUONG',
             amount: trip.tong_tien,
-            description: `DCBike Trip ${tripId}`
+            description: `DC Booking Trip ${tripId}`
           };
         } catch (qrError) {
           console.error('Generate QR data error:', qrError);

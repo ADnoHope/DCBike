@@ -13,11 +13,11 @@ class EmailService {
 
     // Kiểm tra cấu hình
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
-      console.warn('⚠ Email service chưa được cấu hình. Vui lòng thêm EMAIL_USER và EMAIL_PASSWORD vào file .env');
+      console.warn('Email service chưa được cấu hình. Vui lòng thêm EMAIL_USER và EMAIL_PASSWORD vào file .env');
       this.isConfigured = false;
     } else {
       this.isConfigured = true;
-      console.log('✓ Email service đã được cấu hình');
+      console.log('Email service đã được cấu hình');
     }
   }
 
@@ -30,9 +30,9 @@ class EmailService {
 
     try {
       const mailOptions = {
-        from: `"DC Bike" <${process.env.EMAIL_USER}>`,
+        from: `"DC Booking" <${process.env.EMAIL_USER}>`,
         to: userEmail,
-        subject: 'Chào mừng bạn đến với DC Bike! 🚗',
+        subject: 'Chào mừng bạn đến với DC Booking! ',
         html: `
           <!DOCTYPE html>
           <html>
@@ -49,11 +49,11 @@ class EmailService {
           <body>
             <div class="container">
               <div class="header">
-                <h1>🎉 Chào mừng đến với DC Bike!</h1>
+                <h1>Chào mừng đến với DC Booking!</h1>
               </div>
               <div class="content">
                 <h2>Xin chào ${userName}!</h2>
-                <p>Cảm ơn bạn đã đăng ký tài khoản DC Bike bằng Google. Chúng tôi rất vui được chào đón bạn!</p>
+                <p>Cảm ơn bạn đã đăng ký tài khoản DC Booking bằng Google. Chúng tôi rất vui được chào đón bạn!</p>
                 
                 <p><strong>Thông tin tài khoản:</strong></p>
                 <ul>
@@ -64,10 +64,10 @@ class EmailService {
 
                 <p>Bạn có thể bắt đầu sử dụng dịch vụ của chúng tôi ngay bây giờ:</p>
                 <ul>
-                  <li>✅ Đặt xe nhanh chóng</li>
-                  <li>✅ Theo dõi chuyến đi realtime</li>
-                  <li>✅ Đánh giá và phản hồi</li>
-                  <li>✅ Quản lý lịch sử chuyến đi</li>
+                  <li>Đặt xe nhanh chóng</li>
+                  <li>Theo dõi chuyến đi realtime</li>
+                  <li>Đánh giá và phản hồi</li>
+                  <li>Quản lý lịch sử chuyến đi</li>
                 </ul>
 
                 <a href="http://localhost:3000" class="button">Bắt đầu đặt xe ngay</a>
@@ -75,7 +75,7 @@ class EmailService {
                 <p style="margin-top: 30px;">Nếu bạn muốn trở thành tài xế, vui lòng đăng ký tài xế trong phần hồ sơ cá nhân.</p>
               </div>
               <div class="footer">
-                <p>© 2025 DC Bike. Tất cả quyền được bảo lưu.</p>
+                <p>© 2025 DC Booking. Tất cả quyền được bảo lưu.</p>
                 <p>Email này được gửi tự động, vui lòng không trả lời.</p>
               </div>
             </div>
@@ -100,9 +100,9 @@ class EmailService {
 
     try {
       const mailOptions = {
-        from: `"DC Bike" <${process.env.EMAIL_USER}>`,
+        from: `"DC Booking" <${process.env.EMAIL_USER}>`,
         to: userEmail,
-        subject: 'Mã xác nhận đặt lại mật khẩu - DC Bike 🔐',
+        subject: 'Mã xác nhận đặt lại mật khẩu - DC Booking',
         html: `
           <!DOCTYPE html>
           <html>
@@ -121,7 +121,7 @@ class EmailService {
           <body>
             <div class="container">
               <div class="header">
-                <h1>🔐 Đặt lại mật khẩu</h1>
+                <h1>Đặt lại mật khẩu</h1>
               </div>
               <div class="content">
                 <h2>Xin chào ${userName}!</h2>
@@ -135,10 +135,10 @@ class EmailService {
                 <p><strong>Mã này có hiệu lực trong 15 phút.</strong></p>
 
                 <div class="warning">
-                  <strong>⚠️ Lưu ý bảo mật:</strong>
+                  <strong>Lưu ý bảo mật:</strong>
                   <ul style="margin: 10px 0 0 0;">
                     <li>Không chia sẻ mã này với bất kỳ ai</li>
-                    <li>DC Bike không bao giờ yêu cầu mã qua điện thoại</li>
+                    <li>DC Booking không bao giờ yêu cầu mã qua điện thoại</li>
                     <li>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này</li>
                   </ul>
                 </div>
@@ -146,7 +146,7 @@ class EmailService {
                 <p style="margin-top: 30px; color: #666;">Nếu bạn không thực hiện yêu cầu này, vui lòng liên hệ với chúng tôi ngay lập tức.</p>
               </div>
               <div class="footer">
-                <p>© 2025 DC Bike. Tất cả quyền được bảo lưu.</p>
+                <p>© 2025 DC Booking. Tất cả quyền được bảo lưu.</p>
                 <p>Email này được gửi tự động, vui lòng không trả lời.</p>
               </div>
             </div>
@@ -156,7 +156,7 @@ class EmailService {
       };
 
       await this.transporter.sendMail(mailOptions);
-      console.log(`✓ Đã gửi mã reset mật khẩu đến ${userEmail}`);
+      console.log(`Đã gửi mã reset mật khẩu đến ${userEmail}`);
     } catch (error) {
       console.error('Lỗi khi gửi email reset mật khẩu:', error);
       throw error;
@@ -172,9 +172,9 @@ class EmailService {
 
     try {
       const mailOptions = {
-        from: `"DC Bike" <${process.env.EMAIL_USER}>`,
+        from: `"DC Booking" <${process.env.EMAIL_USER}>`,
         to: userEmail,
-        subject: 'Đã nhận đơn đăng ký tài xế - DC Bike 📋',
+        subject: 'Đã nhận đơn đăng ký tài xế - DC Booking',
         html: `
           <!DOCTYPE html>
           <html>
@@ -191,7 +191,7 @@ class EmailService {
           <body>
             <div class="container">
               <div class="header">
-                <h1>📋 Đơn đăng ký tài xế đã được gửi</h1>
+                <h1>Đơn đăng ký tài xế đã được gửi</h1>
               </div>
               <div class="content">
                 <h2>Xin chào ${userName}!</h2>
@@ -223,8 +223,8 @@ class EmailService {
                 </p>
               </div>
               <div class="footer">
-                <p>© 2025 DC Bike. Tất cả quyền được bảo lưu.</p>
-                <p>Nếu có thắc mắc, vui lòng liên hệ: support@dcbike.com</p>
+                <p>© 2025 DC Booking. Tất cả quyền được bảo lưu.</p>
+                <p>Nếu có thắc mắc, vui lòng liên hệ: support@dcbooking.com</p>
               </div>
             </div>
           </body>
@@ -248,9 +248,9 @@ class EmailService {
 
     try {
       const mailOptions = {
-        from: `"DC Bike" <${process.env.EMAIL_USER}>`,
+        from: `"DC Booking" <${process.env.EMAIL_USER}>`,
         to: userEmail,
-        subject: '✅ Chúc mừng! Đơn đăng ký tài xế đã được phê duyệt - DC Bike',
+        subject: 'Chúc mừng! Đơn đăng ký tài xế đã được phê duyệt - DC Booking',
         html: `
           <!DOCTYPE html>
           <html>
@@ -268,12 +268,12 @@ class EmailService {
           <body>
             <div class="container">
               <div class="header">
-                <h1>✅ Chúc mừng ${userName}!</h1>
+                <h1>Chúc mừng ${userName}!</h1>
                 <p style="font-size: 18px; margin: 10px 0;">Đơn đăng ký tài xế đã được PHÊ DUYỆT</p>
               </div>
               <div class="content">
                 <div class="success-box">
-                  <h3 style="margin-top: 0;">🎉 Bạn đã chính thức trở thành tài xế DC Bike!</h3>
+                  <h3 style="margin-top: 0;">Bạn đã chính thức trở thành tài xế DC Booking!</h3>
                   <p>Hồ sơ của bạn đã được xem xét và chấp thuận. Bạn có thể bắt đầu nhận chuyến ngay bây giờ!</p>
                 </div>
 
@@ -297,11 +297,11 @@ class EmailService {
                 <a href="http://localhost:3000/views/driver-dashboard.html" class="button">Vào trang quản lý tài xế</a>
 
                 <p style="margin-top: 30px; padding: 15px; background: #e7f3ff; border-left: 4px solid #2196F3;">
-                  <strong>💡 Mẹo:</strong> Duy trì đánh giá cao từ khách hàng để nhận được nhiều chuyến hơn và ưu tiên trong hệ thống!
+                  <strong>Mẹo:</strong> Duy trì đánh giá cao từ khách hàng để nhận được nhiều chuyến hơn và ưu tiên trong hệ thống!
                 </p>
               </div>
               <div class="footer">
-                <p>© 2025 DC Bike. Tất cả quyền được bảo lưu.</p>
+                <p>© 2025 DC Booking. Tất cả quyền được bảo lưu.</p>
                 <p>Chúc bạn có nhiều chuyến đi thuận lợi!</p>
               </div>
             </div>
@@ -326,9 +326,9 @@ class EmailService {
 
     try {
       const mailOptions = {
-        from: `"DC Bike" <${process.env.EMAIL_USER}>`,
+        from: `"DC Booking" <${process.env.EMAIL_USER}>`,
         to: userEmail,
-        subject: '❌ Thông báo về đơn đăng ký tài xế - DC Bike',
+        subject: 'Thông báo về đơn đăng ký tài xế - DC Booking',
         html: `
           <!DOCTYPE html>
           <html>
@@ -350,11 +350,11 @@ class EmailService {
               </div>
               <div class="content">
                 <h2>Xin chào ${userName},</h2>
-                <p>Cảm ơn bạn đã quan tâm đến việc trở thành tài xế DC Bike. Sau khi xem xét kỹ lưỡng, 
+                <p>Cảm ơn bạn đã quan tâm đến việc trở thành tài xế DC Booking. Sau khi xem xét kỹ lưỡng, 
                 chúng tôi rất tiếc phải thông báo rằng đơn đăng ký của bạn chưa được chấp thuận lúc này.</p>
                 
                 <div class="reason-box">
-                  <strong>📋 Lý do:</strong>
+                  <strong>Lý do:</strong>
                   <p style="margin: 10px 0 0 0;">${reason || 'Hồ sơ chưa đáp ứng đủ yêu cầu của chúng tôi.'}</p>
                 </div>
 
@@ -372,8 +372,8 @@ class EmailService {
                 Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi.</p>
               </div>
               <div class="footer">
-                <p>© 2025 DC Bike. Tất cả quyền được bảo lưu.</p>
-                <p>Email hỗ trợ: support@dcbike.com | Hotline: 1900-xxxx</p>
+                <p>© 2025 DC Booking. Tất cả quyền được bảo lưu.</p>
+                <p>Email hỗ trợ: support@dcbooking.com | Hotline: 1900-6789</p>
               </div>
             </div>
           </body>
@@ -382,7 +382,7 @@ class EmailService {
       };
 
       await this.transporter.sendMail(mailOptions);
-      console.log(`✓ Đã gửi email từ chối tài xế đến ${userEmail}`);
+      console.log(`Đã gửi email từ chối tài xế đến ${userEmail}`);
     } catch (error) {
       console.error('Lỗi khi gửi email từ chối:', error);
     }

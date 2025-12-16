@@ -100,19 +100,15 @@ app.get('/admin.html', (req, res, next) => {
   `);
 });
 
-// Generic gatekeeper for protected HTML pages
-// Allow public pages (index, registration) but require login for others.
+
 app.get('/*.html', (req, res, next) => {
   const publicPages = ['/index.html', '/', '/driver-registration.html', '/views/booking.html'];
   const reqPath = req.path;
 
-  // If the requested page is in the allow list or already has allow=1, proceed
   if (publicPages.includes(reqPath) || (req.query && req.query.allow === '1')) {
     return next();
   }
 
-  // Otherwise send a client-side gatekeeper that checks localStorage token
-  // and calls /api/auth/profile. If authenticated, reload with ?allow=1.
   return res.send(`
     <!doctype html>
     <html>
@@ -159,10 +155,8 @@ app.get('/*.html', (req, res, next) => {
   `);
 });
 
-// Test database connection
 testConnection();
 
-// Setup Socket.IO
 setupSocket(io);
 global.io = io;
 
@@ -173,26 +167,15 @@ app.use('/api/auth', require('./routes/auth'));
 const { authenticate } = require('./middleware/auth');
 
 app.use('/api/trips', authenticate, require('./routes/trips'));
-// Mount drivers router without global authentication so the router can
-// expose public endpoints (like /available) while protecting others
-// with route-level middleware inside the router file.
 app.use('/api/drivers', require('./routes/drivers'));
-// Notifications (customer notifications + driver notifications)
 app.use('/api/notifications', require('./routes/notifications'));
-// Promotions router contains some public endpoints (active/all) and some admin-only endpoints.
-// Mount it without the global `authenticate` so the routes file can opt-in where needed.
 app.use('/api/promotions', require('./routes/promotions'));
-// Reviews (protected): customers rate trips
 app.use('/api/reviews', authenticate, require('./routes/reviews'));
-// Revenue tracking (protected)
 app.use('/api/revenue', authenticate, require('./routes/revenue'));
-// System settings (payment info, etc.)
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/admin', authenticate, require('./routes/admin'));
-// Chat routes (realtime simple polling)
 app.use('/api/chat', require('./routes/chat'));
 
-// Serve static HTML pages
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Default route
@@ -226,7 +209,7 @@ app.use((error, req, res, next) => {
   });
 });
 
-// Start server (store server instance so we can handle errors)
+// Start server
 const server = httpServer.listen(PORT, () => {
   console.log(` DC Car Booking Server đang chạy tại http://localhost:${PORT}`);
   console.log(` API Documentation: http://localhost:${PORT}/api-docs`);
@@ -234,7 +217,6 @@ const server = httpServer.listen(PORT, () => {
   console.log(` WebSocket (Socket.IO) tại ws://localhost:${PORT}`);
 });
 
-// Graceful error handling for common server errors
 server.on('error', (err) => {
   if (err && err.code === 'EADDRINUSE') {
     console.error(` Port ${PORT} đã được sử dụng. Hãy dừng tiến trình khác hoặc đổi PORT.`);

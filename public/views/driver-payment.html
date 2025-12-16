@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thanh toán phí dịch vụ - DC Bike</title>
+    <title>Thanh toán phí dịch vụ - DC Booking</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="/css/style.css" rel="stylesheet">
@@ -364,8 +364,7 @@
             
             // Lấy thông tin giao dịch
             const user = window.dcApp?.user;
-            // Tạo nội dung chuyển khoản: DCBIKE PHI DV <ID>
-            const rawInfo = `DCBIKE PHI DV ${user?.id || '7'}`;
+            const rawInfo = `DC BOOKING PHI DV ${user?.id || '7'}`;
             
             // Chuẩn bị tham số URL
             const bankCode = getVietQrBankCode(settings.qr_bank_name);
@@ -375,7 +374,7 @@
             // Mã hóa dữ liệu URL an toàn
             const addInfo = encodeURIComponent(rawInfo.toUpperCase().replace(/[^A-Z0-9 ]/g, ''));
             // QUAN TRỌNG: Truyền accountName để ép hiển thị template kể cả khi không tra cứu được tên
-            const accountName = encodeURIComponent(settings.qr_account_holder || 'DCBIKE DRIVER');
+            const accountName = encodeURIComponent(settings.qr_account_holder || 'DC BOOKING DRIVER');
 
             // Tạo URL chính: Dùng template 'compact2' (Đẹp, dọc)
             const primaryUrl = `https://img.vietqr.io/image/${bankCode}-${accountNo}-compact2.png?amount=${amount}&addInfo=${addInfo}&accountName=${accountName}`;
@@ -440,7 +439,7 @@
                 if (settingsData.success) {
                     const settings = settingsData.data;
                     displayBankInfo(settings);
-                    generateQRCode(settings); // Gọi hàm tạo QR
+                    generateQRCode(settings);
                 }
 
             } catch (error) {
@@ -450,7 +449,6 @@
         }
 
         function displayDebtTable(debts) {
-            // Kiểm tra xem có được chuyển từ trang đăng ký không (có query parameter)
             const urlParams = new URLSearchParams(window.location.search);
             const highlightUnpaid = urlParams.get('highlight') === 'unpaid';
             
@@ -473,8 +471,6 @@
                 </tr>`;
             });
             html += '</tbody></table></div>';
-            
-            // Thêm thông báo nếu được chuyển từ trang đăng ký
             if (highlightUnpaid) {
                 const hasOverdue = debts.some(debt => new Date(debt.han_thanh_toan) < new Date());
                 if (hasOverdue) {
@@ -499,7 +495,7 @@
             document.getElementById('bankAccountHolder').textContent = settings.qr_account_holder || '...';
             document.getElementById('bankAmount').textContent = formatCurrency(totalDebt);
             const user = window.dcApp?.user;
-            document.getElementById('bankDescription').textContent = `DCBIKE PHI DV ${user?.id || '7'}`;
+            document.getElementById('bankDescription').textContent = `DC BOOKING PHI DV ${user?.id || '7'}`;
         }
 
         async function confirmPayment() {
