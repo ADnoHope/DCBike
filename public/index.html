@@ -387,6 +387,9 @@
                 <li class="nav-item d-none" id="promotions-nav-sidebar">
                     <a class="nav-link" href="views/promotions.html"><i class="fas fa-gift me-2"></i>Khuyến mãi</a>
                 </li>
+                <li class="nav-item" id="feedback-nav-sidebar">
+                    <a class="nav-link" href="#" onclick="openFeedbackModal(); return false;"><i class="fas fa-comment-dots me-2"></i>Gửi phản hồi</a>
+                </li>
                 <li class="nav-item d-none" id="driverreg-nav-sidebar">
                     <a class="nav-link" href="driver-registration.html"><i class="fas fa-user-plus me-2"></i>Đăng ký tài xế</a>
                 </li>
@@ -1120,6 +1123,65 @@
                 console.error('Notification init error:', e);
             }
         });
+    </script>
+
+    <!-- Feedback Widget (Inline) -->
+    <!-- Feedback Button (Floating) -->
+    <button id="feedbackBtn" style="position: fixed; bottom: 80px; right: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 50px; padding: 15px 25px; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); z-index: 999; transition: all 0.3s ease; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.6)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.4)'">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        Phản Hồi
+    </button>
+
+    <!-- Feedback Modal -->
+    <div id="feedbackModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+        <div style="background: white; border-radius: 15px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); animation: modalSlideIn 0.3s ease-out;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px 30px; border-radius: 15px 15px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    <h2 style="margin: 0; font-size: 24px;">Gửi Phản Hồi</h2>
+                </div>
+                <button id="closeFeedbackModal" style="background: rgba(255, 255, 255, 0.2); border: none; color: white; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-size: 20px; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'">×</button>
+            </div>
+            <div style="padding: 30px;">
+                <p style="color: #666; margin-bottom: 25px; line-height: 1.6;">Chúng tôi rất mong nhận được ý kiến đóng góp của bạn để cải thiện dịch vụ. Mọi phản hồi sẽ được xem xét và trả lời qua email.</p>
+                <form id="feedbackForm">
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Họ và tên <span style="color: red;">*</span></label>
+                        <input type="text" id="feedbackName" required placeholder="Nhập họ và tên của bạn" style="width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; transition: all 0.3s; box-sizing: border-box;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Email <span style="color: red;">*</span></label>
+                        <input type="email" id="feedbackEmail" required placeholder="email@example.com" style="width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; transition: all 0.3s; box-sizing: border-box;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Tiêu đề <span style="color: red;">*</span></label>
+                        <input type="text" id="feedbackSubject" required placeholder="Tóm tắt nội dung phản hồi" style="width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; transition: all 0.3s; box-sizing: border-box;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'">
+                    </div>
+                    <div style="margin-bottom: 25px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Nội dung <span style="color: red;">*</span></label>
+                        <textarea id="feedbackMessage" required rows="6" placeholder="Nhập nội dung chi tiết phản hồi của bạn..." style="width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; resize: vertical; font-family: inherit; transition: all 0.3s; box-sizing: border-box;" onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e0e0e0'"></textarea>
+                    </div>
+                    <button type="submit" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(102, 126, 234, 0.3)'">Gửi Phản Hồi</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes modalSlideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+
+    <!-- Feedback JS -->
+    <script src="/js/feedback.js"></script>
+    <script>
+        // Initialize feedback immediately since widget is inline
+        if (typeof initFeedback === 'function') {
+            initFeedback();
+            console.log('✓ Feedback initialized');
+        }
     </script>
 </body>
 </html>

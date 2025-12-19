@@ -10,6 +10,7 @@ require('dotenv').config();
 
 const { testConnection } = require('./config/database');
 const setupSocket = require('./socket/socketHandler');
+const TripAutoCancel = require('./services/TripAutoCancel');
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -175,6 +176,7 @@ app.use('/api/revenue', authenticate, require('./routes/revenue'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/admin', authenticate, require('./routes/admin'));
 app.use('/api/chat', require('./routes/chat'));
+app.use('/api/feedback', require('./routes/feedback'));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -211,10 +213,24 @@ app.use((error, req, res, next) => {
 
 // Start server
 const server = httpServer.listen(PORT, () => {
-  console.log(` DC Car Booking Server đang chạy tại http://localhost:${PORT}`);
-  console.log(` API Documentation: http://localhost:${PORT}/api-docs`);
-  console.log(` Health Check: http://localhost:${PORT}/health`);
-  console.log(` WebSocket (Socket.IO) tại ws://localhost:${PORT}`);
+  console.log(`🚗 DC Car Booking Server đang chạy tại http://localhost:${PORT}`);
+  console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+  console.log(`💚 Health Check: http://localhost:${PORT}/health`);
+  console.log(`🔌 WebSocket (Socket.IO) tại ws://localhost:${PORT}`);
+  
+  // Khởi động service tự động hủy chuyến đi
+  // Kiểm tra mỗi 5 phút
+  const autoCancelInterval = TripAutoCancel.startAutoCancel(5);
+  console.log(`⏰ Auto-cancel service started (checking every 5 minutes)`);
+  
+  // Cleanup khi server shutdown
+  process.on('SIGTERM', () => {
+    console.log('🛑 SIGTERM signal received: closing HTTP server');
+    TripAutoCancel.stopAutoCancel(autoCancelInterval);
+    server.close(() => {
+      console.log('👋 HTTP server closed');
+    });
+  });
 });
 
 server.on('error', (err) => {

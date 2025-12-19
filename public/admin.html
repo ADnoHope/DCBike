@@ -136,6 +136,12 @@
                         </a>
                     </li>
                     <li class="nav-item mb-2">
+                        <a class="nav-link" href="#feedback" data-section="feedback">
+                            <i class="bi bi-chat-left-text me-2"></i>Ý kiến phản hồi
+                            <span id="feedbackBadge" class="badge bg-danger ms-2" style="display: none;">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item mb-2">
                         <a class="nav-link" href="#" onclick="logout()">
                             <i class="bi bi-box-arrow-right me-2"></i>Đăng xuất
                         </a>
@@ -464,6 +470,86 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Feedback Section -->
+                <div id="feedback-section" class="content-section" style="display: none;">
+                    <h2 class="mb-4">
+                        <i class="bi bi-chat-left-text me-2"></i>Quản Lý Ý Kiến Phản Hồi
+                    </h2>
+
+                    <!-- Statistics Cards -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card stats-card">
+                                <div class="card-body text-center">
+                                    <h3 id="totalFeedback" class="mb-0">-</h3>
+                                    <p class="mb-0">Tổng phản hồi</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card pending-requests">
+                                <div class="card-body text-center">
+                                    <h3 id="unreadFeedback" class="mb-0">-</h3>
+                                    <p class="mb-0">Chưa đọc</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card approved-drivers">
+                                <div class="card-body text-center">
+                                    <h3 id="readFeedback" class="mb-0">-</h3>
+                                    <p class="mb-0">Đã đọc</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card total-vouchers">
+                                <div class="card-body text-center">
+                                    <h3 id="repliedFeedback" class="mb-0">-</h3>
+                                    <p class="mb-0">Đã trả lời</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Buttons -->
+                    <div class="mb-4">
+                        <button class="btn btn-sm btn-primary me-2" onclick="loadFeedback()">Tất cả</button>
+                        <button class="btn btn-sm btn-warning me-2" onclick="loadFeedback('chua_doc')">Chưa đọc</button>
+                        <button class="btn btn-sm btn-info me-2" onclick="loadFeedback('da_doc')">Đã đọc</button>
+                        <button class="btn btn-sm btn-success" onclick="loadFeedback('da_tra_loi')">Đã trả lời</button>
+                    </div>
+
+                    <!-- Feedback List -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Danh Sách Phản Hồi</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Người gửi</th>
+                                            <th>Email</th>
+                                            <th>Tiêu đề</th>
+                                            <th>Trạng thái</th>
+                                            <th>Ngày gửi</th>
+                                            <th>Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="feedbackTableBody">
+                                        <tr>
+                                            <td colspan="7" class="text-center">Đang tải...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -621,6 +707,38 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
                     <button type="button" class="btn btn-primary" id="voucherSaveButton" onclick="createVoucher()">Tạo voucher</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Detail Modal -->
+    <div class="modal fade" id="feedbackModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-chat-left-text me-2"></i>Chi Tiết Phản Hồi
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="feedbackDetail"></div>
+                    
+                    <!-- Reply Form -->
+                    <div id="replySection" style="display: none;">
+                        <hr>
+                        <h6 class="mb-3"><i class="bi bi-reply-fill me-2"></i>Trả Lời</h6>
+                        <textarea 
+                            id="adminReplyText" 
+                            class="form-control mb-3" 
+                            rows="5" 
+                            placeholder="Nhập nội dung trả lời..."
+                        ></textarea>
+                        <button class="btn btn-success" onclick="sendReply()">
+                            <i class="bi bi-send-fill me-2"></i>Gửi Trả Lời
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1861,6 +1979,306 @@
                 alert('Lỗi: ' + (err.message || 'Không thể tải thông tin người dùng'));
             }
         }
+
+        // ==================== FEEDBACK MANAGEMENT ====================
+        let currentFeedbackId = null;
+
+        // Load feedback list
+        async function loadFeedback(status = null) {
+            try {
+                let url = '/api/feedback/admin/all?limit=100';
+                if (status) {
+                    url += `&status=${status}`;
+                }
+
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayFeedbackList(result.data);
+                    updateFeedbackStats(result.statistics);
+                } else {
+                    throw new Error(result.message || 'Không thể tải danh sách phản hồi');
+                }
+            } catch (error) {
+                console.error('Error loading feedback:', error);
+                document.getElementById('feedbackTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-danger">Lỗi: ${error.message}</td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Display feedback list
+        function displayFeedbackList(feedbacks) {
+            const tbody = document.getElementById('feedbackTableBody');
+            
+            if (feedbacks.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">Không có phản hồi nào</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = feedbacks.map(fb => {
+                const statusBadge = {
+                    'chua_doc': '<span class="badge bg-warning">Chưa đọc</span>',
+                    'da_doc': '<span class="badge bg-info">Đã đọc</span>',
+                    'da_tra_loi': '<span class="badge bg-success">Đã trả lời</span>'
+                };
+
+                const date = new Date(fb.created_at).toLocaleString('vi-VN');
+
+                return `
+                    <tr style="${fb.trang_thai === 'chua_doc' ? 'background-color: #fff3cd;' : ''}">
+                        <td>${fb.id}</td>
+                        <td>${fb.ten_nguoi_gui}</td>
+                        <td>${fb.email}</td>
+                        <td>
+                            <div style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                ${fb.tieu_de}
+                            </div>
+                        </td>
+                        <td>${statusBadge[fb.trang_thai]}</td>
+                        <td>${date}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="viewFeedback(${fb.id})">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteFeedback(${fb.id})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Update feedback statistics
+        function updateFeedbackStats(stats) {
+            document.getElementById('totalFeedback').textContent = stats.total || 0;
+            document.getElementById('unreadFeedback').textContent = stats.chua_doc || 0;
+            document.getElementById('readFeedback').textContent = stats.da_doc || 0;
+            document.getElementById('repliedFeedback').textContent = stats.da_tra_loi || 0;
+
+            // Update badge
+            const badge = document.getElementById('feedbackBadge');
+            const unreadCount = stats.chua_doc || 0;
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        // View feedback detail
+        async function viewFeedback(id) {
+            try {
+                currentFeedbackId = id;
+
+                const response = await fetch(`/api/feedback/admin/${id}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayFeedbackDetail(result.data);
+                    new bootstrap.Modal(document.getElementById('feedbackModal')).show();
+                    
+                    // Reload list to update status
+                    setTimeout(() => loadFeedback(), 1000);
+                } else {
+                    throw new Error(result.message || 'Không thể tải chi tiết phản hồi');
+                }
+            } catch (error) {
+                console.error('Error viewing feedback:', error);
+                alert('Lỗi: ' + error.message);
+            }
+        }
+
+        // Display feedback detail
+        function displayFeedbackDetail(feedback) {
+            const statusBadge = {
+                'chua_doc': '<span class="badge bg-warning">Chưa đọc</span>',
+                'da_doc': '<span class="badge bg-info">Đã đọc</span>',
+                'da_tra_loi': '<span class="badge bg-success">Đã trả lời</span>'
+            };
+
+            const date = new Date(feedback.created_at).toLocaleString('vi-VN');
+
+            let html = `
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p><strong><i class="bi bi-person-fill me-2"></i>Người gửi:</strong> ${feedback.ten_nguoi_gui}</p>
+                                <p><strong><i class="bi bi-envelope-fill me-2"></i>Email:</strong> ${feedback.email}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong><i class="bi bi-calendar-fill me-2"></i>Ngày gửi:</strong> ${date}</p>
+                                <p><strong><i class="bi bi-info-circle-fill me-2"></i>Trạng thái:</strong> ${statusBadge[feedback.trang_thai]}</p>
+                            </div>
+                        </div>
+                        <hr>
+                        <h6 class="text-primary"><i class="bi bi-chat-left-quote-fill me-2"></i>Tiêu đề:</h6>
+                        <p class="fw-bold">${feedback.tieu_de}</p>
+                        <h6 class="text-primary mt-3"><i class="bi bi-file-text-fill me-2"></i>Nội dung:</h6>
+                        <p style="white-space: pre-wrap;">${feedback.noi_dung}</p>
+                    </div>
+                </div>
+            `;
+
+            // Show admin reply if exists
+            if (feedback.admin_reply) {
+                const replyDate = new Date(feedback.replied_at).toLocaleString('vi-VN');
+                html += `
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="text-success"><i class="bi bi-reply-fill me-2"></i>Đã Trả Lời</h6>
+                            <p><strong>Admin:</strong> ${feedback.ten_admin || 'Admin'}</p>
+                            <p><strong>Ngày trả lời:</strong> ${replyDate}</p>
+                            <hr>
+                            <p style="white-space: pre-wrap;">${feedback.admin_reply}</p>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('replySection').style.display = 'none';
+            } else {
+                document.getElementById('replySection').style.display = 'block';
+                document.getElementById('adminReplyText').value = '';
+            }
+
+            document.getElementById('feedbackDetail').innerHTML = html;
+        }
+
+        // Send reply
+        async function sendReply() {
+            const replyText = document.getElementById('adminReplyText').value.trim();
+
+            if (!replyText) {
+                showNotification('Vui lòng nhập nội dung trả lời', 'warning');
+                return;
+            }
+
+            if (!confirm('Bạn có chắc muốn gửi phản hồi này? Email sẽ được gửi đến người dùng qua Gmail.')) {
+                return;
+            }
+
+            // Show loading
+            const loadingNotif = showLoading('Đang gửi phản hồi và email...');
+
+            try {
+                const response = await fetch(`/api/feedback/admin/${currentFeedbackId}/reply`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ reply: replyText })
+                });
+
+                const result = await response.json();
+
+                // Hide loading
+                hideNotification(loadingNotif);
+
+                if (result.success) {
+                    showNotification('Đã gửi phản hồi thành công! Email đã được gửi đến người dùng.', 'success', 5000);
+                    bootstrap.Modal.getInstance(document.getElementById('feedbackModal')).hide();
+                    loadFeedback();
+                } else {
+                    throw new Error(result.message || 'Không thể gửi phản hồi');
+                }
+            } catch (error) {
+                console.error('Error sending reply:', error);
+                hideNotification(loadingNotif);
+                showNotification('Lỗi: ' + error.message, 'error');
+            }
+        }
+
+        // Delete feedback
+        async function deleteFeedback(id) {
+            if (!confirm('Bạn có chắc muốn xóa phản hồi này?')) {
+                return;
+            }
+
+            const loadingNotif = showLoading('Đang xóa phản hồi...');
+
+            try {
+                const response = await fetch(`/api/feedback/admin/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const result = await response.json();
+
+                hideNotification(loadingNotif);
+
+                if (result.success) {
+                    showNotification('Đã xóa phản hồi thành công', 'success');
+                    loadFeedback();
+                } else {
+                    throw new Error(result.message || 'Không thể xóa phản hồi');
+                }
+            } catch (error) {
+                console.error('Error deleting feedback:', error);
+                hideNotification(loadingNotif);
+                showNotification('Lỗi: ' + error.message, 'error');
+            }
+        }
+
+        // Load unread count on page load
+        async function loadFeedbackUnreadCount() {
+            try {
+                const response = await fetch('/api/feedback/admin/unread-count', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const badge = document.getElementById('feedbackBadge');
+                    if (result.count > 0) {
+                        badge.textContent = result.count;
+                        badge.style.display = 'inline';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading unread count:', error);
+            }
+        }
+
+        // Initialize feedback when section is shown
+        const originalShowSection = showSection;
+        showSection = function(section) {
+            originalShowSection(section);
+            if (section === 'feedback') {
+                loadFeedback();
+            }
+        };
+
+        // Load unread count on page load
+        loadFeedbackUnreadCount();
+        // Refresh unread count every 30 seconds
+        setInterval(loadFeedbackUnreadCount, 30000);
     </script>
 </body>
 </html>

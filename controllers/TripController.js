@@ -602,11 +602,11 @@ class TripController {
         });
       }
 
-      // Khách hàng chỉ có thể hủy khi chuyến đang CHỜ TÀI XẾ (chưa có ai nhận)
-      if (isCustomer && trip.trang_thai !== 'cho_tai_xe') {
+      // Khách hàng có thể hủy khi chuyến đang CHỜ TÀI XẾ hoặc ĐÃ NHẬN
+      if (isCustomer && !['cho_tai_xe', 'da_nhan'].includes(trip.trang_thai)) {
         return res.status(400).json({
           success: false,
-          message: 'Không thể hủy chuyến đi sau khi tài xế đã nhận'
+          message: 'Không thể hủy chuyến đi ở trạng thái hiện tại'
         });
       }
 
@@ -618,9 +618,65 @@ class TripController {
         });
       }
 
+      // Nếu khách hàng hủy chuyến CHƯA có tài xế nhận (cho_tai_xe)
+      // Hủy trực tiếp, không cần xác nhận
+      if (isCustomer && trip.trang_thai === 'cho_tai_xe') {
+        await Trip.updateStatus(tripId, 'huy_bo', { ly_do_huy });
+        
+        return res.json({
+          success: true,
+          message: 'Đã hủy chuyến đi thành công'
+        });
+      }
+
+      // Nếu khách hàng hủy chuyến đã có tài xế nhận (da_nhan)
+      // Chỉ lưu lý do hủy và gửi thông báo, chưa đổi trạng thái
+      // Tài xế sẽ xác nhận hủy để chuyển trạng thái thành huy_bo
+      if (isCustomer && trip.trang_thai === 'da_nhan' && trip.tai_xe_id) {
+        // Lưu lý do hủy vào database
+        await Trip.updateStatus(tripId, 'da_nhan', { ly_do_huy });
+        
+        // Gửi thông báo cho tài xế
+        const driver = await Driver.findById(trip.tai_xe_id);
+        if (driver && driver.nguoi_dung_id) {
+          await Notification.create({
+            user_id: driver.nguoi_dung_id,
+            trip_id: tripId,
+            type: 'trip_cancel_request',
+            title: 'Khách hàng yêu cầu hủy chuyến',
+            message: `Khách hàng yêu cầu hủy chuyến đi #${tripId}. Lý do: ${ly_do_huy || 'Không có lý do'}. Vui lòng xác nhận hủy chuyến.`,
+            data: {
+              trip_id: tripId,
+              ly_do_huy: ly_do_huy,
+              link: '/views/driver-dashboard.html'
+            }
+          });
+
+          // Gửi real-time notification qua socket
+          if (global.sendNotificationToUser) {
+            global.sendNotificationToUser(driver.nguoi_dung_id, 'trip-cancel-request', {
+              tripId: tripId,
+              message: `Chuyến #${tripId} - Khách hàng yêu cầu hủy. Lý do: ${ly_do_huy || 'Không có lý do'}`,
+              ly_do_huy: ly_do_huy,
+              trip: {
+                id: tripId,
+                diem_don: trip.diem_don,
+                diem_den: trip.diem_den
+              }
+            });
+          }
+        }
+
+        return res.json({
+          success: true,
+          message: 'Đã gửi yêu cầu hủy chuyến đến tài xế. Vui lòng chờ tài xế xác nhận.'
+        });
+      }
+
+      // Các trường hợp khác (tài xế hoặc admin hủy): hủy trực tiếp
       await Trip.updateStatus(tripId, 'huy_bo', { ly_do_huy });
 
-      // Nếu có tài xế đã nhận, cập nhật trạng thái tài xế về sẵn sàng
+      // Nếu có tài xế, cập nhật trạng thái tài xế về sẵn sàng
       if (trip.tai_xe_id) {
         await Driver.updateStatus(trip.tai_xe_id, 'san_sang');
       }
@@ -634,6 +690,73 @@ class TripController {
       res.status(500).json({
         success: false,
         message: 'Lỗi hệ thống khi hủy chuyến đi'
+      });
+    }
+  }
+
+  // Xác nhận hủy chuyến (tài xế)
+  static async confirmCancelTrip(req, res) {
+    try {
+      const tripId = req.params.id;
+      const userId = req.user.id;
+
+      // Kiểm tra quyền tài xế
+      const driver = await Driver.findByUserId(userId);
+      if (!driver) {
+        return res.status(403).json({
+          success: false,
+          message: 'Bạn không phải là tài xế'
+        });
+      }
+
+      // Lấy thông tin chuyến đi
+      const trip = await Trip.findById(tripId);
+      if (!trip) {
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy chuyến đi'
+        });
+      }
+
+      // Kiểm tra tài xế có phải là tài xế của chuyến này không
+      if (trip.tai_xe_id !== driver.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Bạn không phải là tài xế của chuyến đi này'
+        });
+      }
+
+      // Kiểm tra trạng thái chuyến đi
+      if (trip.trang_thai !== 'da_nhan') {
+        return res.status(400).json({
+          success: false,
+          message: 'Chỉ có thể xác nhận hủy chuyến đang ở trạng thái "Đã nhận"'
+        });
+      }
+
+      // Kiểm tra có lý do hủy không
+      if (!trip.ly_do_huy) {
+        return res.status(400).json({
+          success: false,
+          message: 'Chuyến đi chưa có lý do hủy'
+        });
+      }
+
+      // Cập nhật trạng thái thành huy_bo
+      await Trip.updateStatus(tripId, 'huy_bo');
+
+      // Cập nhật trạng thái tài xế về sẵn sàng
+      await Driver.updateStatus(driver.id, 'san_sang');
+
+      res.json({
+        success: true,
+        message: 'Đã xác nhận hủy chuyến đi'
+      });
+    } catch (error) {
+      console.error('Confirm cancel trip error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi hệ thống khi xác nhận hủy chuyến đi'
       });
     }
   }

@@ -214,6 +214,11 @@ class Trip {
           query += ', tai_xe_id = ?';
           values.push(additionalData.tai_xe_id);
         }
+        // Cho phép cập nhật ly_do_huy khi khách hàng muốn hủy chuyến đã được nhận
+        if (additionalData.ly_do_huy) {
+          query += ', ly_do_huy = ?';
+          values.push(additionalData.ly_do_huy);
+        }
       } else if (trang_thai === 'dang_di') {
         query += ', thoi_gian_bat_dau = CURRENT_TIMESTAMP';
       } else if (trang_thai === 'hoan_thanh') {

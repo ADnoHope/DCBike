@@ -912,13 +912,28 @@ footer {
 }
 #chat-widget .chat-header { background:linear-gradient(135deg,#000066,#000044); color:#fff; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; font-weight:600; }
 #chat-widget .chat-header button { background:transparent; border:none; color:#fff; font-size:20px; cursor:pointer; }
+#chat-widget .chat-header .chat-actions { display:flex; gap:4px; align-items:center; }
+/* Delete chat button */
+#chat-widget .chat-header .delete-chat-btn {
+    background: transparent;
+    color: rgba(255,255,255,0.85);
+    border: none;
+    font-size: 16px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+#chat-widget .chat-header .delete-chat-btn:hover {
+    background: rgba(255,99,71,0.2);
+    color: #ff6347;
+}
 /* header back button (small, left of close) */
 #chat-widget .chat-header .back-to-list-header {
     background: transparent;
     color: rgba(255,255,255,0.95);
     border: none;
     font-size: 16px;
-    margin-right: 8px;
     padding: 6px 8px;
     border-radius: 8px;
     cursor: pointer;

@@ -181,6 +181,38 @@
         </div>
     </div>
 
+    <!-- Cancel Trip Modal -->
+    <div class="modal fade" id="cancelTripModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-times-circle me-2"></i>Hủy chuyến đi</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="cancel-trip-form">
+                        <input type="hidden" id="cancel-trip-id">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Lưu ý:</strong> Sau khi hủy, tài xế sẽ nhận được thông báo.
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Lý do hủy chuyến <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="cancel-reason" rows="4" required
+                                placeholder="Vui lòng nhập lý do hủy chuyến đi..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-danger" onclick="confirmCancelTrip()">
+                        <i class="fas fa-times me-2"></i>Xác nhận hủy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Rating Modal -->
     <div class="modal fade" id="ratingModal" tabindex="-1">
         <div class="modal-dialog">
@@ -613,16 +645,67 @@
             const cancelBtn = document.getElementById('cancel-trip-btn');
             const rateBtn = document.getElementById('rate-trip-btn');
             
-            // Khách hàng chỉ có thể hủy khi chuyến đang CHỜ TÀI XẾ (chưa có tài xế nhận)
-            cancelBtn.style.display = (trip.trang_thai === 'cho_tai_xe') ? 'block' : 'none';
+            // Khách hàng có thể hủy khi chuyến đang CHỜ TÀI XẾ hoặc ĐÃ NHẬN
+            cancelBtn.style.display = (['cho_tai_xe', 'da_nhan'].includes(trip.trang_thai)) ? 'block' : 'none';
             rateBtn.style.display = (trip.trang_thai === 'hoan_thanh' && !trip.da_danh_gia) ? 'block' : 'none';
 
-            cancelBtn.onclick = () => cancelTrip(trip.id);
+            cancelBtn.onclick = () => cancelTrip(trip.id, trip.trang_thai);
             rateBtn.onclick = () => rateTrip(trip.id);
         }
 
-        async function cancelTrip(tripId) {
-            if (!confirm('Bạn có chắc chắn muốn hủy chuyến đi này?')) {
+        function cancelTrip(tripId, trangThai) {
+            // Nếu chưa có tài xế nhận (cho_tai_xe): confirm đơn giản, không cần lý do
+            if (trangThai === 'cho_tai_xe') {
+                if (confirm('Bạn có chắc chắn muốn hủy chuyến đi này?')) {
+                    confirmCancelTripWithoutReason(tripId);
+                }
+                return;
+            }
+            
+            // Nếu đã có tài xế nhận (da_nhan): yêu cầu nhập lý do
+            document.getElementById('cancel-trip-id').value = tripId;
+            document.getElementById('cancel-reason').value = '';
+            const cancelModal = new bootstrap.Modal(document.getElementById('cancelTripModal'));
+            cancelModal.show();
+        }
+
+        // Hủy chuyến không cần lý do (chưa có tài xế nhận)
+        async function confirmCancelTripWithoutReason(tripId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/trips/${tripId}/cancel`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${dcApp.token}`
+                    },
+                    body: JSON.stringify({ ly_do_huy: null })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('success', result.message || 'Đã hủy chuyến đi thành công');
+                    loadTrips(currentPage);
+                    
+                    // Close detail modal if open
+                    const detailModal = bootstrap.Modal.getInstance(document.getElementById('tripDetailModal'));
+                    if (detailModal) detailModal.hide();
+                } else {
+                    showAlert('error', result.message || 'Không thể hủy chuyến đi');
+                }
+            } catch (error) {
+                console.error('Cancel trip error:', error);
+                showAlert('error', 'Lỗi khi hủy chuyến đi');
+            }
+        }
+
+        // Hủy chuyến có lý do (đã có tài xế nhận)
+        async function confirmCancelTrip() {
+            const tripId = document.getElementById('cancel-trip-id').value;
+            const reason = document.getElementById('cancel-reason').value.trim();
+
+            if (!reason) {
+                showAlert('warning', 'Vui lòng nhập lý do hủy chuyến');
                 return;
             }
 
@@ -630,19 +713,24 @@
                 const response = await fetch(`${API_BASE_URL}/trips/${tripId}/cancel`, {
                     method: 'PUT',
                     headers: {
+                        'Content-Type': 'application/json',
                         'Authorization': `Bearer ${dcApp.token}`
-                    }
+                    },
+                    body: JSON.stringify({ ly_do_huy: reason })
                 });
 
                 const result = await response.json();
 
                 if (result.success) {
-                    showAlert('success', 'Đã hủy chuyến đi thành công');
+                    showAlert('success', result.message || 'Đã gửi yêu cầu hủy chuyến đến tài xế');
                     loadTrips(currentPage);
                     
-                    // Close modal if open
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('tripDetailModal'));
-                    if (modal) modal.hide();
+                    // Close both modals
+                    const cancelModal = bootstrap.Modal.getInstance(document.getElementById('cancelTripModal'));
+                    if (cancelModal) cancelModal.hide();
+                    
+                    const detailModal = bootstrap.Modal.getInstance(document.getElementById('tripDetailModal'));
+                    if (detailModal) detailModal.hide();
                 } else {
                     showAlert('error', result.message || 'Không thể hủy chuyến đi');
                 }

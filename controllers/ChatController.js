@@ -136,6 +136,34 @@ class ChatController {
       res.status(500).json({ success: false, message: 'Lỗi server' });
     }
   }
+
+  // Xóa cuộc trò chuyện và tất cả tin nhắn
+  static async deleteConversation(req, res) {
+    try {
+      const user = req.user;
+      const { id } = req.params;
+      const convo = await Conversation.findById(id);
+      if (!convo) return res.status(404).json({ success: false, message: 'Không tìm thấy cuộc trò chuyện' });
+
+      // Kiểm tra quyền
+      const [driverRows] = await pool.execute('SELECT id, nguoi_dung_id FROM tai_xe WHERE id=?', [convo.tai_xe_id]);
+      const driverUserId = driverRows.length ? driverRows[0].nguoi_dung_id : null;
+      if (![convo.khach_hang_id, driverUserId].includes(user.id)) {
+        return res.status(403).json({ success: false, message: 'Không thuộc cuộc trò chuyện này' });
+      }
+
+      // Xóa tất cả tin nhắn trước
+      await pool.execute('DELETE FROM tin_nhan WHERE cuoc_tro_chuyen_id = ?', [id]);
+      
+      // Xóa cuộc trò chuyện
+      await pool.execute('DELETE FROM cuoc_tro_chuyen WHERE id = ?', [id]);
+
+      return res.json({ success: true, message: 'Đã xóa cuộc trò chuyện' });
+    } catch (error) {
+      console.error('deleteConversation error', error);
+      res.status(500).json({ success: false, message: 'Lỗi server' });
+    }
+  }
 }
 
 module.exports = ChatController;

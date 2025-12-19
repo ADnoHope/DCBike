@@ -942,11 +942,23 @@
 
         // Render current trip with action buttons
         function renderCurrentTrip(trip) {
+            // Kiểm tra nếu chuyến bị hủy bởi khách hàng
+            const cancelReason = trip.ly_do_huy ? `
+                <div class="alert alert-danger border-start border-danger border-5 mb-3">
+                    <h6 class="mb-2"><i class="fas fa-exclamation-circle me-2"></i>Chuyến đi đã bị hủy</h6>
+                    <p class="mb-0"><strong>Lý do:</strong> ${trip.ly_do_huy}</p>
+                </div>
+            ` : '';
+
             const statusInfo = {
                 'da_nhan': {
                     badge: 'warning',
                     text: 'Đã nhận',
-                    action: `
+                    action: trip.ly_do_huy ? `
+                        <button class="btn btn-danger w-100" onclick="confirmCancelTrip(${trip.id})">
+                            <i class="fas fa-times me-2"></i>Xác nhận hủy chuyến
+                        </button>
+                    ` : `
                         <button class="btn btn-success w-100" onclick="startTrip(${trip.id})">
                             <i class="fas fa-play me-2"></i>Bắt đầu chuyến đi
                         </button>
@@ -966,6 +978,7 @@
             const info = statusInfo[trip.trang_thai] || { badge: 'secondary', text: trip.trang_thai, action: '' };
 
             return `
+                ${cancelReason}
                 <div class="alert alert-${info.badge} border-start border-5 mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h5 class="mb-0">
@@ -1146,6 +1159,35 @@
             } catch (error) {
                 console.error('Complete trip error:', error);
                 showNotification('Lỗi khi hoàn thành chuyến', 'error');
+            }
+        }
+
+        // Confirm cancel trip
+        async function confirmCancelTrip(tripId) {
+            if (!confirm('Xác nhận hủy chuyến đi này?')) return;
+
+            try {
+                const response = await fetch(`${window.API_BASE_URL}/trips/${tripId}/confirm-cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification('Đã xác nhận hủy chuyến', 'success');
+                    loadMyTrips();
+                    loadStats();
+                    loadDriverStatus();
+                } else {
+                    showNotification(data.message || 'Không thể xác nhận hủy chuyến', 'error');
+                }
+            } catch (error) {
+                console.error('Confirm cancel trip error:', error);
+                showNotification('Lỗi khi xác nhận hủy chuyến', 'error');
             }
         }
 

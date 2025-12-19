@@ -18,5 +18,7 @@ router.get('/messages/:id', ChatController.getMessages);
 router.get('/conversations', ChatController.listConversations);
 // End conversation
 router.post('/end/:id', ChatController.endConversation);
+// Delete conversation
+router.delete('/conversations/:id', ChatController.deleteConversation);
 
 module.exports = router;

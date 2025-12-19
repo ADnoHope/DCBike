@@ -38,4 +38,7 @@ router.post('/:id/complete', authenticate, requireDriver, TripController.complet
 // Hủy chuyến đi
 router.put('/:id/cancel', authenticate, TripController.cancelTrip);
 
+// Xác nhận hủy chuyến (tài xế)
+router.post('/:id/confirm-cancel', authenticate, requireDriver, TripController.confirmCancelTrip);
+
 module.exports = router;

@@ -133,21 +133,8 @@ const createTables = async () => {
 
 
 
-  // Tạo bảng thanh toán
-  await pool.execute(`
-      CREATE TABLE IF NOT EXISTS thanh_toan (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        chuyen_di_id INT NOT NULL,
-        so_tien DECIMAL(10,2) NOT NULL,
-        phuong_thuc_thanh_toan ENUM('tien_mat', 'the_tin_dung', 'vi_dien_tu', 'chuyen_khoan') NOT NULL,
-        ma_giao_dich VARCHAR(100),
-        trang_thai ENUM('cho_thanh_toan', 'da_thanh_toan', 'that_bai', 'hoan_tien') DEFAULT 'cho_thanh_toan',
-        thoi_gian_thanh_toan TIMESTAMP NULL,
-        ghi_chu TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (chuyen_di_id) REFERENCES chuyen_di(id)
-      )
-    `);
+  // Bảng thanh_toan đã bị xóa vì không sử dụng
+  // Thông tin thanh toán được lưu trong bảng chuyen_di và no_tai_xe
 
   // Tạo bảng đánh giá
   await pool.execute(`

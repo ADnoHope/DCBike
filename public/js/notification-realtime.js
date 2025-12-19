@@ -111,6 +111,48 @@ class RealtimeNotificationManager {
       this.showDesktopNotification('Tài xế đã nhận chuyến', data.message);
     });
 
+    /**
+     * TRIP CANCEL REQUEST (for drivers)
+     * Emitted when a customer requests to cancel a trip
+     */
+    this.socket.on('trip-cancel-request', (data) => {
+      console.log('🚫 Trip cancel request:', data);
+      this.addNotification({
+        id: `cancel-${data.tripId}`,
+        type: 'trip-cancel-request',
+        title: 'Khách hàng yêu cầu hủy chuyến',
+        message: data.message || `Chuyến #${data.tripId} - ${data.ly_do_huy}`,
+        details: data,
+        icon: '<i class="fas fa-exclamation-triangle text-danger"></i>',
+        timestamp: new Date(),
+        actionUrl: `/views/driver-dashboard.html`
+      });
+      
+      this.playNotificationSound();
+      this.showDesktopNotification('Khách hàng yêu cầu hủy chuyến', data.message);
+    });
+
+    /**
+     * TRIP AUTO CANCELLED (for customers)
+     * Emitted when a trip is automatically cancelled due to no driver accepting
+     */
+    this.socket.on('trip-auto-cancelled', (data) => {
+      console.log('⏰ Trip auto-cancelled:', data);
+      this.addNotification({
+        id: `auto-cancel-${data.tripId}`,
+        type: 'trip-auto-cancelled',
+        title: 'Chuyến đi đã bị hủy tự động',
+        message: data.message || `Chuyến #${data.tripId} đã bị hủy do không có tài xế nhận sau 1 tiếng`,
+        details: data,
+        icon: '<i class="fas fa-clock text-warning"></i>',
+        timestamp: new Date(),
+        actionUrl: `/views/trips.html`
+      });
+      
+      this.playNotificationSound();
+      this.showDesktopNotification('Chuyến đi đã bị hủy tự động', data.message);
+    });
+
     return true;
   }
 

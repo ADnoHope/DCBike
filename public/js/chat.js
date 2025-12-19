@@ -38,6 +38,7 @@
         <div class="chat-header">
             <span id="chatHeaderTitle">Chat</span>
             <div class="chat-actions">
+              <button id="deleteChatBtn" class="delete-chat-btn" title="Xóa tin nhắn" style="display:none;"><i class="fas fa-trash-alt"></i></button>
               <button id="backToListBtnHeader" class="back-to-list-header" title="Quay lại"><i class="fas fa-arrow-left"></i></button>
               <button id="chatCloseBtn" title="Đóng">&times;</button>
             </div>
@@ -112,8 +113,10 @@
         const footer = document.getElementById('chatFooter'); if (footer) footer.classList.add('d-none');
         stopPolling();
         try {
-          // hide header back and show bottom back button
+          // hide header back, delete button and show bottom back button
           backHeader.style.display = 'none';
+          const deleteChatBtn = document.getElementById('deleteChatBtn');
+          if (deleteChatBtn) deleteChatBtn.style.display = 'none';
           const backBottomEl = document.getElementById('backToListBtn');
           if (backBottomEl) backBottomEl.style.display = '';
         } catch (e) { console.debug('Could not toggle back button visibility after returning to list', e); }
@@ -126,6 +129,17 @@
       backBtn.onclick = () => {
         // reuse header back button logic
         if (backHeader) backHeader.onclick();
+      };
+    }
+
+    // Delete chat button
+    const deleteChatBtn = document.getElementById('deleteChatBtn');
+    if (deleteChatBtn) {
+      deleteChatBtn.onclick = async () => {
+        if (!activeConversationId) return;
+        if (confirm('Bạn có chắc chắn muốn xóa toàn bộ đoạn chat này? Hành động này không thể hoàn tác.')) {
+          await deleteConversation(activeConversationId);
+        }
       };
     }
 
@@ -236,7 +250,9 @@
     try {
       const backHeaderEl = document.getElementById('backToListBtnHeader');
       const backBottomEl = document.getElementById('backToListBtn');
+      const deleteChatBtn = document.getElementById('deleteChatBtn');
       if (backHeaderEl) backHeaderEl.style.display = '';
+      if (deleteChatBtn) deleteChatBtn.style.display = '';
       if (backBottomEl) backBottomEl.style.display = 'none';
       // show footer input
       const footer = document.getElementById('chatFooter'); if (footer) footer.classList.remove('d-none');
@@ -330,6 +346,28 @@
       input.value='';
       await loadMessages();
     } catch(err){ console.error('sendMessage error', err); }
+  }
+
+  async function deleteConversation(conversationId){
+    try {
+      const res = await fetch(API_BASE + '/conversations/' + conversationId, {
+        method: 'DELETE',
+        headers: authHeaders()
+      });
+      const data = await res.json();
+      if(data.success) {
+        // Go back to conversation list
+        const backHeader = document.getElementById('backToListBtnHeader');
+        if (backHeader) backHeader.onclick();
+        // Reload conversations
+        await loadConversations();
+      } else {
+        alert(data.message || 'Không thể xóa cuộc trò chuyện');
+      }
+    } catch(err){ 
+      console.error('deleteConversation error', err);
+      alert('Lỗi khi xóa cuộc trò chuyện');
+    }
   }
 
   function startPolling(){
