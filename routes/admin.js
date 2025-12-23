@@ -36,9 +36,13 @@ router.post('/users/:id/role', authenticate, adminAuth, AdminController.changeUs
 // Quản lý voucher
 router.get('/vouchers', authenticate, adminAuth, AdminController.getVouchers);
 router.post('/vouchers', authenticate, adminAuth, AdminController.createVoucher);
+router.post('/vouchers/personal', authenticate, adminAuth, AdminController.createPersonalVoucher);
 router.get('/vouchers/:id', authenticate, adminAuth, AdminController.getVoucherById);
 router.put('/vouchers/:id', authenticate, adminAuth, AdminController.updateVoucher);
 router.delete('/vouchers/:id', authenticate, adminAuth, AdminController.deleteVoucher);
+
+// Thống kê voucher cá nhân
+router.get('/user-vouchers-stats', authenticate, adminAuth, AdminController.getUserVouchersStats);
 
 // Quản lý chuyến đi (lịch sử chuyến đi)
 router.get('/trips', authenticate, adminAuth, AdminController.getAllTrips);

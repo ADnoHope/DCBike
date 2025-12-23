@@ -533,7 +533,7 @@
         async function toggleDriverStatus() { const toggle=document.getElementById('statusToggle'); if(!toggle) return; const newStatus = toggle.checked ? 'san_sang' : 'nghi_lam'; try { const token = localStorage.getItem('token'); const res = await fetch(`${window.API_BASE_URL}/drivers/status`, { method:'POST', headers:{ 'Content-Type':'application/json','Authorization':`Bearer ${token}` }, body: JSON.stringify({ trang_thai: newStatus }) }); const data = await res.json(); if (data && data.success) { updateStatusUI(newStatus); showNotification(toggle.checked ? 'Đã bật trạng thái hoạt động' : 'Đã tắt trạng thái hoạt động','success'); } else { toggle.checked = !toggle.checked; showNotification('Không thể thay đổi trạng thái','error'); } } catch (e) { console.error(e); toggle.checked = !toggle.checked; showNotification('Lỗi khi thay đổi trạng thái','error'); } }
         document.addEventListener('DOMContentLoaded', () => setTimeout(loadDriverStatus, 600));
     </script>
-    <script src="../js/promotions.js"></script>
+    <script src="/js/promotions.js"></script>
     <script>
         // Global variables for Leaflet Maps with Local OSM
         let map;

@@ -6,6 +6,7 @@
     <title>Chuyến đi - DC Booking</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="/css/style.css" rel="stylesheet">
 </head>
 <body>
@@ -157,29 +158,7 @@
         </nav>
     </div>
 
-    <!-- Trip Detail Modal -->
-    <div class="modal fade" id="tripDetailModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Chi tiết chuyến đi</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="trip-detail-content">
-                    <!-- Trip details will be loaded here -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="button" class="btn btn-danger" id="cancel-trip-btn" style="display: none;">
-                        <i class="fas fa-times me-2"></i>Hủy chuyến
-                    </button>
-                    <button type="button" class="btn btn-primary" id="rate-trip-btn" style="display: none;">
-                        <i class="fas fa-star me-2"></i>Đánh giá
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- OLD Trip Detail Modal REMOVED - using the new one with map below -->
 
     <!-- Cancel Trip Modal -->
     <div class="modal fade" id="cancelTripModal" tabindex="-1">
@@ -254,11 +233,136 @@
         </div>
     </div>
 
+    <!-- Trip Detail & Tracking Modal -->
+    <div class="modal fade" id="tripDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-route me-2"></i>Chi tiết & Theo dõi hành trình</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Trip Information -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary mb-3">
+                                        <i class="fas fa-info-circle me-2"></i>Thông tin chuyến đi
+                                    </h6>
+                                    <div class="mb-2">
+                                        <strong>Mã chuyến đi:</strong> <span id="detail-trip-code"></span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Loại xe:</strong> <span id="detail-vehicle-type"></span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Trạng thái:</strong> <span id="detail-status"></span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Giá cước:</strong> <span id="detail-price" class="text-success fw-bold"></span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>Thời gian đặt:</strong> <span id="detail-booking-time"></span>
+                                    </div>
+                                    <hr>
+                                    <div class="trip-route">
+                                        <div class="d-flex align-items-start mb-3">
+                                            <div class="me-3">
+                                                <i class="fas fa-circle text-success" style="font-size: 0.7rem;"></i>
+                                            </div>
+                                            <div>
+                                                <strong class="d-block">Điểm đón</strong>
+                                                <small id="detail-pickup" class="text-muted"></small>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-start">
+                                            <div class="me-3">
+                                                <i class="fas fa-circle text-danger" style="font-size: 0.7rem;"></i>
+                                            </div>
+                                            <div>
+                                                <strong class="d-block">Điểm đến</strong>
+                                                <small id="detail-destination" class="text-muted"></small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100" id="driver-info-card">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary mb-3">
+                                        <i class="fas fa-user-tie me-2"></i>Thông tin tài xế
+                                    </h6>
+                                    <div class="text-center mb-3" id="driver-avatar-container">
+                                        <img id="driver-avatar" src="" alt="Avatar" 
+                                             class="rounded-circle border border-3 border-primary" 
+                                             style="width: 100px; height: 100px; object-fit: cover;"
+                                             onerror="this.src='https://ui-avatars.com/api/?name=Driver&size=100'">
+                                    </div>
+                                    <div class="mb-2 text-center">
+                                        <strong id="driver-name" class="fs-5"></strong>
+                                    </div>
+                                    <hr>
+                                    <div class="mb-2">
+                                        <i class="fas fa-car me-2 text-primary"></i>
+                                        <strong>Loại xe:</strong> <span id="driver-vehicle-type"></span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <i class="fas fa-id-card me-2 text-primary"></i>
+                                        <strong>Biển số:</strong> <span id="driver-plate"></span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <i class="fas fa-phone me-2 text-primary"></i>
+                                        <strong>Số điện thoại:</strong> 
+                                        <a href="#" id="driver-phone" class="text-decoration-none"></a>
+                                    </div>
+                                    <div class="mb-2" id="driver-rating-container">
+                                        <i class="fas fa-star me-2 text-warning"></i>
+                                        <strong>Đánh giá:</strong> <span id="driver-rating"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Map Container -->
+                    <div id="map-container" class="mb-3" style="display: none;">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body p-0">
+                                <div id="trip-tracking-map" style="height: 500px; border-radius: 0.375rem;"></div>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                <span id="map-status-text">Đang theo dõi hành trình...</span>
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Completed/Cancelled Trip Info -->
+                    <div id="completed-trip-info" class="alert alert-info" style="display: none;">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <span id="completed-message"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Alert Container -->
     <div id="alert-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1055;"></div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/js/trip-tracking.js"></script>
+    <script src="/js/trip-detail-handler.js"></script>
     <script src="/js/notifications.js"></script>
     <script src="/js/app.js"></script>
     <script>
@@ -529,129 +633,7 @@
             loadTrips(1);
         }
 
-        async function viewTripDetail(tripId) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/trips/${tripId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${dcApp.token}`
-                    }
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    displayTripDetail(result.data);
-                    const modal = new bootstrap.Modal(document.getElementById('tripDetailModal'));
-                    modal.show();
-                } else {
-                    showAlert('error', 'Không thể tải chi tiết chuyến đi');
-                }
-            } catch (error) {
-                console.error('Load trip detail error:', error);
-                showAlert('error', 'Lỗi khi tải chi tiết chuyến đi');
-            }
-        }
-
-        function displayTripDetail(trip) {
-            const statusInfo = getStatusInfo(trip.trang_thai);
-            const formattedDate = new Date(trip.thoi_gian_don).toLocaleString('vi-VN');
-            const price = trip.gia_cuoc ? new Intl.NumberFormat('vi-VN').format(trip.gia_cuoc) + ' VND' : 'Chưa xác định';
-
-            let content = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Thông tin chuyến đi</h6>
-                        <table class="table table-borderless">
-                            <tr><td><strong>Mã chuyến:</strong></td><td>#${trip.id}</td></tr>
-                            <tr><td><strong>Trạng thái:</strong></td><td><span class="badge ${statusInfo.class}">${statusInfo.text}</span></td></tr>
-                            <tr><td><strong>Thời gian đón:</strong></td><td>${formattedDate}</td></tr>
-                            <tr><td><strong>Loại xe:</strong></td><td>${trip.loai_xe || 'Chưa xác định'}</td></tr>
-                            <tr><td><strong>Giá cước:</strong></td><td class="text-primary"><strong>${price}</strong></td></tr>
-                        </table>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Lộ trình</h6>
-                        <div class="mb-3">
-                            <div class="d-flex align-items-center mb-2">
-                                <i class="fas fa-map-marker-alt text-success me-2"></i>
-                                <div>
-                                    <strong>Điểm đón</strong><br>
-                                    <span class="text-muted">${trip.diem_don}</span>
-                                </div>
-                            </div>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-map-marker-alt text-danger me-2"></i>
-                                <div>
-                                    <strong>Điểm đến</strong><br>
-                                    <span class="text-muted">${trip.diem_den}</span>
-                                </div>
-                            </div>
-                        </div>
-                        ${trip.ghi_chu ? `
-                            <h6>Ghi chú</h6>
-                            <p class="text-muted">${trip.ghi_chu}</p>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-
-            // Build driver info from possible shapes returned by the API
-            let driverInfo = null;
-            if (trip.tai_xe && typeof trip.tai_xe === 'object') {
-                driverInfo = trip.tai_xe;
-            } else if (trip.ten_tai_xe || trip.sdt_tai_xe || trip.sdt_khach_hang) {
-                driverInfo = {
-                    id: trip.tai_xe_id || trip.tai_xeId || null,
-                    ten: trip.ten_tai_xe || trip.nd_tx || trip.ten || null,
-                    so_dien_thoai: trip.sdt_tai_xe || trip.sdt_khach_hang || trip.so_dien_thoai || null,
-                    loai_xe: trip.loai_xe || null,
-                    bien_so_xe: trip.bien_so_xe || null,
-                    mau_xe: trip.mau_xe || null,
-                    rating: trip.tai_xe_diem || trip.diem_tai_xe || null,
-                    avatar: trip.tai_xe_avatar || trip.avatar || null
-                };
-            }
-
-            if (driverInfo) {
-                content += `
-                    <hr>
-                    <h6>Thông tin tài xế</h6>
-                    <div class="d-flex align-items-center">
-                        <div class="me-3">
-                            ${driverInfo.avatar ? `<img src="${driverInfo.avatar}" alt="${driverInfo.ten || 'Tài xế'}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;">` : `<i class="fas fa-user-circle fa-3x text-primary"></i>`}
-                        </div>
-                        <div class="flex-grow-1">
-                            <h6 class="mb-1">${driverInfo.ten || 'Tài xế'}</h6>
-                            <p class="mb-1 text-muted">
-                                <i class="fas fa-phone me-1"></i>
-                                ${driverInfo.so_dien_thoai ? `<a href="tel:${driverInfo.so_dien_thoai}" class="text-decoration-none">${driverInfo.so_dien_thoai}</a>` : 'Không có số'}
-                            </p>
-                            <p class="mb-1 text-muted">
-                                <i class="fas fa-car me-1"></i>
-                                ${driverInfo.loai_xe || '-'} ${driverInfo.bien_so_xe ? '• ' + driverInfo.bien_so_xe : ''} ${driverInfo.mau_xe ? '• ' + driverInfo.mau_xe : ''}
-                            </p>
-                            ${driverInfo.rating ? `<p class="mb-0"><span class="badge bg-warning text-dark"><i class="fas fa-star me-1"></i>${Number(driverInfo.rating).toFixed(1)}</span></p>` : ''}
-                        </div>
-                        <div class="text-end">
-                            ${driverInfo.id ? `<a href="/views/driver-detail.html?id=${driverInfo.id}" class="btn btn-sm btn-primary"><i class="fas fa-user me-1"></i>Xem hồ sơ</a>` : ''}
-                        </div>
-                    </div>
-                `;
-            }
-
-            document.getElementById('trip-detail-content').innerHTML = content;
-
-            // Show/hide action buttons
-            const cancelBtn = document.getElementById('cancel-trip-btn');
-            const rateBtn = document.getElementById('rate-trip-btn');
-            
-            // Khách hàng có thể hủy khi chuyến đang CHỜ TÀI XẾ hoặc ĐÃ NHẬN
-            cancelBtn.style.display = (['cho_tai_xe', 'da_nhan'].includes(trip.trang_thai)) ? 'block' : 'none';
-            rateBtn.style.display = (trip.trang_thai === 'hoan_thanh' && !trip.da_danh_gia) ? 'block' : 'none';
-
-            cancelBtn.onclick = () => cancelTrip(trip.id, trip.trang_thai);
-            rateBtn.onclick = () => rateTrip(trip.id);
-        }
+        // viewTripDetail and displayTripDetail functions are now in trip-detail-handler.js
 
         function cancelTrip(tripId, trangThai) {
             // Nếu chưa có tài xế nhận (cho_tai_xe): confirm đơn giản, không cần lý do

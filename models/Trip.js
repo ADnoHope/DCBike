@@ -127,9 +127,13 @@ class Trip {
     try {
       const [rows] = await pool.execute(`
         SELECT cd.*, 
+               ST_X(cd.toa_do_diem_don) as lat_don,
+               ST_Y(cd.toa_do_diem_don) as lng_don,
+               ST_X(cd.toa_do_diem_den) as lat_den,
+               ST_Y(cd.toa_do_diem_den) as lng_den,
                kh.ten as ten_khach_hang, kh.so_dien_thoai as sdt_khach_hang,
                nd_tx.ten as ten_tai_xe, nd_tx.so_dien_thoai as sdt_tai_xe,
-               tx.bien_so_xe, tx.loai_xe, tx.mau_xe, tx.hang_xe,
+               tx.bien_so_xe, tx.loai_xe as loai_xe_tai_xe, tx.mau_xe, tx.hang_xe,
                km.ma_khuyen_mai, km.ten_khuyen_mai
         FROM chuyen_di cd
         LEFT JOIN nguoi_dung kh ON cd.khach_hang_id = kh.id

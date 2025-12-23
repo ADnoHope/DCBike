@@ -85,10 +85,43 @@ const requireDriver = authorize('tai_xe', 'admin');
 // Middleware kiểm tra quyền khách hàng
 const requireCustomer = authorize('khach_hang', 'admin');
 
+// Optional authentication - không bắt buộc có token
+const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      // Không có token, tiếp tục nhưng không set req.user
+      return next();
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = verifyToken(token);
+    const user = await User.findByIdRaw(decoded.userId);
+    
+    if (user && user.trang_thai === 'hoat_dong') {
+      req.user = {
+        id: user.id,
+        email: user.email,
+        ten: user.ten,
+        loai_tai_khoan: user.loai_tai_khoan,
+        trang_thai: user.trang_thai
+      };
+    }
+    
+    next();
+  } catch (error) {
+    // Lỗi token nhưng không block request
+    console.debug('Optional auth failed:', error.message);
+    next();
+  }
+};
+
 module.exports = {
   authenticate,
   authorize,
   requireAdmin,
   requireDriver,
-  requireCustomer
+  requireCustomer,
+  optionalAuth
 };

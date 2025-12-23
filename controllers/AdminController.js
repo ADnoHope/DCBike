@@ -1,5 +1,6 @@
 const DriverRegistration = require('../models/DriverRegistration');
 const Promotion = require('../models/Promotion');
+const UserVoucher = require('../models/UserVoucher');
 const Trip = require('../models/Trip');
 const EmailService = require('../services/EmailService');
 const { pool } = require('../config/database');
@@ -757,6 +758,169 @@ class AdminController {
       res.status(500).json({
         success: false,
         message: 'Lỗi khi từ chối thanh toán'
+      });
+    }
+  }
+
+  // Lấy thống kê voucher cá nhân
+  static async getUserVouchersStats(req, res) {
+    try {
+      // Thống kê tổng quan
+      const [statsResult] = await pool.execute(`
+        SELECT 
+          COUNT(*) as total,
+          SUM(CASE WHEN da_su_dung = TRUE THEN 1 ELSE 0 END) as used,
+          SUM(CASE WHEN da_su_dung = FALSE AND ngay_het_han > NOW() THEN 1 ELSE 0 END) as active,
+          SUM(CASE WHEN da_su_dung = FALSE AND ngay_het_han <= NOW() THEN 1 ELSE 0 END) as expired
+        FROM user_vouchers
+      `);
+
+      const stats = statsResult[0];
+
+      // Lấy danh sách voucher với thông tin khách hàng
+      const [vouchers] = await pool.execute(`
+        SELECT 
+          uv.id,
+          uv.nguoi_dung_id,
+          uv.loai_voucher,
+          uv.da_su_dung,
+          uv.ngay_het_han,
+          uv.created_at,
+          nd.ten as ten_khach_hang,
+          nd.email as email_khach_hang,
+          km.ten_khuyen_mai,
+          km.ma_khuyen_mai
+        FROM user_vouchers uv
+        LEFT JOIN nguoi_dung nd ON uv.nguoi_dung_id = nd.id
+        LEFT JOIN khuyen_mai km ON uv.khuyen_mai_id = km.id
+        ORDER BY uv.created_at DESC
+        LIMIT 100
+      `);
+
+      res.json({
+        success: true,
+        data: {
+          stats: {
+            total: stats.total || 0,
+            used: stats.used || 0,
+            active: stats.active || 0,
+            expired: stats.expired || 0
+          },
+          vouchers
+        }
+      });
+    } catch (error) {
+      console.error('Get user vouchers stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi lấy thống kê voucher cá nhân'
+      });
+    }
+  }
+
+  // Tạo voucher cá nhân cho nhóm khách hàng
+  static async createPersonalVoucher(req, res) {
+    try {
+      const {
+        ma_khuyen_mai, ten_khuyen_mai, mo_ta, loai_khuyen_mai,
+        gia_tri, gia_tri_toi_da, gia_tri_toi_thieu,
+        ngay_bat_dau, ngay_ket_thuc,
+        target_audience, min_trips, min_months, customer_ids, validity_days,
+        usage_limit
+      } = req.body;
+
+      // First, create the base promotion
+      const promotionId = await Promotion.create({
+        ma_khuyen_mai,
+        ten_khuyen_mai,
+        mo_ta,
+        loai_khuyen_mai,
+        gia_tri,
+        gia_tri_toi_da,
+        gia_tri_toi_thieu,
+        ngay_bat_dau,
+        ngay_ket_thuc,
+        gioi_han_su_dung: null, // No limit for base promotion
+        trang_thai: 'hoat_dong'
+      });
+
+      // Determine which customers should receive the voucher
+      let customerIds = [];
+
+      if (target_audience === 'trips_count') {
+        // Customers who have completed at least X trips
+        const [customers] = await pool.execute(`
+          SELECT DISTINCT khach_hang_id
+          FROM chuyen_di
+          WHERE trang_thai = 'hoan_thanh'
+          GROUP BY khach_hang_id
+          HAVING COUNT(*) >= ?
+        `, [parseInt(min_trips) || 5]);
+        customerIds = customers.map(c => c.khach_hang_id);
+
+      } else if (target_audience === 'months_active') {
+        // Customers who have been active for at least X months
+        const monthsAgo = new Date();
+        monthsAgo.setMonth(monthsAgo.getMonth() - (parseInt(min_months) || 3));
+        
+        const [customers] = await pool.execute(`
+          SELECT id
+          FROM nguoi_dung
+          WHERE loai_tai_khoan = 'khach_hang'
+          AND created_at <= ?
+        `, [monthsAgo]);
+        customerIds = customers.map(c => c.id);
+
+      } else if (target_audience === 'manual') {
+        // Manually selected customers
+        customerIds = customer_ids || [];
+      }
+
+      // Create individual vouchers for each customer
+      const validityDays = parseInt(validity_days) || 30;
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + validityDays);
+      const usageLimit = parseInt(usage_limit) || 1; // Mặc định 1 lần sử dụng
+
+      let voucherCount = 0;
+      for (const customerId of customerIds) {
+        try {
+          // Check if customer already has this type of voucher
+          const [existing] = await pool.execute(
+            'SELECT id FROM user_vouchers WHERE nguoi_dung_id = ? AND khuyen_mai_id = ?',
+            [customerId, promotionId]
+          );
+
+          if (existing.length === 0) {
+            await UserVoucher.create({
+              nguoi_dung_id: customerId,
+              khuyen_mai_id: promotionId,
+              loai_voucher: 'vip',
+              ngay_het_han: expiryDate,
+              usage_limit: usageLimit
+            });
+            voucherCount++;
+          }
+        } catch (err) {
+          console.error(`Error creating voucher for customer ${customerId}:`, err);
+        }
+      }
+
+      res.status(201).json({
+        success: true,
+        message: `Đã tạo ${voucherCount} voucher cá nhân cho khách hàng`,
+        data: {
+          promotionId,
+          voucherCount,
+          totalCustomers: customerIds.length
+        }
+      });
+
+    } catch (error) {
+      console.error('Create personal voucher error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi khi tạo voucher cá nhân'
       });
     }
   }

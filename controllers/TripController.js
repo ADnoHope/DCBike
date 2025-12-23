@@ -4,6 +4,9 @@ const Promotion = require('../models/Promotion');
 const Revenue = require('../models/Revenue');
 const DriverDebt = require('../models/DriverDebt');
 const Notification = require('../models/Notification');
+const UserVoucher = require('../models/UserVoucher');
+// Thêm dòng này để dùng kết nối DB cập nhật số lượng voucher
+const { pool } = require('../config/database');
 
 class TripController {
   // Tạo chuyến đi mới
@@ -12,42 +15,69 @@ class TripController {
       const {
         diem_don, diem_den, lat_don, lng_don, lat_den, lng_den,
         khoang_cach, thoi_gian_du_kien, gia_cuoc, phi_dich_vu,
-        khuyen_mai_id, ma_khuyen_mai, so_tien_giam_gia, ghi_chu,
+        khuyen_mai_id, ma_khuyen_mai, user_voucher_id, so_tien_giam_gia, ghi_chu,
         phuong_thuc_thanh_toan, loai_xe
       } = req.body;
 
       const khach_hang_id = req.user.id;
 
-      // Nếu có khuyến mãi, xác nhận và tăng lượt sử dụng ngay tại server để đảm bảo đồng bộ
+      // Nếu có voucher cá nhân, xử lý riêng
       let appliedPromotionId = null;
       let appliedDiscount = 0;
-      let promoIdToUse = khuyen_mai_id;
-      // Allow using promotion by code from client
-      if (!promoIdToUse && ma_khuyen_mai) {
-        try {
-          const promo = await Promotion.findByCode(ma_khuyen_mai);
-          if (promo) promoIdToUse = promo.id;
-        } catch (e) {
-          console.warn('findByCode failed', e?.message);
-        }
-      }
+      let usedUserVoucherId = null;
 
-      if (promoIdToUse) {
+      if (user_voucher_id) {
         try {
           const baseAmount = Number(gia_cuoc) + Number(phi_dich_vu || 0);
-          const result = await Promotion.useIfAvailableById(promoIdToUse, baseAmount);
-          if (result && result.ok) {
-            appliedPromotionId = promoIdToUse;
-            appliedDiscount = result.giam_gia || 0;
+          const voucherResult = await UserVoucher.canUseVoucher(user_voucher_id, khach_hang_id, baseAmount);
+          
+          if (voucherResult && voucherResult.valid) {
+            appliedPromotionId = voucherResult.voucher.khuyen_mai_id;
+            appliedDiscount = voucherResult.giam_gia || 0;
+            usedUserVoucherId = user_voucher_id;
           } else {
-            // Không thể dùng khuyến mãi (hết lượt/hết hạn). Vẫn tiếp tục tạo chuyến nhưng bỏ voucher.
+            return res.status(400).json({
+              success: false,
+              message: voucherResult.message || 'Voucher không hợp lệ'
+            });
+          }
+        } catch (e) {
+          console.error('Apply user voucher error:', e);
+          return res.status(400).json({
+            success: false,
+            message: 'Lỗi khi áp dụng voucher cá nhân'
+          });
+        }
+      } else {
+        // Xử lý voucher công khai (như cũ)
+        let promoIdToUse = khuyen_mai_id;
+        // Allow using promotion by code from client
+        if (!promoIdToUse && ma_khuyen_mai) {
+          try {
+            const promo = await Promotion.findByCode(ma_khuyen_mai);
+            if (promo) promoIdToUse = promo.id;
+          } catch (e) {
+            console.warn('findByCode failed', e?.message);
+          }
+        }
+
+        if (promoIdToUse) {
+          try {
+            const baseAmount = Number(gia_cuoc) + Number(phi_dich_vu || 0);
+            const result = await Promotion.useIfAvailableById(promoIdToUse, baseAmount);
+            if (result && result.ok) {
+              appliedPromotionId = promoIdToUse;
+              appliedDiscount = result.giam_gia || 0;
+            } else {
+              // Không thể dùng khuyến mãi (hết lượt/hết hạn). Vẫn tiếp tục tạo chuyến nhưng bỏ voucher.
+              appliedPromotionId = null;
+              appliedDiscount = 0;
+            }
+          } catch (e) {
+            console.error('Apply promotion error:', e);
             appliedPromotionId = null;
             appliedDiscount = 0;
           }
-        } catch (e) {
-          console.error('Apply promotion error:', e);
-          appliedPromotionId = null;
-          appliedDiscount = 0;
         }
       }
 
@@ -75,6 +105,12 @@ class TripController {
       };
 
       const tripId = await Trip.create(tripData);
+
+      // Đánh dấu voucher cá nhân đã sử dụng (nếu có)
+      // Lưu ý: Voucher công khai đã được trừ số lượng trong Promotion.useIfAvailableById()
+      if (usedUserVoucherId) {
+        await UserVoucher.markAsUsed(usedUserVoucherId, tripId);
+      }
 
       // Tạo thông báo cho các tài xế đang sẵn sàng
       (async () => {
@@ -312,6 +348,16 @@ class TripController {
 
         // Emit Socket.IO event for real-time notification
         global.sendNotificationToUser(trip_data.khach_hang_id, 'trip-accepted', notificationData);
+
+        // 🗺️ Emit trip status update for real-time tracking
+        if (global.notifyTripRoom) {
+          global.notifyTripRoom(tripId, 'trip-status-updated', {
+            tripId,
+            trang_thai: 'da_nhan',
+            tai_xe_id: driver.id,
+            message: 'Tài xế đã nhận chuyến'
+          });
+        }
       }
 
       // Tự động tạo cuộc trò chuyện và gửi tin nhắn thông báo
@@ -395,6 +441,15 @@ class TripController {
 
       await Trip.updateStatus(tripId, 'dang_di');
 
+      // 🗺️ Emit trip status update for real-time tracking
+      if (global.notifyTripRoom) {
+        global.notifyTripRoom(tripId, 'trip-status-updated', {
+          tripId,
+          trang_thai: 'dang_di',
+          message: 'Chuyến đi đã bắt đầu'
+        });
+      }
+
       res.json({
         success: true,
         message: 'Đã bắt đầu chuyến đi'
@@ -441,6 +496,15 @@ class TripController {
 
       await Trip.updateStatus(tripId, 'hoan_thanh');
       await Driver.updateStatus(driver.id, 'san_sang');
+
+      // 🗺️ Emit trip status update for real-time tracking
+      if (global.notifyTripRoom) {
+        global.notifyTripRoom(tripId, 'trip-status-updated', {
+          tripId,
+          trang_thai: 'hoan_thanh',
+          message: 'Chuyến đi đã hoàn thành'
+        });
+      }
 
       // Xử lý thanh toán dựa trên phương thức
       let qrData = null;
@@ -552,6 +616,35 @@ class TripController {
         console.error('Create revenue record error:', revenueError);
         // Không fail toàn bộ request nếu tạo bản ghi doanh thu lỗi
       }
+
+      // Kiểm tra và tạo voucher thưởng cho khách hàng nếu hoàn thành 3 chuyến
+      (async () => {
+        try {
+          const result = await UserVoucher.checkAndCreateRewardVoucher(trip.khach_hang_id);
+          if (result.created) {
+            console.log(`✓ Đã tạo voucher thưởng cho khách hàng #${trip.khach_hang_id} sau 3 chuyến`);
+            
+            // Tạo thông báo cho khách hàng
+            await Notification.create({
+              nguoi_dung_id: trip.khach_hang_id,
+              tieu_de: 'Chúc mừng! Bạn nhận được voucher thưởng',
+              noi_dung: 'Bạn đã hoàn thành 3 chuyến đi và nhận được voucher giảm 15% (tối đa 30,000đ) cho chuyến tiếp theo!',
+              loai_thong_bao: 'khuyen_mai'
+            });
+
+            // Emit real-time notification
+            if (global.notifyUser) {
+              global.notifyUser(trip.khach_hang_id, 'new-voucher', {
+                title: 'Voucher mới',
+                message: 'Bạn nhận được voucher giảm 15% sau khi hoàn thành 3 chuyến!',
+                voucherId: result.voucherId
+              });
+            }
+          }
+        } catch (voucherError) {
+          console.error('Check/create reward voucher error:', voucherError);
+        }
+      })();
 
       res.json({
         success: true,

@@ -1,6 +1,6 @@
 const express = require('express');
 const PromotionController = require('../controllers/PromotionController');
-const { authenticate, requireAdmin } = require('../middleware/auth');
+const { authenticate, requireAdmin, optionalAuth } = require('../middleware/auth');
 const { body } = require('express-validator');
 const { handleValidationErrors } = require('../middleware/validation');
 
@@ -57,8 +57,8 @@ const validatePromotionCheck = [
   handleValidationErrors
 ];
 
-// Kiểm tra mã khuyến mãi (public)
-router.post('/validate', validatePromotionCheck, PromotionController.validatePromotion);
+// Kiểm tra mã khuyến mãi (hỗ trợ cả user đã login và chưa login)
+router.post('/validate', optionalAuth, validatePromotionCheck, PromotionController.validatePromotion);
 
 // Lấy danh sách khuyến mãi đang hoạt động (public)
 router.get('/active', PromotionController.getActivePromotions);
@@ -67,6 +67,12 @@ router.get('/active', PromotionController.getActivePromotions);
 router.get('/all', PromotionController.getPublicPromotions);
 
 // === Routes yêu cầu xác thực ===
+
+// Lấy danh sách voucher cá nhân của người dùng
+router.get('/my-vouchers', authenticate, PromotionController.getUserVouchers);
+
+// Kiểm tra voucher cá nhân có thể sử dụng
+router.post('/validate-user-voucher', authenticate, PromotionController.validateUserVoucher);
 
 // Tạo khuyến mãi mới (admin)
 router.post('/', authenticate, requireAdmin, validatePromotionCreation, PromotionController.createPromotion);

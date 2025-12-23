@@ -40,6 +40,28 @@ module.exports = function setupSocket(io) {
       socket.join(`trip-${tripId}`);
       console.log(`User ${socket.userId} listening to trip ${tripId}`);
     });
+
+    // Driver gửi vị trí real-time
+    socket.on('driver-location-update', (data) => {
+      const { tripId, lat, lng } = data;
+      if (tripId && lat && lng) {
+        // Broadcast vị trí tài xế đến room của trip đó
+        io.to(`trip-${tripId}`).emit('driver-location-updated', {
+          tripId,
+          driverLocation: { lat, lng },
+          timestamp: new Date()
+        });
+        console.log(`Driver location updated for trip ${tripId}: ${lat}, ${lng}`);
+      }
+    });
+
+    // Lắng nghe yêu cầu lấy vị trí tài xế hiện tại
+    socket.on('request-driver-location', (tripId) => {
+      // Emit event yêu cầu tài xế gửi vị trí
+      socket.to(`trip-${tripId}`).emit('send-current-location');
+      console.log(`Requested driver location for trip ${tripId}`);
+    });
+
     socket.on('disconnect', () => {
       console.log(`User ${socket.userId} disconnected`);
       userSockets.delete(socket.userId);
@@ -86,10 +108,16 @@ module.exports = function setupSocket(io) {
     console.log(`Sent ${eventName} to room ${roomName}:`, data);
   };
 
+  global.notifyTripRoom = (tripId, eventName, data) => {
+    io.to(`trip-${tripId}`).emit(eventName, data);
+    console.log(`Sent ${eventName} to trip-${tripId}:`, data);
+  };
+
   return {
     userSockets,
     sendNotificationToUser: global.sendNotificationToUser,
     notifyAllDrivers: global.notifyAllDrivers,
-    notifyRoom: global.notifyRoom
+    notifyRoom: global.notifyRoom,
+    notifyTripRoom: global.notifyTripRoom
   };
 };

@@ -379,15 +379,43 @@
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h2>Quản lý voucher</h2>
                         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#voucherModal">
-                            <i class="bi bi-plus-circle me-2"></i>Tạo voucher mới
+                            <i class="bi bi-plus-circle me-2"></i>Tạo voucher công khai
                         </button>
                     </div>
-                    
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0"><i class="bi bi-gift me-2"></i>Danh sách voucher</h5>
-                        </div>
-                        <div class="card-body">
+
+                    <!-- Info Alert -->
+                    <div class="alert alert-info mb-4">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Lưu ý:</strong> 
+                        <ul class="mb-0 mt-2">
+                            <li><strong>Voucher công khai:</strong> Tất cả khách hàng đều có thể sử dụng bằng mã voucher</li>
+                            <li><strong>Voucher cá nhân:</strong> Tự động tặng riêng cho từng khách hàng (voucher mới, voucher thưởng 3 chuyến)</li>
+                            <li><strong>Voucher hệ thống:</strong> NEW_USER_2025 và REWARD_3TRIPS_2025 được dùng để tạo voucher cá nhân - không nên xóa</li>
+                        </ul>
+                    </div>
+
+                    <!-- Tabs -->
+                    <ul class="nav nav-tabs mb-3" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="public-vouchers-tab" data-bs-toggle="tab" data-bs-target="#public-vouchers" type="button" role="tab">
+                                <i class="bi bi-megaphone me-2"></i>Voucher công khai
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="user-vouchers-tab" data-bs-toggle="tab" data-bs-target="#user-vouchers" type="button" role="tab" onclick="loadUserVouchersStats()">
+                                <i class="bi bi-person-badge me-2"></i>Thống kê voucher cá nhân
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <!-- Public Vouchers Tab -->
+                        <div class="tab-pane fade show active" id="public-vouchers" role="tabpanel">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="bi bi-gift me-2"></i>Danh sách voucher công khai</h5>
+                                </div>
+                                <div class="card-body">
                             <div class="table-responsive">
                                 <table class="table table-hover">
                                     <thead>
@@ -396,6 +424,7 @@
                                             <th>Tên voucher</th>
                                             <th>Loại</th>
                                             <th>Giá trị</th>
+                                            <th>Số lượng</th>
                                             <th>Ngày bắt đầu</th>
                                             <th>Ngày kết thúc</th>
                                             <th>Trạng thái</th>
@@ -404,7 +433,7 @@
                                     </thead>
                                     <tbody id="vouchers-table">
                                         <tr>
-                                            <td colspan="8" class="text-center">Đang tải...</td>
+                                            <td colspan="9" class="text-center">Đang tải...</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -412,6 +441,78 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- User Vouchers Stats Tab -->
+                <div class="tab-pane fade" id="user-vouchers" role="tabpanel">
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-gift-fill text-success" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-2" id="total-user-vouchers">-</h3>
+                                    <p class="text-muted mb-0">Tổng voucher cá nhân</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-check-circle-fill text-primary" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-2" id="used-user-vouchers">-</h3>
+                                    <p class="text-muted mb-0">Đã sử dụng</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-hourglass-split text-warning" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-2" id="active-user-vouchers">-</h3>
+                                    <p class="text-muted mb-0">Chưa sử dụng</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center">
+                                <div class="card-body">
+                                    <i class="bi bi-clock-history text-danger" style="font-size: 2rem;"></i>
+                                    <h3 class="mt-2" id="expired-user-vouchers">-</h3>
+                                    <p class="text-muted mb-0">Hết hạn</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-people me-2"></i>Voucher cá nhân theo khách hàng</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Khách hàng</th>
+                                            <th>Email</th>
+                                            <th>Loại voucher</th>
+                                            <th>Tên voucher</th>
+                                            <th>Trạng thái</th>
+                                            <th>Ngày tạo</th>
+                                            <th>Ngày hết hạn</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="user-vouchers-table">
+                                        <tr>
+                                            <td colspan="7" class="text-center">Đang tải...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
                 <!-- Payment Verification Section -->
                 <div id="payment-verification-section" class="content-section" style="display: none;">
@@ -636,18 +737,115 @@
     
     <!-- Voucher Modal -->
     <div class="modal fade" id="voucherModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Tạo voucher mới</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                                <form id="voucherForm">
-                                    <input type="hidden" id="voucher-id" name="id" />
+                    <!-- System Voucher Warning -->
+                    <div class="alert alert-warning" id="system-voucher-warning" style="display: none;">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Cảnh báo:</strong> Đây là voucher hệ thống. Chỉ nên chỉnh sửa giá trị hoặc thời hạn, không nên xóa!
+                    </div>
+
+                    <form id="voucherForm">
+                        <input type="hidden" id="voucher-id" name="id" />
+                        
+                        <!-- Loại phân phối voucher -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Loại phân phối voucher *</label>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="card h-100" id="public-voucher-card" style="cursor: pointer; border: 2px solid #0d6efd;">
+                                        <div class="card-body text-center">
+                                            <input type="radio" name="voucher_distribution" value="public" id="voucher-public" checked>
+                                            <i class="bi bi-megaphone-fill d-block mt-2 text-primary" style="font-size: 2rem;"></i>
+                                            <h6 class="mt-2">Voucher công khai</h6>
+                                            <small class="text-muted">Tất cả khách hàng có thể sử dụng nếu có mã</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card h-100" id="personal-voucher-card" style="cursor: pointer; border: 2px solid #dee2e6;">
+                                        <div class="card-body text-center">
+                                            <input type="radio" name="voucher_distribution" value="personal" id="voucher-personal">
+                                            <i class="bi bi-person-badge-fill d-block mt-2 text-success" style="font-size: 2rem;"></i>
+                                            <h6 class="mt-2">Voucher cá nhân</h6>
+                                            <small class="text-muted">Tặng riêng cho nhóm khách hàng cụ thể</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Personal Voucher Options (Hidden by default) -->
+                        <div id="personal-voucher-options" style="display: none;">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle me-2"></i>
+                                <strong>Lưu ý:</strong> Voucher sẽ được tạo riêng cho từng khách hàng đủ điều kiện. Mỗi khách chỉ nhận được 1 voucher.
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Đối tượng nhận voucher *</label>
+                                <select class="form-select" id="target-audience" name="target_audience">
+                                    <option value="">-- Chọn đối tượng --</option>
+                                    <option value="trips_count">Khách đã đi X chuyến trở lên</option>
+                                    <option value="months_active">Khách đã sử dụng dịch vụ Y tháng</option>
+                                    <option value="manual">Chọn khách hàng thủ công</option>
+                                </select>
+                            </div>
+
+                            <!-- Trips Count Condition -->
+                            <div id="trips-count-condition" class="mb-3" style="display: none;">
+                                <label class="form-label">Số chuyến tối thiểu</label>
+                                <input type="number" class="form-control" id="min-trips" name="min_trips" min="1" value="5">
+                                <small class="text-muted">VD: 5 = Khách đã hoàn thành ít nhất 5 chuyến</small>
+                            </div>
+
+                            <!-- Months Active Condition -->
+                            <div id="months-active-condition" class="mb-3" style="display: none;">
+                                <label class="form-label">Số tháng đã sử dụng dịch vụ</label>
+                                <input type="number" class="form-control" id="min-months" name="min_months" min="1" value="3">
+                                <small class="text-muted">VD: 3 = Khách đã tạo tài khoản ít nhất 3 tháng</small>
+                            </div>
+
+                            <!-- Manual Selection -->
+                            <div id="manual-selection-condition" class="mb-3" style="display: none;">
+                                <label class="form-label">Danh sách khách hàng</label>
+                                <div class="mb-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllCustomers()">
+                                        <i class="bi bi-check-all me-1"></i>Chọn tất cả
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="clearCustomerSelection()">
+                                        <i class="bi bi-x me-1"></i>Bỏ chọn
+                                    </button>
+                                </div>
+                                <div id="customers-list" class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                                    <div class="text-center text-muted">Đang tải...</div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Thời hạn sử dụng (ngày)</label>
+                                <input type="number" class="form-control" id="voucher-validity-days" name="validity_days" min="1" value="30">
+                                <small class="text-muted">Voucher sẽ hết hạn sau X ngày kể từ khi được tặng</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Số lần sử dụng mỗi người</label>
+                                <input type="number" class="form-control" id="voucher-usage-limit" name="usage_limit" min="1" value="1">
+                                <small class="text-muted">Số lần tối đa mỗi khách hàng có thể sử dụng voucher cá nhân này</small>
+                            </div>
+                        </div>
+
+                        <hr>
+
                         <div class="mb-3">
                             <label class="form-label">Mã voucher *</label>
-                            <input type="text" class="form-control" name="ma_khuyen_mai" required>
+                            <input type="text" class="form-control" name="ma_khuyen_mai" id="voucher-code" required>
+                            <small class="text-muted" id="voucher-code-hint">Mã duy nhất để khách hàng nhập khi sử dụng</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Tên voucher *</label>
@@ -691,8 +889,9 @@
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Giới hạn sử dụng</label>
-                            <input type="number" class="form-control" name="gioi_han_su_dung" min="1">
+                            <label class="form-label">Số lượng voucher</label>
+                            <input type="number" class="form-control" name="so_luong" min="1" value="999999">
+                            <small class="text-muted">Số lượng voucher có thể sử dụng (để trống hoặc 999999 = không giới hạn)</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Trạng thái</label>
@@ -1271,11 +1470,34 @@
             const tbody = document.getElementById('vouchers-table');
             
             if (vouchers.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center">Không có voucher nào</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center">Không có voucher nào</td></tr>';
                 return;
             }
             
-            tbody.innerHTML = vouchers.map(voucher => `
+            tbody.innerHTML = vouchers.map(voucher => {
+                let statusBadge = '';
+                let statusClass = '';
+                
+                if (voucher.trang_thai === 'hoat_dong') {
+                    statusBadge = 'Hoạt động';
+                    statusClass = 'success';
+                } else if (voucher.trang_thai === 'het_luot') {
+                    statusBadge = 'Hết lượt';
+                    statusClass = 'danger';
+                } else if (voucher.trang_thai === 'het_han') {
+                    statusBadge = 'Hết hạn';
+                    statusClass = 'warning';
+                } else {
+                    statusBadge = 'Tạm dừng';
+                    statusClass = 'secondary';
+                }
+                
+                // Hiển thị số lượng
+                const soLuongDisplay = voucher.so_luong >= 999999 
+                    ? '<span class="text-muted">Không giới hạn</span>' 
+                    : `<span class="badge bg-info">${voucher.so_luong.toLocaleString()}</span>`;
+                
+                return `
                 <tr>
                     <td><code>${voucher.ma_khuyen_mai}</code></td>
                     <td>${voucher.ten_khuyen_mai}</td>
@@ -1290,11 +1512,12 @@
                             : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(voucher.gia_tri)
                         }
                     </td>
+                    <td>${soLuongDisplay}</td>
                     <td>${new Date(voucher.ngay_bat_dau).toLocaleDateString('vi-VN')}</td>
                     <td>${new Date(voucher.ngay_ket_thuc).toLocaleDateString('vi-VN')}</td>
                     <td>
-                        <span class="badge bg-${voucher.trang_thai === 'hoat_dong' ? 'success' : 'secondary'}">
-                            ${voucher.trang_thai === 'hoat_dong' ? 'Hoạt động' : 'Tạm dừng'}
+                        <span class="badge bg-${statusClass}">
+                            ${statusBadge}
                         </span>
                     </td>
                     <td>
@@ -1306,18 +1529,52 @@
                         </button>
                     </td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
         async function createVoucher() {
             const form = document.getElementById('voucherForm');
             const formData = new FormData(form);
             const voucherData = Object.fromEntries(formData);
+            
+            // Check distribution type
+            const isPersonal = document.getElementById('voucher-personal').checked;
+            
+            // If personal voucher, collect additional data
+            if (isPersonal) {
+                const targetAudience = document.getElementById('target-audience').value;
+                if (!targetAudience) {
+                    alert('Vui lòng chọn đối tượng nhận voucher');
+                    return;
+                }
+                
+                voucherData.is_personal = true;
+                voucherData.target_audience = targetAudience;
+                voucherData.validity_days = document.getElementById('voucher-validity-days').value;
+                voucherData.usage_limit = document.getElementById('voucher-usage-limit').value;
+                
+                if (targetAudience === 'trips_count') {
+                    voucherData.min_trips = document.getElementById('min-trips').value;
+                } else if (targetAudience === 'months_active') {
+                    voucherData.min_months = document.getElementById('min-months').value;
+                } else if (targetAudience === 'manual') {
+                    const selectedCustomers = Array.from(document.querySelectorAll('.customer-checkbox:checked'))
+                        .map(cb => cb.value);
+                    if (selectedCustomers.length === 0) {
+                        alert('Vui lòng chọn ít nhất một khách hàng');
+                        return;
+                    }
+                    voucherData.customer_ids = selectedCustomers;
+                }
+            } else {
+                voucherData.is_personal = false;
+            }
+            
             // If an id exists, perform update instead
             const id = document.getElementById('voucher-id').value;
             try {
                 if (id) {
-                    // update existing voucher
+                    // update existing voucher (public voucher only)
                     const res = await fetch(`/api/admin/vouchers/${id}`, {
                         method: 'PUT',
                         headers: {
@@ -1340,7 +1597,9 @@
                         alert('Lỗi: ' + (err.message || 'Không thể cập nhật voucher'));
                     }
                 } else {
-                    const response = await fetch('/api/admin/vouchers', {
+                    // Create new voucher
+                    const endpoint = isPersonal ? '/api/admin/vouchers/personal' : '/api/admin/vouchers';
+                    const response = await fetch(endpoint, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${token}`,
@@ -1350,11 +1609,18 @@
                     });
 
                     if (response.ok) {
-                        alert('Tạo voucher thành công!');
+                        const result = await response.json();
+                        const message = isPersonal 
+                            ? `Đã tạo voucher cho ${result.data?.voucherCount || 0} khách hàng!`
+                            : 'Tạo voucher thành công!';
+                        alert(message);
                         bootstrap.Modal.getInstance(document.getElementById('voucherModal')).hide();
                         form.reset();
                         loadVouchers();
                         loadDashboard();
+                        if (isPersonal) {
+                            loadUserVouchersStats();
+                        }
                     } else {
                         const error = await response.json();
                         alert('Lỗi: ' + error.message);
@@ -1411,17 +1677,99 @@
                 form.elements['gia_tri_toi_thieu'].value = v.gia_tri_toi_thieu || '';
                 form.elements['ngay_bat_dau'].value = v.ngay_bat_dau ? new Date(v.ngay_bat_dau).toISOString().slice(0,10) : '';
                 form.elements['ngay_ket_thuc'].value = v.ngay_ket_thuc ? new Date(v.ngay_ket_thuc).toISOString().slice(0,10) : '';
-                form.elements['gioi_han_su_dung'].value = v.gioi_han_su_dung || '';
+                form.elements['so_luong'].value = v.so_luong || 999999;
                 if (form.elements['trang_thai']) form.elements['trang_thai'].value = v.trang_thai || 'hoat_dong';
-                // set trang_thai control by adding a hidden or using select? We'll reuse existing field by creating a temporary select if needed
+                
                 document.getElementById('voucher-id').value = v.id;
                 document.getElementById('voucherSaveButton').textContent = 'Cập nhật';
                 document.getElementById('voucherModal').querySelector('.modal-title').textContent = 'Chỉnh sửa voucher';
+
+                // Show warning for system vouchers
+                const systemVoucherCodes = ['NEW_USER_2025', 'REWARD_3TRIPS_2025'];
+                const warningDiv = document.getElementById('system-voucher-warning');
+                if (systemVoucherCodes.includes(v.ma_khuyen_mai)) {
+                    warningDiv.style.display = 'block';
+                    // Disable code field for system vouchers
+                    form.elements['ma_khuyen_mai'].setAttribute('readonly', 'readonly');
+                } else {
+                    warningDiv.style.display = 'none';
+                    form.elements['ma_khuyen_mai'].removeAttribute('readonly');
+                }
+
                 new bootstrap.Modal(document.getElementById('voucherModal')).show();
             } catch (err) {
                 console.error('editVoucher error:', err);
                 alert('Lỗi khi tải voucher');
             }
+        }
+
+        // Load user vouchers statistics
+        async function loadUserVouchersStats() {
+            try {
+                const response = await fetch('/api/admin/user-vouchers-stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const json = await response.json();
+                    if (json.success && json.data) {
+                        const stats = json.data.stats;
+                        const vouchers = json.data.vouchers;
+
+                        // Update statistics
+                        document.getElementById('total-user-vouchers').textContent = stats.total || 0;
+                        document.getElementById('used-user-vouchers').textContent = stats.used || 0;
+                        document.getElementById('active-user-vouchers').textContent = stats.active || 0;
+                        document.getElementById('expired-user-vouchers').textContent = stats.expired || 0;
+
+                        // Display vouchers list
+                        displayUserVouchers(vouchers);
+                    }
+                } else {
+                    console.error('Failed to load user vouchers stats');
+                }
+            } catch (error) {
+                console.error('Error loading user vouchers stats:', error);
+            }
+        }
+
+        function displayUserVouchers(vouchers) {
+            const tbody = document.getElementById('user-vouchers-table');
+            
+            if (!vouchers || vouchers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">Chưa có voucher cá nhân nào</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = vouchers.map(v => {
+                const isUsed = v.da_su_dung;
+                const isExpired = new Date(v.ngay_het_han) < new Date();
+                let statusBadge = '';
+                
+                if (isUsed) {
+                    statusBadge = '<span class="badge bg-success">Đã sử dụng</span>';
+                } else if (isExpired) {
+                    statusBadge = '<span class="badge bg-danger">Hết hạn</span>';
+                } else {
+                    statusBadge = '<span class="badge bg-warning text-dark">Chưa dùng</span>';
+                }
+
+                const voucherTypeText = v.loai_voucher === 'new_user' ? 'Khách mới' : 'Thưởng 3 chuyến';
+                
+                return `
+                    <tr>
+                        <td>${v.ten_khach_hang || 'N/A'}</td>
+                        <td>${v.email_khach_hang || 'N/A'}</td>
+                        <td><span class="badge bg-info">${voucherTypeText}</span></td>
+                        <td>${v.ten_khuyen_mai || 'N/A'}</td>
+                        <td>${statusBadge}</td>
+                        <td>${new Date(v.created_at).toLocaleDateString('vi-VN')}</td>
+                        <td>${new Date(v.ngay_het_han).toLocaleDateString('vi-VN')}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         // Load payment verification data
@@ -2279,6 +2627,178 @@
         loadFeedbackUnreadCount();
         // Refresh unread count every 30 seconds
         setInterval(loadFeedbackUnreadCount, 30000);
+
+        // Voucher distribution type toggle
+        function toggleVoucherDistribution() {
+            const personalRadio = document.getElementById('voucher-personal');
+            const personalOptions = document.getElementById('personal-voucher-options');
+            const codeHint = document.getElementById('voucher-code-hint');
+            
+            if (!personalRadio || !personalOptions || !codeHint) return;
+            
+            const isPersonal = personalRadio.checked;
+            
+            if (isPersonal) {
+                personalOptions.style.display = 'block';
+                codeHint.textContent = 'Mã voucher chung (sẽ được tạo riêng cho từng khách hàng)';
+                const personalCard = document.getElementById('personal-voucher-card');
+                const publicCard = document.getElementById('public-voucher-card');
+                if (personalCard) personalCard.style.borderColor = '#198754';
+                if (publicCard) publicCard.style.borderColor = '#dee2e6';
+            } else {
+                personalOptions.style.display = 'none';
+                codeHint.textContent = 'Mã duy nhất để khách hàng nhập khi sử dụng';
+                const publicCard = document.getElementById('public-voucher-card');
+                const personalCard = document.getElementById('personal-voucher-card');
+                if (publicCard) publicCard.style.borderColor = '#0d6efd';
+                if (personalCard) personalCard.style.borderColor = '#dee2e6';
+            }
+        }
+
+        // Initialize voucher form listeners
+        function initVoucherFormListeners() {
+            // Click on card to select
+            const publicCard = document.getElementById('public-voucher-card');
+            const personalCard = document.getElementById('personal-voucher-card');
+            const publicRadio = document.getElementById('voucher-public');
+            const personalRadio = document.getElementById('voucher-personal');
+            const targetAudience = document.getElementById('target-audience');
+            
+            if (publicCard) {
+                publicCard.addEventListener('click', function() {
+                    if (publicRadio) {
+                        publicRadio.checked = true;
+                        toggleVoucherDistribution();
+                    }
+                });
+            }
+
+            if (personalCard) {
+                personalCard.addEventListener('click', function() {
+                    if (personalRadio) {
+                        personalRadio.checked = true;
+                        toggleVoucherDistribution();
+                    }
+                });
+            }
+
+            // Radio change listeners
+            if (publicRadio) {
+                publicRadio.addEventListener('change', toggleVoucherDistribution);
+            }
+            if (personalRadio) {
+                personalRadio.addEventListener('change', toggleVoucherDistribution);
+            }
+
+            // Target audience change
+            if (targetAudience) {
+                targetAudience.addEventListener('change', function() {
+                    const value = this.value;
+                    const tripsCondition = document.getElementById('trips-count-condition');
+                    const monthsCondition = document.getElementById('months-active-condition');
+                    const manualCondition = document.getElementById('manual-selection-condition');
+                    
+                    if (tripsCondition) tripsCondition.style.display = value === 'trips_count' ? 'block' : 'none';
+                    if (monthsCondition) monthsCondition.style.display = value === 'months_active' ? 'block' : 'none';
+                    if (manualCondition) manualCondition.style.display = value === 'manual' ? 'block' : 'none';
+                    
+                    if (value === 'manual') {
+                        loadCustomersForSelection();
+                    }
+                });
+            }
+        }
+
+        // Reset voucher modal when closed
+        const voucherModal = document.getElementById('voucherModal');
+        if (voucherModal) {
+            voucherModal.addEventListener('hidden.bs.modal', function () {
+                const form = document.getElementById('voucherForm');
+                if (form) form.reset();
+                
+                const voucherId = document.getElementById('voucher-id');
+                if (voucherId) voucherId.value = '';
+                
+                const saveBtn = document.getElementById('voucherSaveButton');
+                if (saveBtn) saveBtn.textContent = 'Tạo voucher';
+                
+                const modalTitle = voucherModal.querySelector('.modal-title');
+                if (modalTitle) modalTitle.textContent = 'Tạo voucher mới';
+                
+                const warning = document.getElementById('system-voucher-warning');
+                if (warning) warning.style.display = 'none';
+                
+                const personalOptions = document.getElementById('personal-voucher-options');
+                if (personalOptions) personalOptions.style.display = 'none';
+                
+                const publicRadio = document.getElementById('voucher-public');
+                if (publicRadio) publicRadio.checked = true;
+                
+                toggleVoucherDistribution();
+                
+                const codeInput = document.getElementById('voucher-code');
+                if (codeInput) codeInput.removeAttribute('readonly');
+            });
+            
+            // Initialize listeners when modal is shown
+            voucherModal.addEventListener('shown.bs.modal', function () {
+                initVoucherFormListeners();
+            });
+        }
+
+        // Load customers for manual selection
+        async function loadCustomersForSelection() {
+            try {
+                const response = await fetch('/api/admin/users?role=khach_hang', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const json = await response.json();
+                    const customers = json.data || [];
+                    
+                    const container = document.getElementById('customers-list');
+                    if (customers.length === 0) {
+                        container.innerHTML = '<div class="text-center text-muted">Không có khách hàng</div>';
+                        return;
+                    }
+                    
+                    container.innerHTML = customers.map(c => `
+                        <div class="form-check mb-2">
+                            <input class="form-check-input customer-checkbox" type="checkbox" value="${c.id}" id="customer-${c.id}">
+                            <label class="form-check-label" for="customer-${c.id}">
+                                <strong>${c.ten}</strong> - ${c.email || c.so_dien_thoai}
+                                <br><small class="text-muted">Đã tham gia: ${new Date(c.created_at).toLocaleDateString('vi-VN')}</small>
+                            </label>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading customers:', error);
+            }
+        }
+
+        function selectAllCustomers() {
+            document.querySelectorAll('.customer-checkbox').forEach(cb => cb.checked = true);
+        }
+
+        function clearCustomerSelection() {
+            document.querySelectorAll('.customer-checkbox').forEach(cb => cb.checked = false);
+        }
+
+        // Initialize page - Load dashboard on startup
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Admin page loaded');
+            loadDashboard();
+        });
+
+        // Also load immediately if DOM is already ready
+        if (document.readyState === 'loading') {
+            // DOM is still loading, wait for it
+        } else {
+            // DOM is ready, load dashboard now
+            loadDashboard();
+        }
     </script>
 </body>
 </html>

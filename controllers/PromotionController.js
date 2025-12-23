@@ -1,4 +1,5 @@
 const Promotion = require('../models/Promotion');
+const UserVoucher = require('../models/UserVoucher');
 
 class PromotionController {
   // Tạo khuyến mãi mới (Admin)
@@ -46,7 +47,7 @@ class PromotionController {
     }
   }
 
-  // Kiểm tra mã khuyến mãi
+  // Kiểm tra mã khuyến mãi (bao gồm cả voucher cá nhân)
   static async validatePromotion(req, res) {
     try {
       const { ma_khuyen_mai, gia_don_hang } = req.body;
@@ -58,6 +59,43 @@ class PromotionController {
         });
       }
 
+      // Nếu có user đăng nhập, kiểm tra voucher cá nhân trước
+      if (req.user && req.user.id) {
+        try {
+          // Tìm voucher cá nhân của user có mã này
+          const userVouchers = await UserVoucher.getByUserId(req.user.id, false);
+          const userVoucher = userVouchers.find(v => v.ma_khuyen_mai === ma_khuyen_mai);
+          
+          if (userVoucher) {
+            // Kiểm tra voucher cá nhân
+            const voucherResult = await UserVoucher.canUseVoucher(userVoucher.id, req.user.id, gia_don_hang);
+            
+            if (voucherResult.valid) {
+              return res.json({
+                success: true,
+                message: 'Voucher cá nhân hợp lệ',
+                data: {
+                  promotion: voucherResult.voucher,
+                  giam_gia: voucherResult.giam_gia,
+                  isUserVoucher: true,
+                  userVoucherId: userVoucher.id
+                }
+              });
+            } else {
+              return res.json({
+                success: false,
+                message: voucherResult.message || 'Voucher không hợp lệ',
+                data: null
+              });
+            }
+          }
+        } catch (e) {
+          console.debug('Error checking user voucher:', e);
+          // Tiếp tục kiểm tra voucher công khai nếu không tìm thấy voucher cá nhân
+        }
+      }
+
+      // Kiểm tra voucher công khai
       const result = await Promotion.validatePromotion(ma_khuyen_mai, gia_don_hang);
 
       res.json({
@@ -65,7 +103,8 @@ class PromotionController {
         message: result.message,
         data: result.valid ? {
           promotion: result.promotion,
-          giam_gia: result.giam_gia
+          giam_gia: result.giam_gia,
+          isUserVoucher: false
         } : null
       });
     } catch (error) {
@@ -209,6 +248,59 @@ class PromotionController {
       res.status(500).json({
         success: false,
         message: 'Lỗi hệ thống khi lấy thống kê khuyến mãi'
+      });
+    }
+  }
+
+  // Lấy danh sách voucher cá nhân của người dùng
+  static async getUserVouchers(req, res) {
+    try {
+      const userId = req.user.id;
+      const includeUsed = req.query.includeUsed === 'true';
+
+      const vouchers = await UserVoucher.getByUserId(userId, includeUsed);
+
+      res.json({
+        success: true,
+        data: vouchers
+      });
+    } catch (error) {
+      console.error('Get user vouchers error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi hệ thống khi lấy danh sách voucher'
+      });
+    }
+  }
+
+  // Kiểm tra voucher cá nhân có thể sử dụng
+  static async validateUserVoucher(req, res) {
+    try {
+      const userId = req.user.id;
+      const { voucher_id, gia_don_hang } = req.body;
+
+      if (!voucher_id || !gia_don_hang) {
+        return res.status(400).json({
+          success: false,
+          message: 'Thiếu thông tin voucher hoặc giá đơn hàng'
+        });
+      }
+
+      const result = await UserVoucher.canUseVoucher(voucher_id, userId, gia_don_hang);
+
+      res.json({
+        success: result.valid,
+        message: result.message,
+        data: result.valid ? {
+          voucher: result.voucher,
+          giam_gia: result.giam_gia
+        } : null
+      });
+    } catch (error) {
+      console.error('Validate user voucher error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Lỗi hệ thống khi kiểm tra voucher'
       });
     }
   }

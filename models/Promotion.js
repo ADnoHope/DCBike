@@ -12,8 +12,7 @@ class Promotion {
     this.gia_tri_toi_thieu = data.gia_tri_toi_thieu;
     this.ngay_bat_dau = data.ngay_bat_dau;
     this.ngay_ket_thuc = data.ngay_ket_thuc;
-    this.so_luong_su_dung = data.so_luong_su_dung;
-    this.gioi_han_su_dung = data.gioi_han_su_dung;
+    this.so_luong = data.so_luong; // Số lượng còn lại (refactored)
     this.trang_thai = data.trang_thai;
     this.created_at = data.created_at;
   }
@@ -25,7 +24,7 @@ class Promotion {
         INSERT INTO khuyen_mai (
           ma_khuyen_mai, ten_khuyen_mai, mo_ta, loai_khuyen_mai, gia_tri,
           gia_tri_toi_da, gia_tri_toi_thieu, ngay_bat_dau, ngay_ket_thuc,
-          gioi_han_su_dung, trang_thai, created_by
+          so_luong, trang_thai, created_by
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         promotionData.ma_khuyen_mai,
@@ -37,7 +36,7 @@ class Promotion {
         promotionData.gia_tri_toi_thieu || null,
         promotionData.ngay_bat_dau,
         promotionData.ngay_ket_thuc,
-        promotionData.gioi_han_su_dung || null,
+        promotionData.so_luong || 999999, // Mặc định "không giới hạn"
         promotionData.trang_thai || 'hoat_dong',
         promotionData.created_by || null
       ]);
@@ -47,45 +46,114 @@ class Promotion {
     }
   }
 
-  // Tăng lượt sử dụng nếu còn lượt và trả về mức giảm tính theo đơn hàng
+  /**
+   * [REFACTORED] Sử dụng voucher - Trừ 1 từ so_luong và tự động cập nhật trạng thái
+   * @param {number} id - ID của voucher
+   * @param {number} giaDonHang - Giá trị đơn hàng để tính giảm giá
+   * @returns {object} { ok: boolean, message: string, promotion?: object, giam_gia?: number }
+   */
   static async useIfAvailableById(id, giaDonHang = 0) {
     try {
-      // Lấy thông tin khuyến mãi
-      const promo = await this.findById(id);
-      if (!promo) return { ok: false, message: 'Không tìm thấy khuyến mãi' };
+      // Lấy thông tin voucher với FOR UPDATE để lock row (tránh race condition)
+      const connection = await pool.getConnection();
+      
+      try {
+        await connection.beginTransaction();
 
-      // Kiểm tra trạng thái/thời gian/giới hạn
-      const now = new Date();
-      if (promo.trang_thai !== 'hoat_dong') return { ok: false, message: 'Khuyến mãi không hoạt động' };
-      if (promo.ngay_bat_dau && now < new Date(promo.ngay_bat_dau)) return { ok: false, message: 'Chưa đến thời gian áp dụng' };
-      if (promo.ngay_ket_thuc && now > new Date(promo.ngay_ket_thuc)) return { ok: false, message: 'Khuyến mãi đã hết hạn' };
-      if (promo.gioi_han_su_dung && promo.so_luong_su_dung >= promo.gioi_han_su_dung) {
-        return { ok: false, message: 'Khuyến mãi đã hết lượt sử dụng' };
-      }
+        // Lock row để đảm bảo không bị trừ quá số lượng
+        const [rows] = await connection.execute(
+          'SELECT * FROM khuyen_mai WHERE id = ? FOR UPDATE',
+          [id]
+        );
 
-      // Tính số tiền giảm dựa trên đơn hàng
-      let giam_gia = 0;
-      if (promo.loai_khuyen_mai === 'phan_tram') {
-        giam_gia = (Number(giaDonHang) * Number(promo.gia_tri)) / 100;
-        if (promo.gia_tri_toi_da && giam_gia > Number(promo.gia_tri_toi_da)) {
-          giam_gia = Number(promo.gia_tri_toi_da);
+        if (rows.length === 0) {
+          await connection.rollback();
+          return { ok: false, message: 'Không tìm thấy khuyến mãi' };
         }
-      } else {
-        giam_gia = Number(promo.gia_tri);
+
+        const promo = rows[0];
+
+        // Kiểm tra trạng thái
+        if (promo.trang_thai !== 'hoat_dong') {
+          await connection.rollback();
+          return { ok: false, message: 'Khuyến mãi không hoạt động' };
+        }
+
+        // Kiểm tra thời gian
+        const now = new Date();
+        if (promo.ngay_bat_dau && now < new Date(promo.ngay_bat_dau)) {
+          await connection.rollback();
+          return { ok: false, message: 'Chưa đến thời gian áp dụng' };
+        }
+        if (promo.ngay_ket_thuc && now > new Date(promo.ngay_ket_thuc)) {
+          await connection.rollback();
+          return { ok: false, message: 'Khuyến mãi đã hết hạn' };
+        }
+
+        // Kiểm tra số lượng
+        if (promo.so_luong <= 0) {
+          await connection.rollback();
+          return { ok: false, message: 'Voucher đã hết' };
+        }
+
+        // Kiểm tra giá trị tối thiểu
+        if (promo.gia_tri_toi_thieu && giaDonHang < promo.gia_tri_toi_thieu) {
+          await connection.rollback();
+          return { 
+            ok: false, 
+            message: `Đơn hàng tối thiểu ${promo.gia_tri_toi_thieu.toLocaleString()}đ` 
+          };
+        }
+
+        // Tính giảm giá
+        let giam_gia = 0;
+        if (promo.loai_khuyen_mai === 'phan_tram') {
+          giam_gia = (Number(giaDonHang) * Number(promo.gia_tri)) / 100;
+          if (promo.gia_tri_toi_da && giam_gia > Number(promo.gia_tri_toi_da)) {
+            giam_gia = Number(promo.gia_tri_toi_da);
+          }
+        } else {
+          giam_gia = Number(promo.gia_tri);
+        }
+
+        // Trừ 1 từ so_luong
+        const newQuantity = promo.so_luong - 1;
+        const newStatus = newQuantity <= 0 ? 'het_luot' : promo.trang_thai;
+
+        const [updateResult] = await connection.execute(
+          `UPDATE khuyen_mai 
+           SET so_luong = ?, 
+               trang_thai = ?
+           WHERE id = ? AND so_luong > 0`,
+          [newQuantity, newStatus, id]
+        );
+
+        if (updateResult.affectedRows === 0) {
+          await connection.rollback();
+          return { ok: false, message: 'Voucher đã hết hoặc đang được sử dụng' };
+        }
+
+        await connection.commit();
+        
+        console.log(`✅ Voucher ${promo.ma_khuyen_mai}: ${promo.so_luong} -> ${newQuantity} (${newStatus})`);
+
+        return { 
+          ok: true, 
+          promotion: promo, 
+          giam_gia: Math.round(giam_gia),
+          newQuantity,
+          newStatus
+        };
+
+      } catch (error) {
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
       }
 
-      // Tăng lượt sử dụng có điều kiện để tránh vượt quá giới hạn
-      const [result] = await pool.execute(
-        'UPDATE khuyen_mai SET so_luong_su_dung = so_luong_su_dung + 1 WHERE id = ? AND (gioi_han_su_dung IS NULL OR so_luong_su_dung < gioi_han_su_dung)'
-        , [id]
-      );
-
-      if (result.affectedRows === 0) {
-        return { ok: false, message: 'Khuyến mãi đã hết lượt sử dụng' };
-      }
-
-      return { ok: true, promotion: promo, giam_gia: Math.round(giam_gia) };
     } catch (error) {
+      console.error('Error in useIfAvailableById:', error);
       throw error;
     }
   }
@@ -138,17 +206,17 @@ class Promotion {
         return { valid: false, message: 'Mã khuyến mãi đã hết hạn' };
       }
 
+      // Kiểm tra số lượng còn lại
+      if (promotion.so_luong <= 0) {
+        return { valid: false, message: 'Mã khuyến mãi đã hết' };
+      }
+
       // Kiểm tra giá trị tối thiểu
       if (promotion.gia_tri_toi_thieu && gia_don_hang < promotion.gia_tri_toi_thieu) {
         return { 
           valid: false, 
           message: `Đơn hàng tối thiểu ${promotion.gia_tri_toi_thieu.toLocaleString()}đ để sử dụng mã này` 
         };
-      }
-
-      // Kiểm tra giới hạn sử dụng
-      if (promotion.gioi_han_su_dung && promotion.so_luong_su_dung >= promotion.gioi_han_su_dung) {
-        return { valid: false, message: 'Mã khuyến mãi đã hết lượt sử dụng' };
       }
 
       // Tính số tiền giảm
@@ -166,21 +234,8 @@ class Promotion {
         valid: true, 
         promotion, 
         giam_gia: Math.round(giam_gia),
-        message: `Giảm ${giam_gia.toLocaleString()}đ` 
+        message: `Giảm ${giam_gia.toLocaleString()}đ (Còn ${promotion.so_luong} voucher)` 
       };
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  // Sử dụng khuyến mãi (tăng số lượng sử dụng)
-  static async usePromotion(id) {
-    try {
-      const [result] = await pool.execute(
-        'UPDATE khuyen_mai SET so_luong_su_dung = so_luong_su_dung + 1 WHERE id = ?',
-        [id]
-      );
-      return result.affectedRows > 0;
     } catch (error) {
       throw error;
     }

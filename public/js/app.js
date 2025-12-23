@@ -23,8 +23,15 @@ class DCCarBooking {
                 this.updateUI();
             } catch (error) {
                 console.error('Error loading user profile:', error);
-                // If profile loading fails, clear invalid token
-                this.logout();
+                
+                // Check if account is locked (403 Forbidden)
+                if (error.message && error.message.includes('khóa')) {
+                    showError('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ CSKH để được tư vấn.');
+                    this.logout();
+                } else {
+                    // If profile loading fails, clear invalid token
+                    this.logout();
+                }
             }
         } else {
             console.log('No token found, user not logged in'); // Debug log
@@ -198,11 +205,16 @@ class DCCarBooking {
     // Authentication
     async loadUserProfile() {
         console.log('Loading user profile with token:', this.token); // Debug log
-        const response = await this.apiCall('/auth/profile');
-        console.log('Profile response:', response); // Debug log
-        this.user = response.data;
-        console.log('User set to:', this.user); // Debug log
-        localStorage.setItem('user', JSON.stringify(this.user));
+        try {
+            const response = await this.apiCall('/auth/profile');
+            console.log('Profile response:', response); // Debug log
+            this.user = response.data;
+            console.log('User set to:', this.user); // Debug log
+            localStorage.setItem('user', JSON.stringify(this.user));
+        } catch (error) {
+            // Re-throw error with more context for init() to handle
+            throw error;
+        }
     }
 
     logout() {
@@ -1154,6 +1166,10 @@ document.addEventListener('DOMContentLoaded', () => {
             errorMessage = 'Không thể xác thực với Google. Vui lòng thử lại.';
         } else if (error === 'google_auth_error') {
             errorMessage = 'Có lỗi xảy ra trong quá trình đăng nhập Google.';
+        } else if (error === 'account_locked') {
+            errorMessage = 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ CSKH để được tư vấn.';
+        } else if (error === 'account_deleted') {
+            errorMessage = 'Tài khoản không tồn tại.';
         }
         showNotification(errorMessage, 'error');
         

@@ -16,24 +16,46 @@ class PromotionService {
             const response = await fetch('/api/promotions/active');
             const result = await response.json();
 
+            let promotions = [];
             if (result.success) {
                 // Normalize server response shapes: result.data may be an array or an object
-                let promotions = [];
                 if (Array.isArray(result.data)) promotions = result.data;
                 else if (result.data && Array.isArray(result.data.promotions)) promotions = result.data.promotions;
                 else promotions = [];
+            }
 
-                this.displayPromotions(promotions);
-                // If booking page has a small container, render a compact list of available promotions
-                if (document.getElementById('available-promotions-mini')) {
-                    this.renderAvailablePromotions(promotions);
+            // Fetch user's personal vouchers if logged in
+            let userVouchers = [];
+            const token = localStorage.getItem('token');
+            if (token) {
+                try {
+                    const voucherResponse = await fetch('/api/promotions/my-vouchers', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const voucherResult = await voucherResponse.json();
+                    if (voucherResult.success && Array.isArray(voucherResult.data)) {
+                        userVouchers = voucherResult.data.map(v => ({
+                            ...v,
+                            isPersonalVoucher: true,
+                            remaining: (v.usage_limit || 1) - (v.times_used || 0)
+                        }));
+                    }
+                } catch (e) {
+                    console.debug('Could not load personal vouchers:', e);
                 }
-                // If booking modal exists, render promotions there too
-                if (document.getElementById('available-promotions-modal')) {
-                    this.renderAvailablePromotionsModal(promotions);
-                }
-            } else {
-                console.error('Failed to load promotions:', result.message);
+            }
+
+            // Combine public promotions and personal vouchers
+            const allPromotions = [...userVouchers, ...promotions];
+
+            this.displayPromotions(allPromotions);
+            // If booking page has a small container, render a compact list of available promotions
+            if (document.getElementById('available-promotions-mini')) {
+                this.renderAvailablePromotions(allPromotions);
+            }
+            // If booking modal exists, render promotions there too
+            if (document.getElementById('available-promotions-modal')) {
+                this.renderAvailablePromotionsModal(allPromotions);
             }
         } catch (error) {
             console.error('Load promotions error:', error);
@@ -45,8 +67,14 @@ class PromotionService {
         const container = document.getElementById('available-promotions-mini');
         if (!container) return;
 
-        // Filter active-like statuses
-        const active = promotions.filter(p => !p.trang_thai || p.trang_thai === 'hoat_dong' || p.trang_thai === 'kich_hoat' || p.trang_thai === 'active');
+        // Filter active promotions and available personal vouchers
+        const active = promotions.filter(p => {
+            if (p.isPersonalVoucher) {
+                return p.remaining > 0;
+            }
+            return !p.trang_thai || p.trang_thai === 'hoat_dong' || p.trang_thai === 'kich_hoat' || p.trang_thai === 'active';
+        });
+
         if (active.length === 0) {
             container.innerHTML = `<div class="col-12 text-muted small">Không có mã khả dụng.</div>`;
             return;
@@ -54,9 +82,14 @@ class PromotionService {
 
         let html = '';
         active.forEach(p => {
-            const totalAllowed = p.so_luong_toi_da || p.so_luong_toi_da || p.gioi_han_su_dung || null;
-            const used = p.so_luong_su_dung || 0;
-            const remaining = totalAllowed ? Math.max(0, totalAllowed - used) : 'Không giới hạn';
+            let remaining;
+            if (p.isPersonalVoucher) {
+                remaining = p.remaining || 0;
+            } else {
+                const totalAllowed = p.so_luong_toi_da || p.gioi_han_su_dung || null;
+                const used = p.so_luong_su_dung || 0;
+                remaining = totalAllowed ? Math.max(0, totalAllowed - used) : 'Không giới hạn';
+            }
 
             html += `
                 <div class="col-12">
@@ -82,7 +115,15 @@ class PromotionService {
         const container = document.getElementById('available-promotions-modal');
         if (!container) return;
 
-        const active = promotions.filter(p => !p.trang_thai || p.trang_thai === 'hoat_dong' || p.trang_thai === 'kich_hoat' || p.trang_thai === 'active');
+        const active = promotions.filter(p => {
+            // For personal vouchers, check if they have remaining uses
+            if (p.isPersonalVoucher) {
+                return p.remaining > 0;
+            }
+            // For public promotions
+            return !p.trang_thai || p.trang_thai === 'hoat_dong' || p.trang_thai === 'kich_hoat' || p.trang_thai === 'active';
+        });
+
         if (active.length === 0) {
             container.innerHTML = `<div class="col-12 text-muted small">Không có mã khả dụng.</div>`;
             return;
@@ -90,9 +131,16 @@ class PromotionService {
 
         let html = '';
         active.forEach(p => {
-            const totalAllowed = p.so_luong_toi_da || p.gioi_han_su_dung || null;
-            const used = p.so_luong_su_dung || 0;
-            const remaining = totalAllowed ? Math.max(0, totalAllowed - used) : 'Không giới hạn';
+            let remaining;
+            if (p.isPersonalVoucher) {
+                // Personal voucher: use usage_limit and times_used
+                remaining = p.remaining || 0;
+            } else {
+                // Public promotion: use gioi_han_su_dung
+                const totalAllowed = p.so_luong_toi_da || p.gioi_han_su_dung || null;
+                const used = p.so_luong_su_dung || 0;
+                remaining = totalAllowed ? Math.max(0, totalAllowed - used) : 'Không giới hạn';
+            }
 
             html += `
                 <div class="col-12">
@@ -247,12 +295,19 @@ class PromotionService {
     // Apply promotion code
     async applyPromotionCode(promotionCode, orderTotal) {
         try {
-            // Call public validate endpoint which expects { ma_khuyen_mai, gia_don_hang }
+            // Get token if user is logged in
+            const token = localStorage.getItem('token');
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            // Call validate endpoint which supports both public and user vouchers
             const response = await fetch('/api/promotions/validate', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: headers,
                 body: JSON.stringify({
                     ma_khuyen_mai: promotionCode,
                     gia_don_hang: orderTotal

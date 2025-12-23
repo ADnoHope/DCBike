@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Driver = require('../models/Driver');
 const DriverRegistration = require('../models/DriverRegistration');
 const DriverDebt = require('../models/DriverDebt');
+const UserVoucher = require('../models/UserVoucher');
 const EmailService = require('../services/EmailService');
 const path = require('path');
 const fs = require('fs');
@@ -49,6 +50,13 @@ class AuthController {
 
       // Tạo token
       const token = generateToken({ userId, email, loai_tai_khoan: userType });
+
+      // Tạo voucher cho khách hàng mới (chỉ khách hàng, không tạo cho tài xế)
+      if (userType === 'khach_hang') {
+        UserVoucher.createNewUserVoucher(userId).catch(err => {
+          console.error('Create new user voucher error:', err);
+        });
+      }
 
       res.status(201).json({
         success: true,
@@ -181,6 +189,21 @@ class AuthController {
         });
       }
 
+      // Kiểm tra trạng thái tài khoản
+      if (user.trang_thai === 'tam_khoa') {
+        return res.status(403).json({
+          success: false,
+          message: 'Tài khoản đã bị khóa. Vui lòng liên hệ CSKH để được tư vấn.'
+        });
+      }
+
+      if (user.trang_thai === 'da_xoa') {
+        return res.status(403).json({
+          success: false,
+          message: 'Tài khoản không tồn tại'
+        });
+      }
+
       // Kiểm tra mật khẩu
       const isPasswordValid = await bcrypt.compare(mat_khau, user.mat_khau);
       if (!isPasswordValid) {
@@ -234,6 +257,15 @@ class AuthController {
     try {
       if (!req.user) {
         return res.redirect('/index.html?error=google_auth_error');
+      }
+
+      // Kiểm tra trạng thái tài khoản
+      if (req.user.trang_thai === 'tam_khoa') {
+        return res.redirect('/index.html?error=account_locked');
+      }
+      
+      if (req.user.trang_thai === 'da_xoa') {
+        return res.redirect('/index.html?error=account_deleted');
       }
 
       const loaiTaiKhoan = req.user.loai_tai_khoan || 'khach_hang';
